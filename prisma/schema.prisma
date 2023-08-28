@@ -1,0 +1,254 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "views"]
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                String        @id @default(cuid())
+  email             String        @unique
+  emailVerified     DateTime?
+  image             String?
+  firstName         String?
+  lastName          String?
+  createdAt         DateTime      @default(now())
+  role              Role          @default(APPLICANT)
+  password          String
+  thinkific_user_id String?
+  accounts          Account[]
+  profile           Profile?
+  reports           Report[]
+  seatBooking       SeatBooking[]
+  sessions          Session[]
+  userCohort        UserCohort[]
+}
+
+model Profile {
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  taftaCenter      String?
+  homeAddress      String?
+  zipCode          String?
+  phoneNumber      String?
+  gender           Gender?
+  ageRange         String?
+  stateOfOrigin    String?
+  stateOfResidence String?
+  dob              DateTime?
+  communityArea    CommunityArea?
+  disability       String?
+  educationLevel   EducationLevel?
+  source           String?
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrer         Referrer?
+  employmentStatus String?
+  selfEmployedType String?
+  residencyStatus  String?
+}
+
+model Enrollment {
+  uid                  String     @id @default(cuid())
+  id                   BigInt?    @unique
+  created_at           DateTime   @default(now())
+  expiry_date          DateTime?
+  user_id              BigInt?
+  course_name          String
+  course_id            BigInt
+  completed_at         DateTime?
+  expired              Boolean?
+  is_free_trial        Boolean?
+  completed            Boolean?
+  started_at           DateTime?
+  activated_at         DateTime?
+  updated_at           DateTime?
+  enrolled             Boolean    @default(false)
+  userCohortId         String
+  percentage_completed Float?
+  userCohort           UserCohort @relation(fields: [userCohortId], references: [id], onDelete: Cascade)
+
+  @@index([id, course_id])
+}
+
+model Cohort {
+  id            String         @id @default(cuid())
+  start_date    DateTime
+  end_date      DateTime
+  active        Boolean        @default(true)
+  color         String
+  name          String
+  cohortCourses CohortCourse[]
+  reports       Report[]
+  userCohort    UserCohort[]
+  centers       Location[]     @relation("CohortToLocation")
+}
+
+model UserCohort {
+  id          String       @id @default(cuid())
+  userId      String
+  cohortId    String
+  locationId  String?
+  created_at  DateTime     @default(now())
+  enrollments Enrollment[]
+  cohort      Cohort       @relation(fields: [cohortId], references: [id])
+  location    Location?    @relation(fields: [locationId], references: [id])
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  uid             String         @id @default(cuid())
+  id              BigInt         @unique
+  created_at      DateTime       @default(now())
+  active          Boolean?
+  course_capacity Int?
+  course_colour   String?
+  description     String?
+  name            String
+  slug            String?
+  cohortCourse    CohortCourse[]
+}
+
+model CohortCourse {
+  id           String     @id @default(cuid())
+  cohortId     String
+  courseId     String
+  course_limit Int?
+  course_id    BigInt
+  cohort       Cohort     @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  course       Course     @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  location     Location[] @relation("CohortCourseToLocation")
+}
+
+model Location {
+  id            String         @id @default(cuid())
+  location      String
+  seats         Int?
+  name          String
+  seatBooking   SeatBooking[]
+  userCohorts   UserCohort[]
+  cohortCourses CohortCourse[] @relation("CohortCourseToLocation")
+  cohorts       Cohort[]       @relation("CohortToLocation")
+}
+
+model SeatBooking {
+  id         String   @id @default(cuid())
+  userId     String
+  seatNumber Int
+  locationId String
+  Date       DateTime
+  timeslot   Int
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([seatNumber, locationId, Date, timeslot])
+}
+
+model Referrer {
+  id          String   @id @default(cuid())
+  profileId   String?  @unique
+  fullName    String
+  phoneNumber String
+  profile     Profile? @relation(fields: [profileId], references: [id])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  user_email  String
+  cohortId    String
+  files       String[]
+  created_at  DateTime @default(now())
+  cohort      Cohort   @relation(fields: [cohortId], references: [id])
+  user        User     @relation(fields: [user_email], references: [email])
+}
+
+// BUG: since this is a view, it causes conflicts with the migration process.
+// HACK: comment out this model when running "npx prisma migrate dev"
+view EnrollmentCompletionGraph {
+  id    Int    @unique
+  date  DateTime? @db.Date
+  count Int
+}
+
+model RehydrationDate {
+  id          String   @id @default(cuid())
+  created_at  DateTime @default(now())
+  enrollment_count Int?
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+  APPLICANT
+  SUPPORT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum CommunityArea {
+  URBAN
+  RURAL
+  PERI_URBANS
+}
+
+enum EducationLevel {
+  ELEMENTRY_SCHOOL
+  SECONDARY_SCHOOL
+  COLLEGE_OF_EDUCATION
+  ND_HND
+  BSC
+  MSC
+  PHD
+}
