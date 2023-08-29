@@ -4,19 +4,22 @@ import prisma from "../../lib/prismadb";
 import nodemailer from "nodemailer";
 import { bigint_filter } from "./enrollments";
 
-interface SeatBooking {
-  id: number; // Add appropriate types for properties
-  userId: number;
-  Date: Date;
-  seatNumber: string;
-  // ... Other properties specific to SeatBooking
+interface Location {
+  id: string;
+  location: string;
+  seats: number;
+  name: string;
+  seatBooking: SeatBooking[];
 }
 
-interface Location {
-  id: number; // Add appropriate types for properties
-  name: string;
-  // ... Other properties specific to Location
-  seatBooking: SeatBooking[]; // Define a relationship to SeatBooking
+interface SeatBooking {
+  id: string;
+  userId: string;
+  seatNumber: number;
+  locationId: string;
+  Date: Date;
+  timeslot: number;
+  location: Location;
 }
 
 // Create a Nodemailer transporter with your email service configuration
@@ -136,7 +139,7 @@ export default async function handler(
         return res.status(400).send({ error: "No cohort data" });
       }
 
-      const locations = await prisma.location.findMany({
+      const locations: Location[] = await prisma.location.findMany({
         where: {
           cohorts: {
             some: {
