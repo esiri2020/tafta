@@ -4,6 +4,21 @@ import prisma from "../../lib/prismadb";
 import nodemailer from "nodemailer";
 import { bigint_filter } from "./enrollments";
 
+interface SeatBooking {
+  id: number; // Add appropriate types for properties
+  userId: number;
+  Date: Date;
+  seatNumber: string;
+  // ... Other properties specific to SeatBooking
+}
+
+interface Location {
+  id: number; // Add appropriate types for properties
+  name: string;
+  // ... Other properties specific to Location
+  seatBooking: SeatBooking[]; // Define a relationship to SeatBooking
+}
+
 // Create a Nodemailer transporter with your email service configuration
 const transporter = nodemailer.createTransport({
   host: process.env.HOST,
@@ -77,7 +92,11 @@ export default async function handler(
         },
       });
 
-      //   console.log(body);
+      if (typeof token.userData.email !== "string") {
+        return res.status(400).send({ error: "Invalid email" });
+      } else if (typeof token.userData.firstName !== "string") {
+        return res.status(400).send({ error: "Invalid email" });
+      }
 
       await sendSeatBookingConfirmationEmail(
         token.userData.email,
@@ -136,8 +155,8 @@ export default async function handler(
         },
       });
 
-      const seatBookings = locations
-        .map((location) => location.seatBooking)
+      const seatBookings: SeatBooking[] = locations
+        .map((location: Location) => location.seatBooking)
         .flat();
 
       return res.status(200).send({ locations, seatBookings });
