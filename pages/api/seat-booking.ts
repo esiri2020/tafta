@@ -154,7 +154,7 @@ export default async function handler(
           },
         },
       });
-//rest 
+
       const seatBookings: SeatBooking[] = locations
         .map((location: Location) => location.seatBooking)
         .flat();
