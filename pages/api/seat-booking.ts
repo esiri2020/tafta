@@ -7,7 +7,7 @@ import { bigint_filter } from "./enrollments";
 interface Location {
   id: string;
   location: string;
-  seats: number;
+  seats: number | null; // Allow seats to be null
   name: string;
   seatBooking: SeatBooking[];
 }
@@ -19,7 +19,7 @@ interface SeatBooking {
   locationId: string;
   Date: Date;
   timeslot: number;
-  location: Location;
+  // location: Location[];
 }
 
 // Create a Nodemailer transporter with your email service configuration
