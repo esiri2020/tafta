@@ -161,6 +161,9 @@ export default async function handler(
   const take = parseInt(typeof limit == "string" && limit ? limit : "10");
   const skip = take * parseInt(typeof page == "string" ? page : "0");
   let count, enrollments, status_object;
+  let maleCount = 0;
+  let femaleCount = 0;
+  let totalCount = 0;
 
   if (status) {
     switch (status) {
@@ -230,6 +233,27 @@ export default async function handler(
               : undefined,
           ...status_object,
         },
+        // include: {
+        //   userCohort: {
+        //     select: {
+        //       user: {
+        //         select: {
+        //           id: true,
+        //           firstName: true,
+        //           lastName: true,
+        //           email: true,
+        //           profile: {
+        //             select: {
+        //               gender: true,
+        //             },
+        //           },
+        //         },
+        //       },
+        //     },
+        //   },
+        // },
+        // take,
+        // skip,
         include: {
           userCohort: {
             select: {
@@ -252,8 +276,105 @@ export default async function handler(
         take,
         skip,
       });
+
+      // Calculate male and female counts based on the total count
+      maleCount = await prisma.enrollment.count({
+        where: {
+          AND: [
+            {
+              course_id: course?.length
+                ? { in: course.map((e) => BigInt(e)) }
+                : undefined,
+            },
+            {
+              userCohort:
+                cohorts.length > 0 ? { cohortId: { in: cohorts } } : undefined,
+            },
+          ],
+          ...status_object,
+          userCohort: {
+            user: {
+              profile: {
+                gender: "MALE",
+              },
+            },
+          },
+        },
+      });
+
+      femaleCount = await prisma.enrollment.count({
+        where: {
+          AND: [
+            {
+              course_id: course?.length
+                ? { in: course.map((e) => BigInt(e)) }
+                : undefined,
+            },
+            {
+              userCohort:
+                cohorts.length > 0 ? { cohortId: { in: cohorts } } : undefined,
+            },
+          ],
+          ...status_object,
+          userCohort: {
+            user: {
+              profile: {
+                gender: "FEMALE",
+              },
+            },
+          },
+        },
+      });
     } else {
       count = await prisma.enrollment.count({});
+      // Calculate male and female counts based on the total count
+      maleCount = await prisma.enrollment.count({
+        where: {
+          AND: [
+            {
+              course_id: course?.length
+                ? { in: course.map((e) => BigInt(e)) }
+                : undefined,
+            },
+            {
+              userCohort:
+                cohorts.length > 0 ? { cohortId: { in: cohorts } } : undefined,
+            },
+          ],
+          ...status_object,
+          userCohort: {
+            user: {
+              profile: {
+                gender: "MALE",
+              },
+            },
+          },
+        },
+      });
+
+      femaleCount = await prisma.enrollment.count({
+        where: {
+          AND: [
+            {
+              course_id: course?.length
+                ? { in: course.map((e) => BigInt(e)) }
+                : undefined,
+            },
+            {
+              userCohort:
+                cohorts.length > 0 ? { cohortId: { in: cohorts } } : undefined,
+            },
+          ],
+          ...status_object,
+          userCohort: {
+            user: {
+              profile: {
+                gender: "FEMALE",
+              },
+            },
+          },
+        },
+      });
       enrollments = await prisma.enrollment.findMany({
         include: {
           userCohort: {
@@ -278,8 +399,11 @@ export default async function handler(
         skip,
       });
     }
+
     enrollments = bigint_filter(enrollments);
-    return res.status(200).send({ enrollments, count });
+    console.log(count, maleCount, femaleCount);
+
+    return res.status(200).send({ enrollments, count, maleCount, femaleCount });
   } catch (err) {
     console.error(err.message);
     return res.status(400).send(err.message);
