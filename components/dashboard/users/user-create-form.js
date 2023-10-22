@@ -17,7 +17,7 @@ import {
 import { useCreateUserMutation } from '../../../services/api'
 
 const genderList = ['MALE', 'FEMALE']
-const ranges = [[1,5],[6,10],[11,15],[16,20],[21,25],[26,30],[31,35],[36,40],[41,45],[46,50],[51,55],[56,60],[61,65]]
+const ranges = [[1,5],[6,10],[11,15],[16,20],[21,25],[26,30],[31,35],[36,40]]
 const roles = ['SUPERADMIN', 'ADMIN', 'SUPPORT', 'APPLICANT']
 
 export const UserCreateForm = ({  ...other }) => {
@@ -27,7 +27,7 @@ export const UserCreateForm = ({  ...other }) => {
   const formik = useFormik({
     initialValues: {
       homeAddress: '',
-      stateOfOrigin:  '',
+      LGADetails:  '',
       email: '',
       role: 'ADMIN',
       password: '',
@@ -41,7 +41,7 @@ export const UserCreateForm = ({  ...other }) => {
     },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      stateOfOrigin: Yup.string().max(255),
+      LGADetails: Yup.string().max(255),
       role: Yup.string().max(10).required('User role is required'),
       country: Yup.string().max(255),
       email: Yup
@@ -213,14 +213,14 @@ export const UserCreateForm = ({  ...other }) => {
               xs={12}
             >
               <TextField
-                error={Boolean(formik.touched.stateOfOrigin && formik.errors.stateOfOrigin)}
+                error={Boolean(formik.touched.LGADetails && formik.errors.LGADetails)}
                 fullWidth
-                helperText={formik.touched.stateOfOrigin && formik.errors.stateOfOrigin}
-                label="State of Origin"
-                name="stateOfOrigin"
+                helperText={formik.touched.LGADetails && formik.errors.LGADetails}
+                label="LGA Details"
+                name="LGADetails"
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
-                value={formik.values.stateOfOrigin}
+                value={formik.values.LGADetails}
               />
             </Grid>
             <Grid

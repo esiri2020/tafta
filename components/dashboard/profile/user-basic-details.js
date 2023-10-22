@@ -10,7 +10,7 @@ export const UserBasicDetails = (props) => {
     email,
     role, 
     profile: {
-      homeAddress, phoneNumber, gender, dob, stateOfOrigin, stateOfResidence
+      homeAddress, phoneNumber, gender, dob, LGADetails, stateOfResidence
     }
   }, ...other } = props;
   const mdUp = useMediaQuery((theme) => theme.breakpoints.up('md'));
@@ -43,8 +43,8 @@ export const UserBasicDetails = (props) => {
         <PropertyListItem
           align={align}
           divider
-          label="State of Origin"
-          value={stateOfOrigin}
+          label="LGA Details"
+          value={LGADetails}
         />
         <PropertyListItem
           align={align}
