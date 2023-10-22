@@ -22,44 +22,9 @@ import toast from "react-hot-toast";
 import * as Yup from "yup";
 
 const nigeria_states = [
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Bayelsa",
-  "Benue",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "FCT - Abuja",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
   "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
   "Lagos",
-  "Nasarawa",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
-  "",
+  "Ogun"
 ];
 
 const community_areas = [
@@ -392,7 +357,7 @@ export const PersonalInformation = ({
     initialValues: applicant
       ? {
           homeAddress: applicant.profile?.homeAddress || "",
-          stateOfOrigin: applicant.profile?.stateOfOrigin || "",
+          lGADetails: applicant.profile?.lGADetails || "",
           email: applicant.email || "",
           firstName: applicant.firstName || "",
           lastName: applicant.lastName || "",
@@ -414,7 +379,7 @@ export const PersonalInformation = ({
         }
       : {
           homeAddress: "",
-          stateOfOrigin: "",
+          lGADetails: "",
           email: "",
           firstName: "",
           lastName: "",
@@ -436,7 +401,7 @@ export const PersonalInformation = ({
         },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      stateOfOrigin: Yup.string().max(255),
+      lGADetails: Yup.string().max(255),
       country: Yup.string().max(255),
       email: Yup.string()
         .email("Must be a valid email")
@@ -626,24 +591,24 @@ export const PersonalInformation = ({
                 <Autocomplete
                   getOptionLabel={(option) => option}
                   options={nigeria_states}
-                  value={formik.values.stateOfOrigin}
+                  value={formik.values.lGADetails}
                   onChange={(event, newValue) => {
-                    formik.setFieldValue("stateOfOrigin", newValue);
+                    formik.setFieldValue("lGADetails", newValue);
                   }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       error={Boolean(
-                        formik.touched.stateOfOrigin &&
-                          formik.errors.stateOfOrigin
+                        formik.touched.lGADetails &&
+                          formik.errors.lGADetails
                       )}
                       fullWidth
                       helperText={
-                        formik.touched.stateOfOrigin &&
-                        formik.errors.stateOfOrigin
+                        formik.touched.lGADetails &&
+                        formik.errors.lGADetails
                       }
-                      label="State of Origin"
-                      name="stateOfOrigin"
+                      label="LGA Details"
+                      name="lGADetails"
                     />
                   )}
                 />

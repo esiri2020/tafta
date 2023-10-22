@@ -28,7 +28,7 @@ export const UserEditForm = ({ user, ...other }) => {
   const formik = useFormik({
     initialValues: {
       homeAddress: user.profile?.homeAddress || '',
-      stateOfOrigin: user.profile?.stateOfOrigin || '',
+      LGADetails: user.profile?.LGADetails || '',
       email: user.email || '',
       role: user.role || '',
       firstName: user.firstName || '',
@@ -41,7 +41,7 @@ export const UserEditForm = ({ user, ...other }) => {
     },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      stateOfOrigin: Yup.string().max(255),
+      LGADetails: Yup.string().max(255),
       country: Yup.string().max(255),
       role: Yup.string().max(10).required('User role is required'),
       email: Yup
@@ -190,14 +190,14 @@ export const UserEditForm = ({ user, ...other }) => {
               xs={12}
             >
               <TextField
-                error={Boolean(formik.touched.stateOfOrigin && formik.errors.stateOfOrigin)}
+                error={Boolean(formik.touched.LGADetails && formik.errors.LGADetails)}
                 fullWidth
-                helperText={formik.touched.stateOfOrigin && formik.errors.stateOfOrigin}
-                label="State of Origin"
-                name="stateOfOrigin"
+                helperText={formik.touched.LGADetails && formik.errors.LGADetails}
+                label="LGA Details"
+                name="LGADetails"
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
-                value={formik.values.stateOfOrigin}
+                value={formik.values.LGADetails}
               />
             </Grid>
             <Grid

@@ -63,7 +63,7 @@ model Profile {
   phoneNumber      String?
   gender           Gender?
   ageRange         String?
-  stateOfOrigin    String?
+  LGADetails    String?
   stateOfResidence String?
   dob              DateTime?
   communityArea    CommunityArea?

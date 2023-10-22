@@ -12,7 +12,7 @@ ALTER TABLE "Profile" DROP COLUMN "city",
 DROP COLUMN "department",
 DROP COLUMN "state",
 ADD COLUMN     "ageRange" TEXT,
-ADD COLUMN     "stateOfOrigin" TEXT,
+ADD COLUMN     "LGADetails" TEXT,
 ADD COLUMN     "stateOfResidence" TEXT,
 DROP COLUMN "dob",
 ADD COLUMN     "dob" TIMESTAMP(3);

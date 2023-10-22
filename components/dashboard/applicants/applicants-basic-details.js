@@ -22,7 +22,7 @@ export const ApplicantBasicDetails = (props) => {
         phoneNumber,
         gender,
         dob,
-        stateOfOrigin,
+        LGADetails,
         stateOfResidence,
         educationLevel,
         referrer,
@@ -55,8 +55,8 @@ export const ApplicantBasicDetails = (props) => {
         <PropertyListItem
           align={align}
           divider
-          label="State of Origin"
-          value={stateOfOrigin}
+          label="LGA Details"
+          value={LGADetails}
         />
         <PropertyListItem
           align={align}
