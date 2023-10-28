@@ -63,8 +63,10 @@ model Profile {
   phoneNumber      String?
   gender           Gender?
   ageRange         String?
-  LGADetails    String?
-  stateOfResidence String?
+  stateOfResidence String?       // New field for state of residence
+  lGADetails       String?       // New field for LGA details
+  LGADetails       String?
+  stateOfOrigin    String?
   dob              DateTime?
   communityArea    CommunityArea?
   disability       String?
@@ -75,7 +77,10 @@ model Profile {
   employmentStatus String?
   selfEmployedType String?
   residencyStatus  String?
+  internshipProgram InternshipProgram? // New field for Internship Program
+  projectType      ProjectType?     
 }
+
 
 model Enrollment {
   uid                  String     @id @default(cuid())
@@ -251,4 +256,19 @@ enum EducationLevel {
   BSC
   MSC
   PHD
+}
+
+enum InternshipProgram {
+  TheatreGroup
+  ShortFilm
+  MarketingCommunication
+  CreativeManagementConsultant
+  SponsorshipMarketers
+  ContentCreationSkits
+}
+
+enum ProjectType {
+  GroupInternship
+  IndividualInternship
+  CorporateInternship
 }
