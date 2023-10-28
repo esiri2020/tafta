@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   MenuItem,
   Autocomplete,
@@ -21,13 +21,70 @@ import PropTypes from "prop-types";
 import toast from "react-hot-toast";
 import * as Yup from "yup";
 
-const nigeria_states = [
-  "Kano",
-  "Lagos",
-  "Ogun"
-];
+const nigeria_states = ["Kano", "Lagos", "Ogun"];
 
-
+const LGAs = {
+  Lagos: {
+    Group1: ["Lagos Island", "Lagos Mainland"],
+    Group2: [
+      "Agege",
+      "Alimosho",
+      "Ifako-Ijaiye",
+      "Ikeja",
+      "Mushin",
+      "Oshodi-Isolo",
+    ],
+    Group3: ["Ajeromi-Ifelodun", "Apapa", "Badagry", "Ojo"],
+    Group4: ["Amuwo-Odofin", "Ikorodu", "Kosofe", "Surulere"],
+    Group5: ["Epe", "Eti-Osa", "Ibeju-Lekki"],
+  },
+  Ogun: {
+    Group1: ["Abeokuta North", "Abeokuta South", "Odeda", "Obafemi Owode"],
+    Group2: ["Ado-Odo/Ota", "Ifo"],
+    Group3: ["Ijebu East", "Ijebu North", "Ijebu North East", "Ijebu Ode"],
+    Group4: ["Egbado North", "Egbado South", "Imeko Afon"],
+    Group5: [
+      "Ewekoro",
+      "Ikenne",
+      "Ipokia",
+      "Ogun Waterside",
+      "Remo North",
+      "Shagamu",
+    ],
+  },
+  Kano: {
+    Group1: [
+      "Dala",
+      "Fagge",
+      "Gwale",
+      "Kano Municipal",
+      "Nasarawa",
+      "Tarauni",
+      "Ungogo",
+    ],
+    Group2: ["Dawakin Tofa", "Gwarzo", "Madobi", "Makoda", "Rogo", "Tsanyawa"],
+    Group3: [
+      "Bunkure",
+      "Dambatta",
+      "Garun Mallam",
+      "Kibiya",
+      "Maimako",
+      "Rano",
+      "Sumaila",
+      "Wudil",
+    ],
+    Group4: ["Kabo", "Kibiya", "Kiru", "Rimin Gado", "Shanono"],
+    Group5: [
+      "Ajingi",
+      "Bebeji",
+      "Bichi",
+      "Doguwa",
+      "Gezawa",
+      "Karaye",
+      "Kunchi",
+    ],
+  },
+};
 
 const community_areas = [
   {
@@ -54,7 +111,7 @@ const ranges = [
   [26, 30],
   [31, 35],
   [36, 40],
-  [41, 45]
+  [41, 45],
 ];
 
 const levels_of_education = [
@@ -189,6 +246,27 @@ const self_employed_types = [
     label: "Contractor",
     value: "contractor",
   },
+];
+
+const internshipProgramOptions = [
+  { label: "Theatre Group", value: "theatreGroup" },
+  { label: "Short Film", value: "shortFilm" },
+  {
+    label: "Marketing Communication and Social Media",
+    value: "marketingCommunication",
+  },
+  { label: "Creative Management Consultant", value: "creativeManagement" },
+  { label: "Sponsorship Marketers", value: "sponsorshipMarketers" },
+  { label: "Content Creation Skits", value: "contentCreationSkits" },
+];
+
+const projectTypeOptions = [
+  { label: "Group Internship Project", value: "GroupInternship" },
+  {
+    label: "Individual Internship Project (Entrepreneurs)",
+    value: "IndividualInternship",
+  },
+  { label: "Corporate Internship", value: "CorporateInternship" },
 ];
 
 const ITEM_HEIGHT = 48;
@@ -355,7 +433,7 @@ export const PersonalInformation = ({
     initialValues: applicant
       ? {
           homeAddress: applicant.profile?.homeAddress || "",
-          lGADetails: applicant.profile?.lGADetails || "",
+          LGADetails: applicant.profile?.LGADetails || "",
           email: applicant.email || "",
           firstName: applicant.firstName || "",
           lastName: applicant.lastName || "",
@@ -373,11 +451,13 @@ export const PersonalInformation = ({
           employmentStatus: applicant?.profile?.employmentStatus || "",
           selfEmployedType: applicant?.profile?.selfEmployedType || "",
           residencyStatus: applicant?.profile?.residencyStatus || "",
+          projectType: applicant.projectType || "",
+          internshipProgram: applicant.internshipProgram || "",
           submit: null,
         }
       : {
           homeAddress: "",
-          lGADetails: "",
+          LGADetails: "",
           email: "",
           firstName: "",
           lastName: "",
@@ -395,11 +475,13 @@ export const PersonalInformation = ({
           employmentStatus: "",
           residencyStatus: "",
           selfEmployedType: "",
+          projectType: "",
+          internshipProgram: "",
           submit: null,
         },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      lGADetails: Yup.string().max(255),
+      LGADetails: Yup.string().max(255),
       country: Yup.string().max(255),
       email: Yup.string()
         .email("Must be a valid email")
@@ -419,6 +501,10 @@ export const PersonalInformation = ({
         is: "self-employed",
         then: Yup.string().required("Self-Employed Type is required"),
       }),
+      projectType: Yup.string().max(255).required("Project Type is required"),
+      internshipProgram: Yup.string().required(
+        "Internship Program is required"
+      ),
     }),
     onSubmit: async (values, helpers) => {
       try {
@@ -431,8 +517,11 @@ export const PersonalInformation = ({
           source,
           referrer_fullName,
           referrer_phoneNumber,
+          // projectType,
+          // internshipProgram,
           ...profile
         } = values;
+        console.log(profile);
         if (referrer_fullName)
           profile.referrer = {
             fullName: referrer_fullName,
@@ -474,6 +563,21 @@ export const PersonalInformation = ({
       }
     },
   });
+
+  // Initialize an array to hold LGAs based on the selected state
+  const [availableLGAs, setAvailableLGAs] = React.useState([]);
+
+  useEffect(() => {
+    if (formik.values.stateOfResidence) {
+      const selectedState = formik.values.stateOfResidence;
+
+      // Combine LGAs from all groups for the selected state
+      const allLGAs = Object.values(LGAs[selectedState]).flat();
+
+      setAvailableLGAs(allLGAs);
+    }
+  }, [formik.values.stateOfResidence]);
+
   return (
     <Box>
       <Card>
@@ -566,6 +670,8 @@ export const PersonalInformation = ({
                   value={formik.values.stateOfResidence}
                   onChange={(event, newValue) => {
                     formik.setFieldValue("stateOfResidence", newValue);
+
+                    console.log(newValue);
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -585,7 +691,7 @@ export const PersonalInformation = ({
                   )}
                 />
               </Grid>
-              <Grid item md={6} xs={12}>
+              {/* <Grid item md={6} xs={12}>
                 <Autocomplete
                   getOptionLabel={(option) => option}
                   options={nigeria_states}
@@ -597,19 +703,137 @@ export const PersonalInformation = ({
                     <TextField
                       {...params}
                       error={Boolean(
-                        formik.touched.lGADetails &&
-                          formik.errors.lGADetails
+                        formik.touched.lGADetails && formik.errors.lGADetails
                       )}
                       fullWidth
                       helperText={
-                        formik.touched.lGADetails &&
-                        formik.errors.lGADetails
+                        formik.touched.lGADetails && formik.errors.lGADetails
                       }
                       label="LGA Details"
                       name="lGADetails"
                     />
                   )}
                 />
+              </Grid> */}
+
+              {/* <Grid item md={6} xs={12}>
+                <Autocomplete
+                  getOptionLabel={(option) => option}
+                  options={availableLGAs}
+                  value={formik.values.lGADetails}
+                  onChange={(event, newValue) => {
+                    formik.setFieldValue("lGADetails", newValue);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      error={Boolean(
+                        formik.touched.lGADetails && formik.errors.lGADetails
+                      )}
+                      fullWidth
+                      helperText={
+                        formik.touched.lGADetails && formik.errors.lGADetails
+                      }
+                      label="LGA Details"
+                      name="lGADetails"
+                    />
+                  )}
+                />
+              </Grid> */}
+
+              <Grid item md={6} xs={12}>
+                <Autocomplete
+                  getOptionLabel={(option) => option}
+                  options={availableLGAs}
+                  value={formik.values.LGADetails} // Update this line
+                  onChange={(event, newValue) => {
+                    formik.setFieldValue("LGADetails", newValue); // Update this line
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      error={Boolean(
+                        formik.touched.LGADetails && formik.errors.LGADetails
+                      )}
+                      fullWidth
+                      helperText={
+                        formik.touched.LGADetails && formik.errors.LGADetails
+                      }
+                      label="LGA Details"
+                      name="LGADetails" // Update this line
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* <Grid item md={6} xs={12}>
+                <Autocomplete
+                  getOptionLabel={(option) => {
+                    console.log(option); // Add this line to log the label
+                    return option ? option : "";
+                  }}
+                  options={projectTypeOptions}
+                  value={formik.values.projectType}
+                  onChange={(event, newValue) => {
+                    formik.setFieldValue("projectType", newValue.value);
+
+                    console.log(newValue.value);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      error={Boolean(
+                        formik.touched.projectType && formik.errors.projectType
+                      )}
+                      fullWidth
+                      helperText={
+                        formik.touched.projectType && formik.errors.projectType
+                      }
+                      label="Project Type"
+                      name="projectType"
+                    />
+                  )}
+                />
+              </Grid> */}
+
+              <Grid item md={6} xs={12}>
+                <Typography id="project-type-label">Project Type</Typography>
+                <RadioGroup
+                  name="projectType"
+                  value={formik.values.projectType}
+                  onChange={formik.handleChange}
+                  id="project-type"
+                >
+                  {projectTypeOptions.map((option) => (
+                    <FormControlLabel
+                      control={<Radio />}
+                      label={option.label}
+                      value={option.value}
+                      key={option.value} // Don't forget to provide a unique key
+                    />
+                  ))}
+                </RadioGroup>
+              </Grid>
+
+              <Grid item md={6} xs={12}>
+                <Typography id="internship-program-label">
+                  Internship Program
+                </Typography>
+                <RadioGroup
+                  name="internshipProgram"
+                  value={formik.values.internshipProgram}
+                  onChange={formik.handleChange}
+                  id="internship-program"
+                >
+                  {internshipProgramOptions.map((option) => (
+                    <FormControlLabel
+                      control={<Radio />}
+                      label={option.label}
+                      value={option.value}
+                      key={option.value} // Don't forget to provide a unique key
+                    />
+                  ))}
+                </RadioGroup>
               </Grid>
 
               <Grid item md={6} xs={12}>
