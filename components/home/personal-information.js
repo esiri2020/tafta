@@ -255,9 +255,12 @@ const internshipProgramOptions = [
     label: "Marketing Communication and Social Media",
     value: "MarketingCommunication",
   },
-  { label: "Creative Management Consultant", value: "CreativeManagement" },
+  {
+    label: "Creative Management Consultant",
+    value: "CreativeManagementConsultant",
+  },
   { label: "Sponsorship Marketers", value: "SponsorshipMarketers" },
-  { label: "Content Creation Skits", value: "ContentCreationSkits" },
+  { label: "Content Creation", value: "ContentCreation" },
 ];
 
 const projectTypeOptions = [
