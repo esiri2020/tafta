@@ -110,8 +110,6 @@ const ranges = [
   [21, 25],
   [26, 30],
   [31, 35],
-  [36, 40],
-  [41, 45],
 ];
 
 const levels_of_education = [
@@ -274,6 +272,7 @@ const projectTypeOptions = [
 
 const mobilizer = [
   "MUB",
+  "MYD",
   "ARO",
   "NYSC",
   "RCCGDD",
@@ -725,6 +724,7 @@ export const PersonalInformation = ({
                 <Autocomplete
                   getOptionLabel={(option) => option}
                   options={nigeria_states}
+                  required
                   value={formik.values.stateOfResidence}
                   onChange={(event, newValue) => {
                     formik.setFieldValue("stateOfResidence", newValue);
@@ -755,6 +755,7 @@ export const PersonalInformation = ({
                   getOptionLabel={(option) => option}
                   options={availableLGAs}
                   value={formik.values.LGADetails} // Update this line
+                  required
                   onChange={(event, newValue) => {
                     formik.setFieldValue("LGADetails", newValue); // Update this line
                   }}
@@ -787,6 +788,7 @@ export const PersonalInformation = ({
                     <FormControlLabel
                       control={<Radio />}
                       label={option.label}
+                      required
                       value={option.value}
                       key={option.value} // Don't forget to provide a unique key
                     />
@@ -801,6 +803,7 @@ export const PersonalInformation = ({
                 <RadioGroup
                   name="internshipProgram"
                   value={formik.values.internshipProgram}
+                  required
                   onChange={formik.handleChange}
                   id="internship-program"
                 >
@@ -841,6 +844,7 @@ export const PersonalInformation = ({
                     name="communityArea"
                     sx={{ flexDirection: "row" }}
                     value={formik.values.communityArea}
+                    required
                   >
                     {community_areas.map((communityArea) => (
                       <FormControlLabel
@@ -917,6 +921,7 @@ export const PersonalInformation = ({
                     sx={{ flexDirection: "column" }}
                     value={formik.values.educationLevel}
                     onChange={formik.handleChange}
+                    required
                   >
                     {levels_of_education.map((level_of_education) => (
                       <FormControlLabel
@@ -943,6 +948,7 @@ export const PersonalInformation = ({
                       name="_disability"
                       sx={{ flexDirection: "column" }}
                       value={formik.values._disability}
+                      required
                       onChange={(e) => {
                         if (e.target.value == "false") {
                           formik.setFieldValue("disability", "");
@@ -972,6 +978,7 @@ export const PersonalInformation = ({
                       name="disability"
                       sx={{ flexDirection: "row" }}
                       value={formik.values.disability}
+                      required
                       onChange={formik.handleChange}
                     >
                       {user_disabilies.map((user_disability) => (
@@ -1003,6 +1010,7 @@ export const PersonalInformation = ({
                       name="employmentStatus"
                       sx={{ flexDirection: "row" }}
                       value={formik.values.employmentStatus}
+                      required
                       onChange={formik.handleChange}
                       id="employment-status"
                       {...formik.getFieldProps("employmentStatus")}
@@ -1044,6 +1052,7 @@ export const PersonalInformation = ({
                       name="selfEmployedType"
                       sx={{ flexDirection: "row" }}
                       value={formik.values.selfEmployedType}
+                      required
                       onChange={formik.handleChange}
                       id="self-employed-type"
                       disabled={
@@ -1087,6 +1096,7 @@ export const PersonalInformation = ({
                   name="residencyStatus"
                   sx={{ flexDirection: "row" }}
                   value={formik.values.residencyStatus}
+                  required
                   onChange={formik.handleChange}
                   id="residency-status"
                   error={
@@ -1118,6 +1128,7 @@ export const PersonalInformation = ({
                     name="source"
                     sx={{ flexDirection: "row" }}
                     value={formik.values.source}
+                    required
                     onChange={(e) => {
                       if (e.target.value !== "by_referral") {
                         formik.setFieldValue("referrer_fullName", "");
@@ -1141,7 +1152,7 @@ export const PersonalInformation = ({
                     <FormControlLabel
                       control={<Radio sx={{ ml: 1 }} />}
                       label={
-                        <Typography variant="body1">By referral</Typography>
+                        <Typography variant="body1">By Mobilizer</Typography>
                       }
                       value="by_referral"
                     />
@@ -1585,6 +1596,8 @@ export const VerifyEmail = () => (
           <br /> However, you're not there yet.
           <br /> To complete your registration, Please check your email to
           verify your account.
+
+
         </Typography>
       </CardContent>
     </Card>
