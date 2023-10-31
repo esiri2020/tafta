@@ -55,32 +55,31 @@ model User {
 }
 
 model Profile {
-  id               String          @id @default(cuid())
-  userId           String          @unique
-  taftaCenter      String?
-  homeAddress      String?
-  zipCode          String?
-  phoneNumber      String?
-  gender           Gender?
-  ageRange         String?
-  stateOfResidence String?       // New field for state of residence
-  lGADetails       String?       // New field for LGA details
-  LGADetails       String?
-  stateOfOrigin    String?
-  dob              DateTime?
-  communityArea    CommunityArea?
-  disability       String?
-  educationLevel   EducationLevel?
-  source           String?
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  referrer         Referrer?
-  employmentStatus String?
-  selfEmployedType String?
-  residencyStatus  String?
-  internshipProgram InternshipProgram? // New field for Internship Program
-  projectType      ProjectType?     
+  id                String                   @id @default(cuid())
+  userId            String                   @unique
+  taftaCenter       String?
+  homeAddress       String?
+  zipCode           String?
+  phoneNumber       String?
+  gender            Gender?
+  ageRange          String?
+  stateOfResidence  String?
+  dob               DateTime?
+  communityArea     CommunityArea?
+  disability        String?
+  educationLevel    EducationLevel?
+  source            String?
+  employmentStatus  String?
+  residencyStatus   String?
+  selfEmployedType  String?
+  stateOfOrigin     String?
+  lGADetails        String?
+  LGADetails        String?
+  internshipProgram InternshipProgramOption?
+  projectType       ProjectTypeOption?
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrer          Referrer?
 }
-
 
 model Enrollment {
   uid                  String     @id @default(cuid())
@@ -198,17 +197,9 @@ model Report {
   user        User     @relation(fields: [user_email], references: [email])
 }
 
-// BUG: since this is a view, it causes conflicts with the migration process.
-// HACK: comment out this model when running "npx prisma migrate dev"
-view EnrollmentCompletionGraph {
-  id    Int    @unique
-  date  DateTime? @db.Date
-  count Int
-}
-
 model RehydrationDate {
-  id          String   @id @default(cuid())
-  created_at  DateTime @default(now())
+  id               String   @id @default(cuid())
+  created_at       DateTime @default(now())
   enrollment_count Int?
 }
 
@@ -226,6 +217,76 @@ model spatial_ref_sys {
   auth_srid Int?
   srtext    String? @db.VarChar(2048)
   proj4text String? @db.VarChar(2048)
+}
+
+view EnrollmentCompletionGraph {
+  id    BigInt    @unique
+  date  DateTime? @db.Date
+  count BigInt
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view geography_columns {
+  f_table_catalog    Unsupported("name")?
+  f_table_schema     Unsupported("name")?
+  f_table_name       Unsupported("name")?
+  f_geography_column Unsupported("name")?
+  coord_dimension    Int?
+  srid               Int?
+  type               String?
+
+  @@ignore
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view geometry_columns {
+  f_table_catalog   String?              @db.VarChar(256)
+  f_table_schema    Unsupported("name")?
+  f_table_name      Unsupported("name")?
+  f_geometry_column Unsupported("name")?
+  coord_dimension   Int?
+  srid              Int?
+  type              String?              @db.VarChar(30)
+
+  @@ignore
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view raster_columns {
+  r_table_catalog  Unsupported("name")?
+  r_table_schema   Unsupported("name")?
+  r_table_name     Unsupported("name")?
+  r_raster_column  Unsupported("name")?
+  srid             Int?
+  scale_x          Float?
+  scale_y          Float?
+  blocksize_x      Int?
+  blocksize_y      Int?
+  same_alignment   Boolean?
+  regular_blocking Boolean?
+  num_bands        Int?
+  pixel_types      String[]
+  nodata_values    Float[]
+  out_db           Boolean[]
+  extent           Unsupported("geometry")?
+  spatial_index    Boolean?
+
+  @@ignore
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view raster_overviews {
+  o_table_catalog Unsupported("name")?
+  o_table_schema  Unsupported("name")?
+  o_table_name    Unsupported("name")?
+  o_raster_column Unsupported("name")?
+  r_table_catalog Unsupported("name")?
+  r_table_schema  Unsupported("name")?
+  r_table_name    Unsupported("name")?
+  r_raster_column Unsupported("name")?
+  overview_factor Int?
+
+  @@ignore
 }
 
 enum Role {
@@ -258,7 +319,7 @@ enum EducationLevel {
   PHD
 }
 
-enum InternshipProgram {
+enum InternshipProgramOption {
   TheatreGroup
   ShortFilm
   MarketingCommunication
@@ -267,7 +328,7 @@ enum InternshipProgram {
   ContentCreationSkits
 }
 
-enum ProjectType {
+enum ProjectTypeOption {
   GroupInternship
   IndividualInternship
   CorporateInternship
