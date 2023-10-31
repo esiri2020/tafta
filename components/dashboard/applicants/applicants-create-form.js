@@ -1,9 +1,9 @@
-import NextLink from 'next/link';
-import { useRouter } from 'next/router';
-import PropTypes from 'prop-types';
-import toast from 'react-hot-toast';
-import * as Yup from 'yup';
-import { useFormik } from 'formik';
+import NextLink from "next/link";
+import { useRouter } from "next/router";
+import PropTypes from "prop-types";
+import toast from "react-hot-toast";
+import * as Yup from "yup";
+import { useFormik } from "formik";
 import {
   Box,
   Button,
@@ -16,96 +16,98 @@ import {
   Switch,
   TextField,
   Typography,
-  MenuItem
-} from '@mui/material';
-import { useCreateApplicantMutation } from '../../../services/api'
+  MenuItem,
+} from "@mui/material";
+import { useCreateApplicantMutation } from "../../../services/api";
 
-const genderList = ['MALE', 'FEMALE']
-const ranges = [[1,5],[6,10],[11,15],[16,20],[21,25],[26,30],[31,35],[36,40],[41,45],[46,50],[51,55],[56,60],[61,65]]
+const genderList = ["MALE", "FEMALE"];
+const ranges = [
+  [1, 5],
+  [6, 10],
+  [11, 15],
+  [16, 20],
+  [21, 25],
+  [26, 30],
+  [31, 35],
+  [36, 40],
+  [41, 45],
+  [46, 50],
+  [51, 55],
+  [56, 60],
+  [61, 65],
+];
 
-export const ApplicantCreateForm = ({  ...other }) => {
-  const [ createApplicant, result ] = useCreateApplicantMutation()
+export const ApplicantCreateForm = ({ ...other }) => {
+  const [createApplicant, result] = useCreateApplicantMutation();
   const router = useRouter();
 
   const formik = useFormik({
     initialValues: {
-      homeAddress: '',
-      LGADetails:  '',
-      email: '',
-      password: '',
-      firstName: '',
-      lastName: '',
-      phoneNumber: '',
-      stateOfResidence: '',
-      gender: 'MALE',
-      ageRange: '',
-      submit: null
+      homeAddress: "",
+      lGADetails: "",
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      phoneNumber: "",
+      stateOfResidence: "",
+      internshipProgram: "",
+      projectType: "",
+      gender: "MALE",
+      ageRange: "",
+      submit: null,
     },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      LGADetails: Yup.string().max(255),
+      lGADetails: Yup.string().max(255),
+      internshipProgram: Yup.string().max(255),
+      projectType: Yup.string().max(255),
       country: Yup.string().max(255),
-      email: Yup
-        .string()
-        .email('Must be a valid email')
+      email: Yup.string()
+        .email("Must be a valid email")
         .max(255)
-        .required('Email is required'),
-      password: Yup
-        .string()
-        .min(6)
-        .max(255)
-        .required('Password is required'),
-      firstName: Yup
-        .string()
-        .max(255)
-        .required('First Name is required'),
-      lastName: Yup
-        .string()
-        .max(255)
-        .required('Last Name is required'),
+        .required("Email is required"),
+      password: Yup.string().min(6).max(255).required("Password is required"),
+      firstName: Yup.string().max(255).required("First Name is required"),
+      lastName: Yup.string().max(255).required("Last Name is required"),
       phoneNumber: Yup.string().max(15),
       stateOfResidence: Yup.string().max(255),
-      gender: Yup.string().max(6)
+      gender: Yup.string().max(6),
     }),
     onSubmit: async (values, helpers) => {
       try {
-        const {email, firstName, lastName, password, submit, ...profile} = values
+        const { email, firstName, lastName, password, submit, ...profile } =
+          values;
         // NOTE: Make API request
-        await createApplicant({ body: {firstName, lastName, email, password, profile}}).unwrap()
+        await createApplicant({
+          body: { firstName, lastName, email, password, profile },
+        }).unwrap();
         helpers.setStatus({ success: true });
         helpers.setSubmitting(false);
-        toast.success('Applicant Created!');
-        router.replace({pathname: '/admin-dashboard/applicants/',})
-
+        toast.success("Applicant Created!");
+        router.replace({ pathname: "/admin-dashboard/applicants/" });
       } catch (err) {
         console.error(err);
-        toast.error('Something went wrong!');
+        toast.error("Something went wrong!");
         helpers.setStatus({ success: false });
         helpers.setErrors({ submit: err.message });
         helpers.setSubmitting(false);
       }
-    }
+    },
   });
 
   return (
-    <form
-      onSubmit={formik.handleSubmit}
-      {...other}>
+    <form onSubmit={formik.handleSubmit} {...other}>
       <Card>
         <CardHeader title="Create applicant" />
         <Divider />
         <CardContent>
-          <Grid
-            container
-            spacing={3}
-          >
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+          <Grid container spacing={3}>
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.firstName && formik.errors.firstName)}
+                error={Boolean(
+                  formik.touched.firstName && formik.errors.firstName
+                )}
                 fullWidth
                 helperText={formik.touched.firstName && formik.errors.firstName}
                 label="First Name"
@@ -116,13 +118,11 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.firstName}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.lastName && formik.errors.lastName)}
+                error={Boolean(
+                  formik.touched.lastName && formik.errors.lastName
+                )}
                 fullWidth
                 helperText={formik.touched.lastName && formik.errors.lastName}
                 label="Last Name"
@@ -133,11 +133,7 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.lastName}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(formik.touched.email && formik.errors.email)}
                 fullWidth
@@ -150,13 +146,11 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.email}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.password && formik.errors.password)}
+                error={Boolean(
+                  formik.touched.password && formik.errors.password
+                )}
                 fullWidth
                 helperText={formik.touched.password && formik.errors.password}
                 label="Password"
@@ -168,15 +162,15 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.password}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.phoneNumber && formik.errors.phoneNumber)}
+                error={Boolean(
+                  formik.touched.phoneNumber && formik.errors.phoneNumber
+                )}
                 fullWidth
-                helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
+                helperText={
+                  formik.touched.phoneNumber && formik.errors.phoneNumber
+                }
                 label="Phone number"
                 name="phoneNumber"
                 onBlur={formik.handleBlur}
@@ -184,15 +178,15 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.phoneNumber}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.LGADetails && formik.errors.LGADetails)}
+                error={Boolean(
+                  formik.touched.LGADetails && formik.errors.LGADetails
+                )}
                 fullWidth
-                helperText={formik.touched.LGADetails && formik.errors.LGADetails}
+                helperText={
+                  formik.touched.LGADetails && formik.errors.LGADetails
+                }
                 label="LGA Details"
                 name="LGADetails"
                 onBlur={formik.handleBlur}
@@ -200,15 +194,17 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.LGADetails}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.stateOfResidence && formik.errors.stateOfResidence)}
+                error={Boolean(
+                  formik.touched.stateOfResidence &&
+                    formik.errors.stateOfResidence
+                )}
                 fullWidth
-                helperText={formik.touched.stateOfResidence && formik.errors.stateOfResidence}
+                helperText={
+                  formik.touched.stateOfResidence &&
+                  formik.errors.stateOfResidence
+                }
                 label="State of Residence"
                 name="stateOfResidence"
                 onBlur={formik.handleBlur}
@@ -216,11 +212,7 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 value={formik.values.stateOfResidence}
               />
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(formik.touched.gender && formik.errors.gender)}
                 fullWidth
@@ -232,22 +224,18 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 onChange={formik.handleChange}
                 value={formik.values.gender}
               >
-                {
-                  genderList.map((gender, index) => (
-                    <MenuItem key={index} value={gender}>
-                      {gender}
-                    </MenuItem>
-                  ))
-                }
+                {genderList.map((gender, index) => (
+                  <MenuItem key={index} value={gender}>
+                    {gender}
+                  </MenuItem>
+                ))}
               </TextField>
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.ageRange && formik.errors.ageRange)}
+                error={Boolean(
+                  formik.touched.ageRange && formik.errors.ageRange
+                )}
                 fullWidth
                 select
                 helperText={formik.touched.ageRange && formik.errors.ageRange}
@@ -257,25 +245,23 @@ export const ApplicantCreateForm = ({  ...other }) => {
                 onChange={formik.handleChange}
                 value={formik.values.ageRange}
               >
-                {
-                  ranges.map((range, index) => (
-                    <MenuItem key={index} value={`${range[0]} - ${range[1]}`}>
-                      {`${range[0]} - ${range[1]}`}
-                    </MenuItem>
-                  ))
-                }
+                {ranges.map((range, index) => (
+                  <MenuItem key={index} value={`${range[0]} - ${range[1]}`}>
+                    {`${range[0]} - ${range[1]}`}
+                  </MenuItem>
+                ))}
               </TextField>
             </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
+            <Grid item md={6} xs={12}>
               <TextField
-                error={Boolean(formik.touched.homeAddress && formik.errors.homeAddress)}
+                error={Boolean(
+                  formik.touched.homeAddress && formik.errors.homeAddress
+                )}
                 fullWidth
                 multiline
-                helperText={formik.touched.homeAddress && formik.errors.homeAddress}
+                helperText={
+                  formik.touched.homeAddress && formik.errors.homeAddress
+                }
                 label="Home Address"
                 name="homeAddress"
                 onBlur={formik.handleBlur}
@@ -287,8 +273,8 @@ export const ApplicantCreateForm = ({  ...other }) => {
         </CardContent>
         <CardActions
           sx={{
-            flexWrap: 'wrap',
-            m: -1
+            flexWrap: "wrap",
+            m: -1,
           }}
         >
           <Button
@@ -299,16 +285,13 @@ export const ApplicantCreateForm = ({  ...other }) => {
           >
             Submit
           </Button>
-          <NextLink
-            href={`/admin-dashboard/applicants`}
-            passHref
-          >
+          <NextLink href={`/admin-dashboard/applicants`} passHref>
             <Button
               component="a"
               disabled={formik.isSubmitting}
               sx={{
                 m: 1,
-                mr: 'auto'
+                mr: "auto",
               }}
               variant="outlined"
             >
