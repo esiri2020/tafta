@@ -14,6 +14,33 @@ export const ApplicantBasicDetails = (props) => {
   if (!props.applicant?.profile) {
     return;
   }
+
+  const internshipProgramOptions = [
+    { label: "Theatre Group", value: "theatreGroup" },
+    { label: "Short Film", value: "shortFilm" },
+    {
+      label: "Marketing Communication and Social Media",
+      value: "marketingCommunication",
+    },
+    { label: "Creative Management Consultant", value: "creativeManagement" },
+    { label: "Sponsorship Marketers", value: "sponsorshipMarketers" },
+    { label: "Content Creation Skits", value: "contentCreationSkits" },
+  ];
+
+  const projectTypeOptions = [
+    { label: "Group Internship Project", value: "GroupInternship" },
+    {
+      label: "Individual Internship Project (Entrepreneurs)",
+      value: "IndividualInternship",
+    },
+    { label: "Corporate Internship", value: "CorporateInternship" },
+  ];
+
+  function getLabelByValue(value, options) {
+    const option = options.find((option) => option.value === value);
+    return option ? option.label : "Unknown"; // Return "Unknown" if the value is not found in the options.
+  }
+
   const {
     applicant: {
       email,
@@ -32,6 +59,8 @@ export const ApplicantBasicDetails = (props) => {
         communityArea,
         employmentStatus,
         residencyStatus,
+        internshipProgram,
+        projectType,
       },
     },
     ...other
@@ -101,14 +130,28 @@ export const ApplicantBasicDetails = (props) => {
           label="Residency Status"
           value={residencyStatus}
         />
+        <PropertyListItem
+          align={align}
+          divider
+          label="Internship Program"
+          value={getLabelByValue(internshipProgram, internshipProgramOptions)}
+        />
+        <PropertyListItem
+          align={align}
+          divider
+          label="Project Type"
+          value={getLabelByValue(projectType, projectTypeOptions)}
+        />
+
+        <PropertyListItem
+          align={align}
+          divider
+          label="Mobilizer"
+          value={referrer.fullName}
+        />
+
         {referrer ? (
           <>
-            <PropertyListItem
-              align={align}
-              divider
-              label="Referrer"
-              value={referrer.fullName}
-            />
             <PropertyListItem
               align={align}
               divider
