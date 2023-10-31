@@ -249,15 +249,15 @@ const self_employed_types = [
 ];
 
 const internshipProgramOptions = [
-  { label: "Theatre Group", value: "theatreGroup" },
-  { label: "Short Film", value: "shortFilm" },
+  { label: "Theatre Group", value: "TheatreGroup" },
+  { label: "Short Film", value: "ShortFilm" },
   {
     label: "Marketing Communication and Social Media",
-    value: "marketingCommunication",
+    value: "MarketingCommunication",
   },
-  { label: "Creative Management Consultant", value: "creativeManagement" },
-  { label: "Sponsorship Marketers", value: "sponsorshipMarketers" },
-  { label: "Content Creation Skits", value: "contentCreationSkits" },
+  { label: "Creative Management Consultant", value: "CreativeManagement" },
+  { label: "Sponsorship Marketers", value: "SponsorshipMarketers" },
+  { label: "Content Creation Skits", value: "ContentCreationSkits" },
 ];
 
 const projectTypeOptions = [
@@ -267,6 +267,62 @@ const projectTypeOptions = [
     value: "IndividualInternship",
   },
   { label: "Corporate Internship", value: "CorporateInternship" },
+];
+
+const mobilizer = [
+  "MUB",
+  "ARO",
+  "NYSC",
+  "RCCGDD",
+  "KEN01",
+  "WOMDEV",
+  "LANMO",
+  "AKIN T",
+  "GOKE19",
+  "OLUFEMISAMSON",
+  "OLASAM",
+  "Pearl",
+  "OGJLE05",
+  "ADEOLU",
+  "NAFOGUN",
+  "KENNYWISE",
+  "TK001",
+  "TK002",
+  "TK003",
+  "TK004",
+  "TK005",
+  "TK006",
+  "TK007",
+  "TK008",
+  "TK009",
+  "TK010",
+  "TK011",
+  "TK012",
+  "TK013",
+  "TK014",
+  "TK015",
+  "TK016",
+  "UPSKILL",
+  "TCA",
+  "LG/LO/003",
+  "LG/VA/007",
+  "LG/PA/010",
+  "LG/EC/011",
+  "VYN",
+  "DEBBIE/ FEMI OMOLERE",
+  "WISCAR",
+  "CYON",
+  "ILEADAFRICA",
+  "AZMUSIK",
+  "NEW MOBILIZER",
+  "LASU",
+  "JAM",
+  "NATH",
+  "EMM",
+  "MATT",
+  "MAPOLY",
+  "FCOC",
+  "DPRINCE",
 ];
 
 const ITEM_HEIGHT = 48;
@@ -493,7 +549,7 @@ export const PersonalInformation = ({
       stateOfResidence: Yup.string().max(255),
       gender: Yup.string().max(6).required("Gender is required"),
       disability: Yup.string().max(128),
-      referrer_fullName: Yup.string().max(64),
+      referrer_fullName: Yup.string().max(64).required("Mobilizer is required"),
       referrer_phoneNumber: Yup.string().max(16),
       employmentStatus: Yup.string().required("Employment Status is required"),
       residencyStatus: Yup.string().required("Residency Status is required"),
@@ -521,7 +577,6 @@ export const PersonalInformation = ({
           // internshipProgram,
           ...profile
         } = values;
-        console.log(profile);
         if (referrer_fullName)
           profile.referrer = {
             fullName: referrer_fullName,
@@ -691,55 +746,6 @@ export const PersonalInformation = ({
                   )}
                 />
               </Grid>
-              {/* <Grid item md={6} xs={12}>
-                <Autocomplete
-                  getOptionLabel={(option) => option}
-                  options={nigeria_states}
-                  value={formik.values.lGADetails}
-                  onChange={(event, newValue) => {
-                    formik.setFieldValue("lGADetails", newValue);
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      error={Boolean(
-                        formik.touched.lGADetails && formik.errors.lGADetails
-                      )}
-                      fullWidth
-                      helperText={
-                        formik.touched.lGADetails && formik.errors.lGADetails
-                      }
-                      label="LGA Details"
-                      name="lGADetails"
-                    />
-                  )}
-                />
-              </Grid> */}
-
-              {/* <Grid item md={6} xs={12}>
-                <Autocomplete
-                  getOptionLabel={(option) => option}
-                  options={availableLGAs}
-                  value={formik.values.lGADetails}
-                  onChange={(event, newValue) => {
-                    formik.setFieldValue("lGADetails", newValue);
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      error={Boolean(
-                        formik.touched.lGADetails && formik.errors.lGADetails
-                      )}
-                      fullWidth
-                      helperText={
-                        formik.touched.lGADetails && formik.errors.lGADetails
-                      }
-                      label="LGA Details"
-                      name="lGADetails"
-                    />
-                  )}
-                />
-              </Grid> */}
 
               <Grid item md={6} xs={12}>
                 <Autocomplete
@@ -765,36 +771,6 @@ export const PersonalInformation = ({
                   )}
                 />
               </Grid>
-
-              {/* <Grid item md={6} xs={12}>
-                <Autocomplete
-                  getOptionLabel={(option) => {
-                    console.log(option); // Add this line to log the label
-                    return option ? option : "";
-                  }}
-                  options={projectTypeOptions}
-                  value={formik.values.projectType}
-                  onChange={(event, newValue) => {
-                    formik.setFieldValue("projectType", newValue.value);
-
-                    console.log(newValue.value);
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      error={Boolean(
-                        formik.touched.projectType && formik.errors.projectType
-                      )}
-                      fullWidth
-                      helperText={
-                        formik.touched.projectType && formik.errors.projectType
-                      }
-                      label="Project Type"
-                      name="projectType"
-                    />
-                  )}
-                />
-              </Grid> */}
 
               <Grid item md={6} xs={12}>
                 <Typography id="project-type-label">Project Type</Typography>
@@ -1169,19 +1145,36 @@ export const PersonalInformation = ({
                   </RadioGroup>
                 </Grid>
               </Grid>
-              <Grid item md={3} xs={12}>
-                <TextField
-                  fullWidth
-                  label="Referrer Full Name"
-                  name="referrer_fullName"
-                  disabled={formik.values.source !== "by_referral"}
-                  required
+              <Grid item md={6} xs={12}>
+                <Autocomplete
+                  getOptionLabel={(option) => option}
+                  options={mobilizer}
                   value={formik.values.referrer_fullName}
-                  onChange={formik.handleChange}
+                  onChange={(event, newValue) => {
+                    formik.setFieldValue("referrer_fullName", newValue);
+                    console.log(newValue);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      error={Boolean(
+                        formik.touched.referrer_fullName &&
+                          formik.errors.referrer_fullName
+                      )}
+                      fullWidth
+                      helperText={
+                        formik.touched.referrer_fullName &&
+                        formik.errors.referrer_fullName
+                      }
+                      label="Mobilizer"
+                      name="referrer_fullName"
+                      disabled={formik.values.source !== "by_referral"}
+                    />
+                  )}
                 />
               </Grid>
 
-              <Grid item md={3} xs={12}>
+              {/* <Grid item md={3} xs={12}>
                 <TextField
                   fullWidth
                   label="Referrer Phone number"
@@ -1190,7 +1183,7 @@ export const PersonalInformation = ({
                   value={formik.values.referrer_phoneNumber}
                   onChange={formik.handleChange}
                 />
-              </Grid>
+              </Grid> */}
             </Grid>
             <Grid sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
               <Button
