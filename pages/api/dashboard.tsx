@@ -376,19 +376,34 @@ export default async function handler(
 
     return res.send(
       JSON.stringify({
-        total_enrolled_by_courses,
-        total_enrolled_applicants,
-        female_enrollments,
-        male_enrollments,
-        active_enrollees,
-        certified_enrollees,
-        total_applicants,
-        enrollment_completion_graph,
-        inactive_enrollments,
-        age_range,
-        location,
-        // courses_by_location,
-        statusOfResidency,
+        total_enrolled_by_courses: total_enrolled_by_courses.toString(),
+        total_enrolled_applicants: total_enrolled_applicants.toString(),
+        female_enrollments: female_enrollments.toString(),
+        male_enrollments: male_enrollments.toString(),
+        active_enrollees: active_enrollees.toString(),
+        certified_enrollees: certified_enrollees.toString(),
+        total_applicants: total_applicants.toString(),
+        enrollment_completion_graph: enrollment_completion_graph.map(
+          (item) => ({
+            date: item.date,
+            count: item.count.toString(),
+          })
+        ),
+        inactive_enrollments: inactive_enrollments.toString(),
+        age_range: age_range.map((item) => ({
+          ageRange: item.ageRange,
+          count: item.count.toString(),
+        })),
+        location: location.map((item) => ({
+          location: item.location,
+          count: item.count.toString(),
+        })),
+        statusOfResidency: {
+          refugee: statusOfResidency.refugee.toString(),
+          migrant_workers: statusOfResidency.migrant_workers.toString(),
+          idp: statusOfResidency.idp.toString(),
+          resident: statusOfResidency.resident.toString(),
+        },
       })
     );
   } catch (err) {

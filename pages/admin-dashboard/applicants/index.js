@@ -115,8 +115,7 @@ const ApplicantList = () => {
       const cohortName = userCohortData.cohort.name;
       const startDate = userCohortData.cohort.start_date;
       const endDate = userCohortData.cohort.end_date;
-      const status =
-        userCohortData.enrollments.length > 0 ? "Enrolled" : "Not Enrolled";
+      const status = userCohortData.enrollments.length > 0 ? "Enrolled" : "Not Enrolled";
 
       return {
         Name: `${firstName} ${lastName}`,

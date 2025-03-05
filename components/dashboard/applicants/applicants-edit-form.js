@@ -1,6 +1,6 @@
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import toast from "react-hot-toast";
 import * as Yup from "yup";
@@ -20,6 +20,7 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  Autocomplete,
 } from "@mui/material";
 import { useEditApplicantMutation } from "../../../services/api";
 
@@ -142,6 +143,92 @@ const self_employed_types = [
   },
 ];
 
+const LGAs = {
+  Lagos: {
+    Group1: ["Lagos Island", "Lagos Mainland"],
+    Group2: [
+      "Agege",
+      "Alimosho",
+      "Ifako-Ijaiye",
+      "Ikeja",
+      "Mushin",
+      "Oshodi-Isolo",
+    ],
+    Group3: ["Ajeromi-Ifelodun", "Apapa", "Badagry", "Ojo"],
+    Group4: ["Amuwo-Odofin", "Ikorodu", "Kosofe", "Surulere"],
+    Group5: ["Epe", "Eti-Osa", "Ibeju-Lekki"],
+  },
+  Ogun: {
+    Group1: ["Abeokuta North", "Abeokuta South", "Odeda", "Obafemi Owode"],
+    Group2: ["Ado-Odo/Ota", "Ifo"],
+    Group3: ["Ijebu East", "Ijebu North", "Ijebu North East", "Ijebu Ode"],
+    Group4: ["Egbado North", "Egbado South", "Imeko Afon"],
+    Group5: [
+      "Ewekoro",
+      "Ikenne",
+      "Ipokia",
+      "Ogun Waterside",
+      "Remo North",
+      "Shagamu",
+    ],
+  },
+  Kano: {
+    Group1: [
+      "Dala",
+      "Fagge",
+      "Gwale",
+      "Kano Municipal",
+      "Nasarawa",
+      "Tarauni",
+      "Ungogo",
+    ],
+    Group2: ["Dawakin Tofa", "Gwarzo", "Madobi", "Makoda", "Rogo", "Tsanyawa"],
+    Group3: [
+      "Bunkure",
+      "Dambatta",
+      "Garun Mallam",
+      "Kibiya",
+      "Maimako",
+      "Rano",
+      "Sumaila",
+      "Wudil",
+    ],
+    Group4: ["Kabo", "Kibiya", "Kiru", "Rimin Gado", "Shanono"],
+    Group5: [
+      "Ajingi",
+      "Bebeji",
+      "Bichi",
+      "Doguwa",
+      "Gezawa",
+      "Karaye",
+      "Kunchi",
+    ],
+  },
+};
+
+const nigeria_states = ["Kano", "Lagos", "Ogun"];
+
+const internshipProgramOptions = [
+  { label: "Theatre Group", value: "theatreGroup" },
+  { label: "Short Film", value: "shortFilm" },
+  {
+    label: "Marketing Communication and Social Media",
+    value: "marketingCommunication",
+  },
+  { label: "Creative Management Consultant", value: "creativeManagement" },
+  { label: "Sponsorship Marketers", value: "sponsorshipMarketers" },
+  { label: "Content Creation Skits", value: "contentCreationSkits" },
+];
+
+const projectTypeOptions = [
+  { label: "Group Internship Project", value: "GroupInternship" },
+  {
+    label: "Individual Internship Project (Entrepreneurs)",
+    value: "IndividualInternship",
+  },
+  { label: "Corporate Internship", value: "CorporateInternship" },
+];
+
 export const ApplicantEditForm = ({ applicant, ...other }) => {
   const [updateApplicant, result] = useEditApplicantMutation();
   const router = useRouter();
@@ -149,7 +236,7 @@ export const ApplicantEditForm = ({ applicant, ...other }) => {
   const formik = useFormik({
     initialValues: {
       homeAddress: applicant.profile?.homeAddress || "",
-      stateOfOrigin: applicant.profile?.stateOfOrigin || "",
+      LGADetails: applicant.profile?.LGADetails || "",
       email: applicant.email || "",
       firstName: applicant.firstName || "",
       lastName: applicant.lastName || "",
@@ -168,11 +255,13 @@ export const ApplicantEditForm = ({ applicant, ...other }) => {
       employmentStatus: applicant?.profile?.employmentStatus || "",
       selfEmployedType: applicant?.profile?.selfEmployedType || "",
       residencyStatus: applicant?.profile?.residencyStatus || "",
+      projectType: applicant?.profile?.projectType || "",
+      internshipProgram: applicant?.profile?.internshipProgram || "",
       submit: null,
     },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      stateOfOrigin: Yup.string().max(255),
+      LGADetails: Yup.string().max(255),
       country: Yup.string().max(255),
       email: Yup.string()
         .email("Must be a valid email")
@@ -195,6 +284,10 @@ export const ApplicantEditForm = ({ applicant, ...other }) => {
         is: "self-employed",
         then: Yup.string().required("Self-Employed Type is required"),
       }),
+      projectType: Yup.string().max(255).required("Project Type is required"),
+      internshipProgram: Yup.string().required(
+        "Internship Program is required"
+      ),
     }),
     onSubmit: async (values, helpers) => {
       try {
@@ -232,6 +325,20 @@ export const ApplicantEditForm = ({ applicant, ...other }) => {
       }
     },
   });
+
+  // Initialize an array to hold LGAs based on the selected state
+  const [availableLGAs, setAvailableLGAs] = useState([]);
+
+  useEffect(() => {
+    if (formik.values.stateOfResidence) {
+      const selectedState = formik.values.stateOfResidence;
+
+      // Combine LGAs from all groups for the selected state
+      const allLGAs = Object.values(LGAs[selectedState]).flat();
+
+      setAvailableLGAs(allLGAs);
+    }
+  }, [formik.values.stateOfResidence]);
 
   return (
     <form onSubmit={formik.handleSubmit} {...other}>
@@ -300,40 +407,101 @@ export const ApplicantEditForm = ({ applicant, ...other }) => {
                 value={formik.values.phoneNumber}
               />
             </Grid>
+
             <Grid item md={6} xs={12}>
-              <TextField
-                error={Boolean(
-                  formik.touched.stateOfOrigin && formik.errors.stateOfOrigin
-                )}
-                fullWidth
-                helperText={
-                  formik.touched.stateOfOrigin && formik.errors.stateOfOrigin
-                }
-                label="State of Origin"
-                name="stateOfOrigin"
-                onBlur={formik.handleBlur}
-                onChange={formik.handleChange}
-                value={formik.values.stateOfOrigin}
-              />
-            </Grid>
-            <Grid item md={6} xs={12}>
-              <TextField
-                error={Boolean(
-                  formik.touched.stateOfResidence &&
-                    formik.errors.stateOfResidence
-                )}
-                fullWidth
-                helperText={
-                  formik.touched.stateOfResidence &&
-                  formik.errors.stateOfResidence
-                }
-                label="State of Residence"
-                name="stateOfResidence"
-                onBlur={formik.handleBlur}
-                onChange={formik.handleChange}
+              <Autocomplete
+                getOptionLabel={(option) => option}
+                options={nigeria_states}
                 value={formik.values.stateOfResidence}
+                onChange={(event, newValue) => {
+                  formik.setFieldValue("stateOfResidence", newValue);
+
+                  console.log(newValue);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    error={Boolean(
+                      formik.touched.stateOfResidence &&
+                        formik.errors.stateOfResidence
+                    )}
+                    fullWidth
+                    helperText={
+                      formik.touched.stateOfResidence &&
+                      formik.errors.stateOfResidence
+                    }
+                    label="State of Residence"
+                    name="stateOfResidence"
+                  />
+                )}
               />
             </Grid>
+
+            <Grid item md={6} xs={12}>
+              <Autocomplete
+                getOptionLabel={(option) => option}
+                options={availableLGAs}
+                value={formik.values.LGADetails} // Update this line
+                onChange={(event, newValue) => {
+                  formik.setFieldValue("LGADetails", newValue); // Update this line
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    error={Boolean(
+                      formik.touched.LGADetails && formik.errors.LGADetails
+                    )}
+                    fullWidth
+                    helperText={
+                      formik.touched.LGADetails && formik.errors.LGADetails
+                    }
+                    label="LGA Details"
+                    name="LGADetails" // Update this line
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item md={6} xs={12}>
+              <Typography id="project-type-label">Project Type</Typography>
+              <RadioGroup
+                name="projectType"
+                value={formik.values.projectType}
+                onChange={formik.handleChange}
+                id="project-type"
+              >
+                {projectTypeOptions.map((option) => (
+                  <FormControlLabel
+                    control={<Radio />}
+                    label={option.label}
+                    value={option.value}
+                    key={option.value} // Don't forget to provide a unique key
+                  />
+                ))}
+              </RadioGroup>
+            </Grid>
+
+            <Grid item md={6} xs={12}>
+              <Typography id="internship-program-label">
+                Internship Program
+              </Typography>
+              <RadioGroup
+                name="internshipProgram"
+                value={formik.values.internshipProgram}
+                onChange={formik.handleChange}
+                id="internship-program"
+              >
+                {internshipProgramOptions.map((option) => (
+                  <FormControlLabel
+                    control={<Radio />}
+                    label={option.label}
+                    value={option.value}
+                    key={option.value} // Don't forget to provide a unique key
+                  />
+                ))}
+              </RadioGroup>
+            </Grid>
+
             <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(formik.touched.gender && formik.errors.gender)}

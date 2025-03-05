@@ -7,7 +7,7 @@ import { bigint_filter } from "./enrollments";
 interface Location {
   id: string;
   location: string;
-  seats: number;
+  seats: number | null; // Allow seats to be null
   name: string;
   seatBooking: SeatBooking[];
 }
@@ -19,7 +19,7 @@ interface SeatBooking {
   locationId: string;
   Date: Date;
   timeslot: number;
-  location: Location;
+  // location: Location[];
 }
 
 // Create a Nodemailer transporter with your email service configuration
@@ -246,7 +246,7 @@ async function sendSeatBookingConfirmationEmail(
               <p>Dear ${applicantName},</p>
               <p>We are pleased to inform you that your seat for the event on <span class="highlight">${dateAndTime}</span> has been successfully booked. Your seat number is <span class="highlight">${seatNumber}</span>.</p>
               <p>Please bring this confirmation email with you to the event as proof of your booking. We look forward to seeing you there!</p>
-              <p>Thank you for choosing [Company Name].</p>
+              <p>Thank you for choosing TAFTA</p>
             </div>
           </body>
           </html>

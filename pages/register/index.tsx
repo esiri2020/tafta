@@ -185,8 +185,9 @@ function completeRegistration() {
             }}
           >
             Registration Form
-          </Typography>
+          </Typography>          
         </Box>
+
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Paper elevation={3} sx={{ width: '1300px', m: '50px', p: '20px' }}>
             <Box>

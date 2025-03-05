@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   MenuItem,
   Autocomplete,
@@ -21,46 +21,70 @@ import PropTypes from "prop-types";
 import toast from "react-hot-toast";
 import * as Yup from "yup";
 
-const nigeria_states = [
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Bayelsa",
-  "Benue",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "FCT - Abuja",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
-  "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
-  "Lagos",
-  "Nasarawa",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
-  "",
-];
+const nigeria_states = ["Kano", "Lagos", "Ogun"];
+
+const LGAs = {
+  Lagos: {
+    Group1: ["Lagos Island", "Lagos Mainland"],
+    Group2: [
+      "Agege",
+      "Alimosho",
+      "Ifako-Ijaiye",
+      "Ikeja",
+      "Mushin",
+      "Oshodi-Isolo",
+    ],
+    Group3: ["Ajeromi-Ifelodun", "Apapa", "Badagry", "Ojo"],
+    Group4: ["Amuwo-Odofin", "Ikorodu", "Kosofe", "Surulere"],
+    Group5: ["Epe", "Eti-Osa", "Ibeju-Lekki"],
+  },
+  Ogun: {
+    Group1: ["Abeokuta North", "Abeokuta South", "Odeda", "Obafemi Owode"],
+    Group2: ["Ado-Odo/Ota", "Ifo"],
+    Group3: ["Ijebu East", "Ijebu North", "Ijebu North East", "Ijebu Ode"],
+    Group4: ["Egbado North", "Egbado South", "Imeko Afon"],
+    Group5: [
+      "Ewekoro",
+      "Ikenne",
+      "Ipokia",
+      "Ogun Waterside",
+      "Remo North",
+      "Shagamu",
+    ],
+  },
+  Kano: {
+    Group1: [
+      "Dala",
+      "Fagge",
+      "Gwale",
+      "Kano Municipal",
+      "Nasarawa",
+      "Tarauni",
+      "Ungogo",
+    ],
+    Group2: ["Dawakin Tofa", "Gwarzo", "Madobi", "Makoda", "Rogo", "Tsanyawa"],
+    Group3: [
+      "Bunkure",
+      "Dambatta",
+      "Garun Mallam",
+      "Kibiya",
+      "Maimako",
+      "Rano",
+      "Sumaila",
+      "Wudil",
+    ],
+    Group4: ["Kabo", "Kibiya", "Kiru", "Rimin Gado", "Shanono"],
+    Group5: [
+      "Ajingi",
+      "Bebeji",
+      "Bichi",
+      "Doguwa",
+      "Gezawa",
+      "Karaye",
+      "Kunchi",
+    ],
+  },
+};
 
 const community_areas = [
   {
@@ -86,12 +110,6 @@ const ranges = [
   [21, 25],
   [26, 30],
   [31, 35],
-  [36, 40],
-  [41, 45],
-  [46, 50],
-  [51, 55],
-  [56, 60],
-  [61, 65],
 ];
 
 const levels_of_education = [
@@ -226,6 +244,87 @@ const self_employed_types = [
     label: "Contractor",
     value: "contractor",
   },
+];
+
+const internshipProgramOptions = [
+  { label: "Theatre Group", value: "TheatreGroup" },
+  { label: "Short Film", value: "ShortFilm" },
+  {
+    label: "Marketing Communication and Social Media",
+    value: "MarketingCommunication",
+  },
+  {
+    label: "Creative Management Consultant",
+    value: "CreativeManagementConsultant",
+  },
+  { label: "Sponsorship Marketers", value: "SponsorshipMarketers" },
+  { label: "Content Creation", value: "ContentCreation" },
+];
+
+const projectTypeOptions = [
+  { label: "Group Internship Project", value: "GroupInternship" },
+  {
+    label: "Individual Internship Project (Entrepreneurs)",
+    value: "IndividualInternship",
+  },
+  { label: "Corporate Internship", value: "CorporateInternship" },
+];
+
+const mobilizer = [
+  "MUB",
+  "MYD",
+  "ARO",
+  "NYSC",
+  "RCCGDD",
+  "KEN01",
+  "WOMDEV",
+  "LANMO",
+  "AKIN T",
+  "GOKE19",
+  "OLUFEMISAMSON",
+  "OLASAM",
+  "Pearl",
+  "OGJLE05",
+  "ADEOLU",
+  "NAFOGUN",
+  "KENNYWISE",
+  "TK001",
+  "TK002",
+  "TK003",
+  "TK004",
+  "TK005",
+  "TK006",
+  "TK007",
+  "TK008",
+  "TK009",
+  "TK010",
+  "TK011",
+  "TK012",
+  "TK013",
+  "TK014",
+  "TK015",
+  "TK016",
+  "UPSKILL",
+  "TCA",
+  "LG/LO/003",
+  "LG/VA/007",
+  "LG/PA/010",
+  "LG/EC/011",
+  "VYN",
+  "DEBBIE/ FEMI OMOLERE",
+  "WISCAR",
+  "CYON",
+  "ILEADAFRICA",
+  "AZMUSIK",
+  "NEW MOBILIZER",
+  "LASU",
+  "JAM",
+  "NATH",
+  "EMM",
+  "MATT",
+  "MAPOLY",
+  "FCOC",
+  "DPRINCE",
 ];
 
 const ITEM_HEIGHT = 48;
@@ -392,7 +491,7 @@ export const PersonalInformation = ({
     initialValues: applicant
       ? {
           homeAddress: applicant.profile?.homeAddress || "",
-          stateOfOrigin: applicant.profile?.stateOfOrigin || "",
+          LGADetails: applicant.profile?.LGADetails || "",
           email: applicant.email || "",
           firstName: applicant.firstName || "",
           lastName: applicant.lastName || "",
@@ -410,11 +509,13 @@ export const PersonalInformation = ({
           employmentStatus: applicant?.profile?.employmentStatus || "",
           selfEmployedType: applicant?.profile?.selfEmployedType || "",
           residencyStatus: applicant?.profile?.residencyStatus || "",
+          projectType: applicant.projectType || "",
+          internshipProgram: applicant.internshipProgram || "",
           submit: null,
         }
       : {
           homeAddress: "",
-          stateOfOrigin: "",
+          LGADetails: "",
           email: "",
           firstName: "",
           lastName: "",
@@ -432,11 +533,13 @@ export const PersonalInformation = ({
           employmentStatus: "",
           residencyStatus: "",
           selfEmployedType: "",
+          projectType: "",
+          internshipProgram: "",
           submit: null,
         },
     validationSchema: Yup.object({
       homeAddress: Yup.string(),
-      stateOfOrigin: Yup.string().max(255),
+      LGADetails: Yup.string().max(255),
       country: Yup.string().max(255),
       email: Yup.string()
         .email("Must be a valid email")
@@ -448,7 +551,7 @@ export const PersonalInformation = ({
       stateOfResidence: Yup.string().max(255),
       gender: Yup.string().max(6).required("Gender is required"),
       disability: Yup.string().max(128),
-      referrer_fullName: Yup.string().max(64),
+      referrer_fullName: Yup.string().max(64).required("Mobilizer is required"),
       referrer_phoneNumber: Yup.string().max(16),
       employmentStatus: Yup.string().required("Employment Status is required"),
       residencyStatus: Yup.string().required("Residency Status is required"),
@@ -456,6 +559,10 @@ export const PersonalInformation = ({
         is: "self-employed",
         then: Yup.string().required("Self-Employed Type is required"),
       }),
+      projectType: Yup.string().max(255).required("Project Type is required"),
+      internshipProgram: Yup.string().required(
+        "Internship Program is required"
+      ),
     }),
     onSubmit: async (values, helpers) => {
       try {
@@ -468,6 +575,8 @@ export const PersonalInformation = ({
           source,
           referrer_fullName,
           referrer_phoneNumber,
+          // projectType,
+          // internshipProgram,
           ...profile
         } = values;
         if (referrer_fullName)
@@ -511,6 +620,21 @@ export const PersonalInformation = ({
       }
     },
   });
+
+  // Initialize an array to hold LGAs based on the selected state
+  const [availableLGAs, setAvailableLGAs] = React.useState([]);
+
+  useEffect(() => {
+    if (formik.values.stateOfResidence) {
+      const selectedState = formik.values.stateOfResidence;
+
+      // Combine LGAs from all groups for the selected state
+      const allLGAs = Object.values(LGAs[selectedState]).flat();
+
+      setAvailableLGAs(allLGAs);
+    }
+  }, [formik.values.stateOfResidence]);
+
   return (
     <Box>
       <Card>
@@ -600,9 +724,12 @@ export const PersonalInformation = ({
                 <Autocomplete
                   getOptionLabel={(option) => option}
                   options={nigeria_states}
+                  required
                   value={formik.values.stateOfResidence}
                   onChange={(event, newValue) => {
                     formik.setFieldValue("stateOfResidence", newValue);
+
+                    console.log(newValue);
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -622,31 +749,73 @@ export const PersonalInformation = ({
                   )}
                 />
               </Grid>
+
               <Grid item md={6} xs={12}>
                 <Autocomplete
                   getOptionLabel={(option) => option}
-                  options={nigeria_states}
-                  value={formik.values.stateOfOrigin}
+                  options={availableLGAs}
+                  value={formik.values.LGADetails} // Update this line
+                  required
                   onChange={(event, newValue) => {
-                    formik.setFieldValue("stateOfOrigin", newValue);
+                    formik.setFieldValue("LGADetails", newValue); // Update this line
                   }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       error={Boolean(
-                        formik.touched.stateOfOrigin &&
-                          formik.errors.stateOfOrigin
+                        formik.touched.LGADetails && formik.errors.LGADetails
                       )}
                       fullWidth
                       helperText={
-                        formik.touched.stateOfOrigin &&
-                        formik.errors.stateOfOrigin
+                        formik.touched.LGADetails && formik.errors.LGADetails
                       }
-                      label="State of Origin"
-                      name="stateOfOrigin"
+                      label="LGA Details"
+                      name="LGADetails" // Update this line
                     />
                   )}
                 />
+              </Grid>
+
+              <Grid item md={6} xs={12}>
+                <Typography id="project-type-label">Project Type</Typography>
+                <RadioGroup
+                  name="projectType"
+                  value={formik.values.projectType}
+                  onChange={formik.handleChange}
+                  id="project-type"
+                >
+                  {projectTypeOptions.map((option) => (
+                    <FormControlLabel
+                      control={<Radio />}
+                      label={option.label}
+                      required
+                      value={option.value}
+                      key={option.value} // Don't forget to provide a unique key
+                    />
+                  ))}
+                </RadioGroup>
+              </Grid>
+
+              <Grid item md={6} xs={12}>
+                <Typography id="internship-program-label">
+                  Internship Program
+                </Typography>
+                <RadioGroup
+                  name="internshipProgram"
+                  value={formik.values.internshipProgram}
+                  required
+                  onChange={formik.handleChange}
+                  id="internship-program"
+                >
+                  {internshipProgramOptions.map((option) => (
+                    <FormControlLabel
+                      control={<Radio />}
+                      label={option.label}
+                      value={option.value}
+                      key={option.value} // Don't forget to provide a unique key
+                    />
+                  ))}
+                </RadioGroup>
               </Grid>
 
               <Grid item md={6} xs={12}>
@@ -675,6 +844,7 @@ export const PersonalInformation = ({
                     name="communityArea"
                     sx={{ flexDirection: "row" }}
                     value={formik.values.communityArea}
+                    required
                   >
                     {community_areas.map((communityArea) => (
                       <FormControlLabel
@@ -751,6 +921,7 @@ export const PersonalInformation = ({
                     sx={{ flexDirection: "column" }}
                     value={formik.values.educationLevel}
                     onChange={formik.handleChange}
+                    required
                   >
                     {levels_of_education.map((level_of_education) => (
                       <FormControlLabel
@@ -777,6 +948,7 @@ export const PersonalInformation = ({
                       name="_disability"
                       sx={{ flexDirection: "column" }}
                       value={formik.values._disability}
+                      required
                       onChange={(e) => {
                         if (e.target.value == "false") {
                           formik.setFieldValue("disability", "");
@@ -806,6 +978,7 @@ export const PersonalInformation = ({
                       name="disability"
                       sx={{ flexDirection: "row" }}
                       value={formik.values.disability}
+                      required
                       onChange={formik.handleChange}
                     >
                       {user_disabilies.map((user_disability) => (
@@ -837,6 +1010,7 @@ export const PersonalInformation = ({
                       name="employmentStatus"
                       sx={{ flexDirection: "row" }}
                       value={formik.values.employmentStatus}
+                      required
                       onChange={formik.handleChange}
                       id="employment-status"
                       {...formik.getFieldProps("employmentStatus")}
@@ -878,6 +1052,7 @@ export const PersonalInformation = ({
                       name="selfEmployedType"
                       sx={{ flexDirection: "row" }}
                       value={formik.values.selfEmployedType}
+                      required
                       onChange={formik.handleChange}
                       id="self-employed-type"
                       disabled={
@@ -921,6 +1096,7 @@ export const PersonalInformation = ({
                   name="residencyStatus"
                   sx={{ flexDirection: "row" }}
                   value={formik.values.residencyStatus}
+                  required
                   onChange={formik.handleChange}
                   id="residency-status"
                   error={
@@ -952,6 +1128,7 @@ export const PersonalInformation = ({
                     name="source"
                     sx={{ flexDirection: "row" }}
                     value={formik.values.source}
+                    required
                     onChange={(e) => {
                       if (e.target.value !== "by_referral") {
                         formik.setFieldValue("referrer_fullName", "");
@@ -975,26 +1152,43 @@ export const PersonalInformation = ({
                     <FormControlLabel
                       control={<Radio sx={{ ml: 1 }} />}
                       label={
-                        <Typography variant="body1">By referral</Typography>
+                        <Typography variant="body1">By Mobilizer</Typography>
                       }
                       value="by_referral"
                     />
                   </RadioGroup>
                 </Grid>
               </Grid>
-              <Grid item md={3} xs={12}>
-                <TextField
-                  fullWidth
-                  label="Referrer Full Name"
-                  name="referrer_fullName"
-                  disabled={formik.values.source !== "by_referral"}
-                  required
+              <Grid item md={6} xs={12}>
+                <Autocomplete
+                  getOptionLabel={(option) => option}
+                  options={mobilizer}
                   value={formik.values.referrer_fullName}
-                  onChange={formik.handleChange}
+                  onChange={(event, newValue) => {
+                    formik.setFieldValue("referrer_fullName", newValue);
+                    console.log(newValue);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      error={Boolean(
+                        formik.touched.referrer_fullName &&
+                          formik.errors.referrer_fullName
+                      )}
+                      fullWidth
+                      helperText={
+                        formik.touched.referrer_fullName &&
+                        formik.errors.referrer_fullName
+                      }
+                      label="Mobilizer"
+                      name="referrer_fullName"
+                      disabled={formik.values.source !== "by_referral"}
+                    />
+                  )}
                 />
               </Grid>
 
-              <Grid item md={3} xs={12}>
+              {/* <Grid item md={3} xs={12}>
                 <TextField
                   fullWidth
                   label="Referrer Phone number"
@@ -1003,7 +1197,7 @@ export const PersonalInformation = ({
                   value={formik.values.referrer_phoneNumber}
                   onChange={formik.handleChange}
                 />
-              </Grid>
+              </Grid> */}
             </Grid>
             <Grid sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
               <Button
@@ -1402,6 +1596,8 @@ export const VerifyEmail = () => (
           <br /> However, you're not there yet.
           <br /> To complete your registration, Please check your email to
           verify your account.
+
+
         </Typography>
       </CardContent>
     </Card>

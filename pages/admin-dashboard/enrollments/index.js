@@ -11,6 +11,17 @@ import { useGetEnrollmentsQuery } from "../../../services/api";
 import { SplashScreen } from "../../../components/splash-screen";
 import { toast } from "react-hot-toast";
 
+const EnrollmentSummary = ({ maleCount, femaleCount, count }) => {
+  return (
+    <div>
+      <h2>Enrollment Summary</h2>
+      <p>Total Enrollments: {count}</p>
+      <p>Male Enrollments: {maleCount}</p>
+      <p>Female Enrollments: {femaleCount}</p>
+    </div>
+  );
+};
+
 const EnrollmentList = () => {
   const router = useRouter();
   const [page, setPage] = useState(0);
@@ -26,6 +37,8 @@ const EnrollmentList = () => {
     status,
     cohort,
   });
+
+  console.log(data);
 
   const handleFiltersChange = (filters) => {
     setCourse(filters.course);
@@ -61,7 +74,7 @@ const EnrollmentList = () => {
     }
   }
   if (!data) return <div>No Data!</div>;
-  const { enrollments, count } = data;
+  const { enrollments, count, femaleCount, maleCount } = data;
   if (enrollments === undefined) return <div>No Data!</div>;
 
   return (
@@ -92,6 +105,13 @@ const EnrollmentList = () => {
                 </Button>
               </Grid>
             </Grid>
+          </Box>
+          <Box sx={{ mb: 4 }}>
+            <EnrollmentSummary
+              count={count}
+              femaleCount={femaleCount}
+              maleCount={maleCount}
+            />
           </Box>
           <Card>
             <EnrollmentListFilters onChange={handleFiltersChange} />

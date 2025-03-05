@@ -372,7 +372,8 @@ const Account = () => {
             />
           )}
           {currentTab === "active-courses" && (
-            <CourseInformation data={cohortCoursesData} />
+            // <CourseInformation data={cohortCoursesData} />
+            <Typography>One Member, One Cohort </Typography>
           )}
           {currentTab === "book-a-seat" && (
             <Scheduler
