@@ -209,11 +209,7 @@ export const CourseInformation = ({ data }) => {
                       <FormControlLabel
                         control={<Radio sx={{ ml: 1 }} />}
                         key={cohort_course.id}
-                        label={
-                          <Typography variant="body1" sx={{ flexGrow: 1 }}>
-                            {cohort_course.course.name}
-                          </Typography>
-                        }
+                        label={cohort_course.course.name}
                         value={cohort_course.course.id}
                       />
                     ))}

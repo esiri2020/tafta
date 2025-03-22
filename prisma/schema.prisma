@@ -42,6 +42,7 @@ model User {
   image             String?
   firstName         String?
   lastName          String?
+  middleName        String?
   createdAt         DateTime      @default(now())
   role              Role          @default(APPLICANT)
   password          String
@@ -57,6 +58,7 @@ model User {
 model Profile {
   id                String                   @id @default(cuid())
   userId            String                   @unique
+  type              RegistrationType         @default(INDIVIDUAL)
   taftaCenter       String?
   homeAddress       String?
   zipCode           String?
@@ -77,6 +79,14 @@ model Profile {
   LGADetails        String?
   internshipProgram InternshipProgramOption?
   projectType       ProjectTypeOption?
+  registrationPath  RegistrationType     @default(INDIVIDUAL)
+  currentSalary     Float?
+  salaryExpectation Float?
+  businessName      String?
+  businessType      BusinessType?
+  revenueRange      String?
+  registrationType  BusinessRegistrationType?
+  businessSupportNeeds String[]
   user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   referrer          Referrer?
 }
@@ -332,4 +342,19 @@ enum ProjectTypeOption {
   GroupInternship
   IndividualInternship
   CorporateInternship
+}
+
+enum RegistrationType {
+  INDIVIDUAL
+  ENTERPRISE
+}
+
+enum BusinessType {
+  STARTUP
+  EXISTING
+}
+
+enum BusinessRegistrationType {
+  CAC
+  SMEDAN
 }

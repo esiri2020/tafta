@@ -30,44 +30,60 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
-    maxAge: 12 * 60 * 60,
+    maxAge: 12 * 60 * 60, // 12 hours
   },
   jwt: {
-    maxAge: 60 * 60 * 12,
+    maxAge: 60 * 60 * 12, // 12 hours
   },
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "text", placeholder: "user@email.com" },
         password: { label: "Password", type: "password" },
       },
-      // @ts-ignore
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         try {
           if (!credentials?.email || !credentials?.password) {
+            console.log("Missing email or password");
             return null;
-            // throw new Error('No email address or password');
           }
+          
           const user = await prisma.user.findUnique({
             where: { email: credentials.email.toLowerCase() },
-            include: { profile: true },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+              profile: true
+            },
           });
+          
           if (!user) {
+            console.log("No user found with email:", credentials.email);
             return null;
-            // throw new Error('No user found with the email');
           }
+          
           const checkPassword = await compare(
             credentials.password,
             user.password
           );
-          //Correct password - send response
+          
           if (checkPassword) {
-            return user;
+            console.log("Login successful for:", credentials.email);
+            
+            // Return the original user object
+            return user as any;
           }
+          
+          console.log("Password mismatch for:", credentials.email);
           return null;
         } catch (e) {
-          console.error(e);
+          console.error("Auth error:", e);
           return null;
         }
       },
@@ -143,21 +159,18 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        if (user.email !== null) {
-          token.userData = {
-            userId: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role,
-            profile: user.profile ? true : false,
-          };
-        }
+        token.userData = {
+          userId: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email || "",
+          role: user.role,
+          profile: user.profile ? true : false,
+        };
       }
       return token;
     },
-    async session({ session, token, user }) {
-      // Send properties to the client, like an access_token and user id from a provider.
+    async session({ session, token }) {
       if (token) {
         return { userData: token.userData, ...session };
       }

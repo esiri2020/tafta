@@ -23,35 +23,32 @@ export const LoginScout = ({providers, csrfToken, ...others}) => {
         .required('Email is required')
     }),
     onSubmit: async ({email, password, csrfToken}, helpers) => {
-      const promise = new Promise(async (resolve, reject) => {
-        let req = await signIn('credentials', {
+      try {
+        const result = await signIn('credentials', {
           redirect: false,
           callbackUrl: '/role',
           email,
           password,
-        })
-        if (req.status === 200) resolve(req)
-        else reject(req)
-      })
-      toast.promise(
-        promise,
-        {
-          loading: 'Logging In...',
-          success: <b>Login successful!</b>,
-          error: err => {
-            console.error(err)
-            if (err.status === 401) return (<b>Invalid Credentials.</b>)
-            return (<b>Could not login.</b>)
-          },
+          csrfToken
+        });
+        
+        if (result.error) {
+          console.error('Login error:', result);
+          toast.error('Login failed: Invalid email or password');
+          helpers.setStatus({ success: false });
+          helpers.setErrors({ submit: 'Invalid email or password' });
+          helpers.setSubmitting(false);
+        } else {
+          toast.success('Login successful!');
+          router.replace('/role');
         }
-      ).then(res => {
-        router.replace('/role')
-      }).catch(err => {
-        console.error(err);
+      } catch (error) {
+        console.error('Login exception:', error);
+        toast.error('Login failed: An unexpected error occurred');
         helpers.setStatus({ success: false });
-        helpers.setErrors({ submit: err.message });
+        helpers.setErrors({ submit: 'An unexpected error occurred' });
         helpers.setSubmitting(false);
-      })
+      }
     }
   });
 

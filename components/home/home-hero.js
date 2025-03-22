@@ -100,7 +100,7 @@ export const HomeHero = (props) => {
                 }}
               >
                 <NextLink
-                href={{pathname: '/register', query: {cohortId: cohort.id}}}
+                href={{pathname: '/register/new', query: {cohortId: cohort.id}}}
                 passHref
               >
                 <Button

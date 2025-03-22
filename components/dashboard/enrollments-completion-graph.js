@@ -17,7 +17,7 @@ export const EnrollmentsCompletedGraph = (props) => {
   const theme = useTheme();
   const {data: _data} = props
 
-  if (!_data) return null
+  if (!_data || _data.length === 0) return null
 
   const data = {
     datasets: [
@@ -84,7 +84,7 @@ export const EnrollmentsCompletedGraph = (props) => {
     },
     xaxis: {
       type: 'datetime',
-      min: Date.parse(_data[0].date),
+      min: _data.length > 0 ? Date.parse(_data[0].date) : new Date().getTime(),
       tickAmount: 6,
       categories: _data.map(x=>x.date)
     },

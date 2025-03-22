@@ -15,13 +15,14 @@ import { useGetApplicantQuery, useEditApplicantMutation, useGetCohortCoursesQuer
 import { GetServerSideProps, NextPageContext } from 'next';
 import { SplashScreen } from '../../components/splash-screen';
 import { signIn } from 'next-auth/react';
+import Link from 'next/link';
 
 
 const steps = [
+  'Course Selection',
   'Register',
   'Verify Email',
   'Personal Information',
-  'Course Information',
   'EndOfApplication',
 ];
 
@@ -239,6 +240,15 @@ function completeRegistration() {
             </Box>
           </Paper>
         </Box>
+        <Link href="/register/new" passHref>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ mt: 2 }}
+          >
+            Try our new registration process
+          </Button>
+        </Link>
       </main>
     </>
   )

@@ -27,8 +27,8 @@ function providesList<
     : ["UNKNOWN_ERROR"];
 }
 
-const url: string = env["API"] ? env["API"] : "https://reg.terraacademyforarts.com/api/";
-// const url: string = env["API"] ? env["API"] : "http://localhost:3000/api/";
+// const url: string = env["API"] ? env["API"] : "https://reg.terraacademyforarts.com/api/";
+const url: string = env["API"] ? env["API"] : "http://localhost:3000/api/";
 
 
 export const apiService = createApi({
@@ -110,14 +110,38 @@ export const apiService = createApi({
       providesTags: (result, error, arg) =>
         result ? [{ type: "Applicants", id: arg.id }] : ["Applicants"],
     }),
-    createApplicant: builder.mutation({
+    createApplicant: builder.mutation<
+      { message: string; user: any },
+      {
+        body: {
+          email: string;
+          password: string;
+          firstName: string;
+          lastName: string;
+          middleName?: string;
+          type?: 'individual' | 'enterprise';
+          // Temporary profile data for registration type
+          profile?: {
+            type: 'individual' | 'enterprise';
+            // Individual fields
+            employmentStatus?: string;
+            salaryExpectation?: string | number;
+            // Enterprise fields
+            businessName?: string;
+            businessType?: 'STARTUP' | 'EXISTING';
+            revenueRange?: string;
+            registrationType?: 'CAC' | 'SMEDAN';
+            businessSupportNeeds?: string[];
+          };
+          cohortId?: string;
+        };
+      }
+    >({
       query: ({ body }) => ({
-        url: "auth/signup",
-        method: "POST",
+        url: 'auth/signup',
+        method: 'POST',
         body,
       }),
-      invalidatesTags: (result, error, arg) =>
-        result ? [{ type: "Applicants", id: result.id }] : ["Applicants"],
     }),
     editApplicant: builder.mutation({
       query: ({ id, body }) => ({
@@ -367,6 +391,26 @@ export const apiService = createApi({
       }),
       invalidatesTags: ["Enrollments"],
     }),
+    getVerificationStatus: builder.query<
+      { verified: boolean },
+      { email: string }
+    >({
+      query: ({ email }) => ({
+        url: `/auth/verify-status`,
+        method: 'GET',
+        params: { email }
+      }),
+    }),
+    resendVerification: builder.mutation<
+      { success: boolean },
+      { email: string }
+    >({
+      query: ({ email }) => ({
+        url: `/auth/resend-verification`,
+        method: 'POST',
+        body: { email }
+      }),
+    }),
   }),
 });
 
@@ -402,4 +446,6 @@ export const {
   useCreateReportMutation,
   useDeleteReportMutation,
   useAutoEnrollmentMutation,
+  useGetVerificationStatusQuery,
+  useResendVerificationMutation,
 } = apiService;

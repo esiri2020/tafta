@@ -9,126 +9,98 @@ import type { Cohort, Role } from '@prisma/client'
 // TODO: create user on thinkific
 // TODO: add user to cohort group on thinkific
 
-async function handler(
+export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
-    //Only POST mothod is accepted
-    if (req.method === 'POST') {
-        const token = await getToken({ req })
-        //Getting email and password from body
-        const body = typeof (req.body) === 'object' ? req.body : JSON.parse(req.body)
-        let { email, password, firstName, lastName, cohortId, locationId, profile, referrer }:
-            {
-                email: string,
-                password: string,
-                firstName: string,
-                lastName: string,
-                cohortId: string,
-                locationId?: string,
-                profile?: any,
-                referrer?: any
-            } = body;
-        let role: Role = 'APPLICANT'
-        if (token && token.userData?.role === "SUPERADMIN") {
-            role = body.role ? body.role : 'APPLICANT'
-        }
-        //Validate
-        const isEmail = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/gi;
-        if (!email || !isEmail.test(email) || !password) {
-            res.status(400).json({ message: 'Invalid Data' });
-            return;
-        }
-        email = email.toLowerCase()
-        //Check existing
-        const checkExisting = await prisma.user
-            .findUnique({
-                where: { email: email }
-            })
+    if (req.method !== "POST") {
+        return res.status(405).json({ message: "Method not allowed" });
+    }
 
-        //Send error response if duplicate user is found
-        if (checkExisting) {
-            res.status(422).json({ message: 'User already exists' });
-            return;
+    try {
+        const {
+            email,
+            password,
+            firstName,
+            lastName,
+            middleName,
+            profile,
+            cohortId
+        } = req.body;
+
+        // Validate required fields
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({ message: "Missing required fields" });
         }
-        let cohort: Cohort | null = null
-        if (cohortId) {
-            cohort = await prisma.cohort.findUnique({
-                where: {
-                    id: cohortId
-                }
-            })
-            if (!cohort) {
-                return res.status(404).send({ message: 'Invalid cohort Id' })
-            }
+
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({
+            where: { email: email.toLowerCase() }
+        });
+
+        if (existingUser) {
+            return res.status(422).json({ message: "User already exists" });
         }
-        try {
-            if (profile) {
-                if (profile.dob) {
-                    profile.dob = formatISO(Date.parse(profile.dob))
-                }
-                const user = await prisma.user.create({
-                    data: {
-                        email,
-                        firstName,
-                        lastName,
-                        role,
-                        password: await hash(password, 12),
-                        profile: {
-                            create: {
-                                ...profile
-                            }
+
+        // Hash password
+        const hashedPassword = await hash(password, 12);
+
+        // Create user with profile if profile data was provided
+        const user = await prisma.user.create({
+            data: {
+                email: email.toLowerCase(),
+                firstName,
+                lastName,
+                middleName,
+                password: hashedPassword,
+                role: "APPLICANT",
+                ...(profile && {
+                    profile: {
+                        create: {
+                            // If it's enterprise registration, add enterprise-specific fields
+                            ...(profile.type === 'enterprise' && {
+                                registrationPath: "ENTERPRISE",
+                                businessName: profile.businessName,
+                                businessType: profile.businessType,
+                                revenueRange: profile.revenueRange,
+                                businessRegType: profile.registrationType,
+                                businessSupportNeeds: profile.businessSupportNeeds || [],
+                            }),
+                            // If it's individual registration, add individual-specific fields
+                            ...(profile.type === 'individual' && {
+                                registrationPath: "INDIVIDUAL",
+                                employmentStatus: profile.employmentStatus,
+                                salaryExpectation: parseFloat(profile.salaryExpectation) || 0,
+                            }),
                         },
-                        userCohort: {
-                            create: cohortId ?
-                                {
-                                    cohortId
-                                } : undefined
-                        }
                     },
-                    include: {
-                        profile: true
-                    }
-                })
-                let ref = undefined
-                if (referrer && user?.profile) {
-                    ref = await prisma.referrer.create({
-                        data: {
-                            profileId: user.profile.id,
-                            ...referrer
-                        }
-                    })
-                }
-                return res.status(201).json({ message: 'User created', ...user, ref });
-            } else {
-                return await prisma.$transaction( async (tx)=> {
+                }),
+                // Create user cohort if cohortId is provided
+                ...(cohortId && {
+                    userCohort: {
+                        create: {
+                            cohortId,
+                        },
+                    },
+                }),
+            },
+            include: {
+                profile: true,
+                userCohort: true,
+            },
+        });
 
-                    const user = await tx.user.create({
-                        data: {
-                            email,
-                            password: await hash(password, 12),
-                            role,
-                            firstName,
-                            lastName,
-                            userCohort: {
-                                create: cohortId ?
-                                    {
-                                        cohortId
-                                    } : undefined
-                            }
-                        }
-                    });
-                    return res.status(201).json({ message: 'User created', ...user });
-                })
-            }
-        } catch (err) {
-            console.error(err)
-            return res.status(400).json({ message: err.message });
-        }
-    } else {
-        //Response for other than POST method
-        res.status(400).json({ message: 'Route not valid' });
+        return res.status(201).json({
+            message: "User created",
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+            },
+        });
+    } catch (error) {
+        console.error("Signup error:", error);
+        return res.status(500).json({ message: "Something went wrong" });
     }
 }
-
-export default handler;
