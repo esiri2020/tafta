@@ -2,8 +2,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { 
   Box, Container, Card, CardContent, Grid, TextField, 
-  Typography, RadioGroup, FormControlLabel, Radio,
-  MenuItem, FormControl, FormLabel, Alert, Button
+  Typography, Alert, Button
 } from '@mui/material';
 import { useState } from 'react';
 import { RegistrationHandlers, IndividualRegistrationFields } from '../../types/registration';
@@ -16,6 +15,7 @@ interface RegisterIndividualProps {
 export const RegisterIndividual = ({ handlers }: RegisterIndividualProps) => {
   const [createApplicant] = useCreateApplicantMutation();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
 
   const formik = useFormik<IndividualRegistrationFields>({
     initialValues: {
@@ -36,13 +36,11 @@ export const RegisterIndividual = ({ handlers }: RegisterIndividualProps) => {
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password')], 'Passwords must match')
         .required('Confirm password is required'),
-      employmentStatus: Yup.string().required('Employment status is required'),
-      salaryExpectation: Yup.string().required('Salary expectation is required'),
     }),
     onSubmit: async (values, helpers) => {
       try {
         setSubmitError(null);
-        await createApplicant({
+        const response = await createApplicant({
           body: {
             firstName: values.firstName,
             lastName: values.lastName,
@@ -51,13 +49,12 @@ export const RegisterIndividual = ({ handlers }: RegisterIndividualProps) => {
             password: values.password,
             type: 'individual',
             profile: {
-              type: 'individual',
-              employmentStatus: values.employmentStatus,
-              salaryExpectation: values.salaryExpectation
+              type: 'individual'
             }
           }
         }).unwrap();
-        handlers.handleNext(values.email);
+        handlers.handleNext(values.email, response.user?.id);
+        setEmail(values.email);
       } catch (err) {
         console.error(err);
         helpers.setStatus({ success: false });
@@ -65,28 +62,6 @@ export const RegisterIndividual = ({ handlers }: RegisterIndividualProps) => {
       }
     },
   });
-
-  const employmentStatuses = [
-    { value: 'EMPLOYED', label: 'Employed' },
-    { value: 'SELF_EMPLOYED', label: 'Self Employed' },
-    { value: 'UNEMPLOYED', label: 'Unemployed' },
-    { value: 'STUDENT', label: 'Student' }
-  ];
-
-  const educationLevels = [
-    { value: 'PRIMARY_SCHOOL', label: 'Primary School' },
-    { value: 'SECONDARY_SCHOOL', label: 'Secondary School' },
-    { value: 'UNDERGRADUATE', label: 'Undergraduate' },
-    { value: 'GRADUATE', label: 'Graduate' },
-    { value: 'POSTGRADUATE', label: 'Postgraduate' }
-  ];
-
-  const salaryRanges = [
-    { value: 'UNDER_50K', label: 'Under ₦50,000' },
-    { value: '50K_100K', label: '₦50,000 - ₦100,000' },
-    { value: '100K_200K', label: '₦100,000 - ₦200,000' },
-    { value: 'ABOVE_200K', label: 'Above ₦200,000' }
-  ];
 
   return (
     <Box sx={{ p: 3 }}>
@@ -118,23 +93,23 @@ export const RegisterIndividual = ({ handlers }: RegisterIndividualProps) => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Middle Name"
-                    name="middleName"
-                    value={formik.values.middleName}
-                    onChange={formik.handleChange}
-                    error={Boolean(formik.touched.middleName && formik.errors.middleName)}
-                    helperText={formik.touched.middleName && formik.errors.middleName}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
                     label="Last Name"
                     name="lastName"
                     value={formik.values.lastName}
                     onChange={formik.handleChange}
                     error={Boolean(formik.touched.lastName && formik.errors.lastName)}
                     helperText={formik.touched.lastName && formik.errors.lastName}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Middle Name"
+                    name="middleName"
+                    value={formik.values.middleName}
+                    onChange={formik.handleChange}
+                    error={Boolean(formik.touched.middleName && formik.errors.middleName)}
+                    helperText={formik.touched.middleName && formik.errors.middleName}
                   />
                 </Grid>
 
@@ -174,45 +149,6 @@ export const RegisterIndividual = ({ handlers }: RegisterIndividualProps) => {
                     error={Boolean(formik.touched.confirmPassword && formik.errors.confirmPassword)}
                     helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
                   />
-                </Grid>
-
-                {/* Employment Information */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Employment Status"
-                    name="employmentStatus"
-                    value={formik.values.employmentStatus}
-                    onChange={formik.handleChange}
-                    error={Boolean(formik.touched.employmentStatus && formik.errors.employmentStatus)}
-                    helperText={formik.touched.employmentStatus && formik.errors.employmentStatus}
-                  >
-                    {employmentStatuses.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Salary Expectation"
-                    name="salaryExpectation"
-                    value={formik.values.salaryExpectation}
-                    onChange={formik.handleChange}
-                    error={Boolean(formik.touched.salaryExpectation && formik.errors.salaryExpectation)}
-                    helperText={formik.touched.salaryExpectation && formik.errors.salaryExpectation}
-                  >
-                    {salaryRanges.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
                 </Grid>
 
                 {/* Next Button */}

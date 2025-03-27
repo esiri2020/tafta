@@ -216,13 +216,9 @@ export default async function handler(
                         }
                     },
                     include: {
-                        profile: {
-                            select: {
-                                id: true
-                            }
-                        },
+                        profile: true,
                         userCohort: {
-                            select: {
+                            include: {
                                 enrollments: {
                                     select: {
                                         enrolled: true,
@@ -268,13 +264,9 @@ export default async function handler(
                         ]
                     },
                     include: {
-                        profile: {
-                            select: {
-                                id: true
-                            }
-                        },
+                        profile: true,
                         userCohort: {
-                            select: {
+                            include: {
                                 enrollments: {
                                     select: {
                                         enrolled: true,
@@ -309,13 +301,9 @@ export default async function handler(
                     userCohort: userCohortFilter
                 },
                 include: {
-                    profile: {
-                        select: {
-                            id: true
-                        }
-                    },
+                    profile: true,
                     userCohort: {
-                        select: {
+                        include: {
                             enrollments: {
                                 select: {
                                     enrolled: true,
@@ -363,13 +351,9 @@ export default async function handler(
                     }
                 },
                 include: {
-                    profile: {
-                        select: {
-                            id: true
-                        }
-                    },
+                    profile: true,
                     userCohort: {
-                        select: {
+                        include: {
                             enrollments: {
                                 select: {
                                     enrolled: true,
@@ -399,13 +383,9 @@ export default async function handler(
                     userCohort: userCohortFilter
                 },
                 include: {
-                    profile: {
-                        select: {
-                            id: true
-                        }
-                    },
+                    profile: true,
                     userCohort: {
-                        select: {
+                        include: {
                             enrollments: {
                                 select: {
                                     enrolled: true,
@@ -433,13 +413,9 @@ export default async function handler(
                     userCohort: userCohortFilter
                 },
                 include: {
-                    profile: {
-                        select: {
-                            id: true
-                        }
-                    },
+                    profile: true,
                     userCohort: {
-                        select: {
+                        include: {
                             enrollments: {
                                 select: {
                                     enrolled: true,

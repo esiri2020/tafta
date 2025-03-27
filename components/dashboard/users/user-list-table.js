@@ -21,6 +21,14 @@ import { PencilAlt as PencilAltIcon } from '../../../icons/pencil-alt';
 import { getInitials } from '../../../utils/get-initials';
 import { Scrollbar } from '../../scrollbar';
 
+// Add a helper function to format user full name properly
+const getFullName = (user) => {
+  if (user.middleName) {
+    return `${user.firstName} ${user.middleName} ${user.lastName}`;
+  }
+  return `${user.firstName} ${user.lastName}`;
+};
+
 export const UsersListTable = (props) => {
   const {
     users,
@@ -108,6 +116,9 @@ export const UsersListTable = (props) => {
               <TableCell>
                 Role
               </TableCell>
+              <TableCell>
+                Type
+              </TableCell>
               
               <TableCell align="right">
                 Options
@@ -145,7 +156,7 @@ export const UsersListTable = (props) => {
                           width: 42
                         }}
                       >
-                        {getInitials(`${user.firstName} ${user.lastName}`)}
+                        {getInitials(getFullName(user))}
                       </Avatar>
                       <Box sx={{ ml: 1 }}>
                         <NextLink
@@ -156,7 +167,7 @@ export const UsersListTable = (props) => {
                             color="inherit"
                             variant="subtitle2"
                           >
-                            {`${user.firstName} ${user.lastName}`}
+                            {getFullName(user)}
                           </Link>
                         </NextLink>
                         <Typography
@@ -172,6 +183,10 @@ export const UsersListTable = (props) => {
                     {
                       user.role
                     }
+                  </TableCell>
+                  <TableCell>
+                    {user.profile?.registrationPath === "ENTERPRISE" ? "Enterprise" : 
+                     user.profile?.type === "ENTERPRISE" ? "Enterprise" : "Individual"}
                   </TableCell>
                   
                   <TableCell align="right">

@@ -27,6 +27,14 @@ import {
 } from "../../../services/api";
 import toast from "react-hot-toast";
 
+// Add a helper function to format user full name properly
+const getFullName = (applicant) => {
+  if (applicant.middleName) {
+    return `${applicant.firstName} ${applicant.middleName} ${applicant.lastName}`;
+  }
+  return `${applicant.firstName} ${applicant.lastName}`;
+};
+
 export const ApplicantsListTable = (props) => {
   const {
     applicants,
@@ -197,6 +205,7 @@ export const ApplicantsListTable = (props) => {
                 />
               </TableCell>
               <TableCell>Full Name</TableCell>
+              <TableCell>Type</TableCell>
               <TableCell>Course</TableCell>
               <TableCell>Application Status</TableCell>
               <TableCell>Enrollment Status</TableCell>
@@ -238,9 +247,7 @@ export const ApplicantsListTable = (props) => {
                           width: 42,
                         }}
                       >
-                        {getInitials(
-                          `${applicant.firstName} ${applicant.lastName}`
-                        )}
+                        {getInitials(getFullName(applicant))}
                       </Avatar>
                       <Box sx={{ ml: 1 }}>
                         <NextLink
@@ -248,7 +255,7 @@ export const ApplicantsListTable = (props) => {
                           passHref
                         >
                           <Link color="inherit" variant="subtitle2">
-                            {`${applicant.firstName} ${applicant.lastName}`}
+                            {getFullName(applicant)}
                           </Link>
                         </NextLink>
                         <Typography color="textSecondary" variant="body2">
@@ -256,6 +263,10 @@ export const ApplicantsListTable = (props) => {
                         </Typography>
                       </Box>
                     </Box>
+                  </TableCell>
+                  <TableCell>
+                    {applicant.profile?.registrationPath === "ENTERPRISE" ? "Enterprise" : 
+                     applicant.profile?.type === "ENTERPRISE" ? "Enterprise" : "Individual"}
                   </TableCell>
                   <TableCell>
                     {applicant.userCohort[0]?.enrollments?.length > 0

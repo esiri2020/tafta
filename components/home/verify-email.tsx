@@ -9,8 +9,10 @@ import {
   Button,
   Alert,
 } from '@mui/material';
-import { useGetVerificationStatusQuery } from '../../services/api';
+import { useGetVerificationStatusQuery, useResendVerificationMutation } from '../../services/api';
 import { RegistrationHandlers } from '../../types/registration';
+import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
 
 interface VerifyEmailProps {
   handlers: RegistrationHandlers;
@@ -19,11 +21,23 @@ interface VerifyEmailProps {
 
 export const VerifyEmail = ({ handlers, email }: VerifyEmailProps) => {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
-  const { data: verificationStatus, refetch } = useGetVerificationStatusQuery(
+  const [resendStatus, setResendStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+  
+  // Ensure we have a valid email before starting the query
+  const skipQuery = !email || email.trim() === '';
+  
+  const { data: verificationStatus } = useGetVerificationStatusQuery(
     { email },
-    { pollingInterval: 10000 } // Poll every 10 seconds
+    { 
+      pollingInterval: 10000, // Poll every 10 seconds
+      skip: skipQuery
+    }
   );
+  
+  const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation();
+  const { handleNext } = handlers;
+  const router = useRouter();
+  const { data: session } = useSession();
 
   useEffect(() => {
     // Start countdown
@@ -37,28 +51,24 @@ export const VerifyEmail = ({ handlers, email }: VerifyEmailProps) => {
       });
     }, 1000);
 
-    // Start polling
-    const poll = setInterval(() => {
-      refetch();
-    }, 10000);
-    setPollingInterval(poll);
-
     return () => {
       clearInterval(timer);
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
     };
   }, []);
 
   useEffect(() => {
     if (verificationStatus?.verified) {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-      handlers.handleNext();
+      handleNext();
     }
-  }, [verificationStatus?.verified]);
+  }, [verificationStatus, handleNext]);
+
+  useEffect(() => {
+    // If the user is already verified (coming back from email verification), 
+    // automatically proceed to the personal information step
+    if (router.query.verified === 'true' && router.query.userId) {
+      handleNext();
+    }
+  }, [router.query, handleNext]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -68,10 +78,17 @@ export const VerifyEmail = ({ handlers, email }: VerifyEmailProps) => {
 
   const handleResendEmail = async () => {
     try {
-      // Add your resend email logic here
-      setTimeLeft(300); // Reset timer
+      setResendStatus(null);
+      const result = await resendVerification({ email }).unwrap();
+      if (result.success) {
+        setResendStatus({ success: true, message: 'Verification email has been resent.' });
+        setTimeLeft(300); // Reset timer
+      } else {
+        setResendStatus({ success: false, message: 'Failed to resend verification email. Please try again.' });
+      }
     } catch (error) {
       console.error('Failed to resend verification email:', error);
+      setResendStatus({ success: false, message: 'An error occurred. Please try again later.' });
     }
   };
 
@@ -87,6 +104,15 @@ export const VerifyEmail = ({ handlers, email }: VerifyEmailProps) => {
             <Alert severity="info" sx={{ mb: 3 }}>
               We've sent a verification link to <strong>{email}</strong>
             </Alert>
+
+            {resendStatus && (
+              <Alert 
+                severity={resendStatus.success ? "success" : "error"} 
+                sx={{ mb: 3 }}
+              >
+                {resendStatus.message}
+              </Alert>
+            )}
 
             <Box sx={{ mb: 3 }}>
               <CircularProgress size={60} />
@@ -107,11 +133,20 @@ export const VerifyEmail = ({ handlers, email }: VerifyEmailProps) => {
                   variant="contained"
                   color="primary"
                   onClick={handleResendEmail}
+                  disabled={isResending}
                 >
-                  Resend Verification Email
+                  {isResending ? 'Sending...' : 'Resend Verification Email'}
                 </Button>
               </Box>
             )}
+
+            <Typography
+              variant="body1"
+              align="center"
+              sx={{ marginBottom: '20px' }}
+            >
+              After verifying your email, you will automatically proceed to complete your personal information.
+            </Typography>
 
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
               <Button
@@ -122,7 +157,7 @@ export const VerifyEmail = ({ handlers, email }: VerifyEmailProps) => {
               </Button>
               <Button
                 variant="contained"
-                onClick={() => handlers.handleNext(email)}
+                onClick={() => handleNext()}
                 disabled={!verificationStatus?.verified}
               >
                 Next

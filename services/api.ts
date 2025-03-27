@@ -130,7 +130,7 @@ export const apiService = createApi({
             businessName?: string;
             businessType?: 'STARTUP' | 'EXISTING';
             revenueRange?: string;
-            registrationType?: 'CAC' | 'SMEDAN';
+            businessRegType?: 'CAC' | 'SMEDAN';
             businessSupportNeeds?: string[];
           };
           cohortId?: string;

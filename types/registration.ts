@@ -5,7 +5,7 @@ export interface RegistrationHandlers {
   activeStep: number;
   steps: string[];
   isStepOptional: (step: number) => boolean;
-  handleNext: (email?: string) => void;
+  handleNext: (email?: string, userId?: string) => void;
   handleBack: () => void;
   handleSkip: () => void;
   setActiveStep: (step: number) => void;
@@ -23,49 +23,71 @@ export interface BaseRegistrationFields {
 export interface IndividualRegistrationFields extends BaseRegistrationFields {
   employmentStatus: string;
   salaryExpectation: string;
-  // Other fields will be added later after email verification
 }
 
 export interface EnterpriseRegistrationFields extends BaseRegistrationFields {
   businessName: string;
-  businessType: 'startup' | 'existing';
+  businessType: string;
   revenueRange: string;
-  registrationType: 'CAC' | 'SMEDAN';
+  businessRegType: string;
   businessSupportNeeds: string[];
 }
 
 export type RegistrationType = 'individual' | 'enterprise';
 export type BusinessType = 'STARTUP' | 'EXISTING';
 
-export type CommonFormValues = {
+export interface CommonFormValues {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   phoneNumber: string;
   stateOfResidence: string;
-};
+  zipCode?: string;
+  taftaCenter?: string;
+  referrerPhoneNumber?: string;
+}
 
-export type EnterpriseFormValues = CommonFormValues & {
+export interface IndividualFormValues extends CommonFormValues {
+  dob: string;
+  gender: string;
+  address: string;
+  education: string;
+  employmentStatus: string;
+  salaryExpectation: string;
+  disability: string;
+  ageRange?: string;
+  communityArea?: string;
+  stateOfOrigin?: string;
+  LGADetails?: string;
+  residencyStatus?: string;
+  zipCode?: string;
+  taftaCenter?: string;
+  internshipProgram?: string;
+  projectType?: string;
+  currentSalary?: string;
+  registrationMode?: 'ONLINE' | 'LEARNING_TRAIN';
+  jobReadinessInterests?: string[];
+  incomeRange?: string;
+}
+
+export interface EnterpriseFormValues extends CommonFormValues {
+  businessName?: string;
   businessAddress: string;
   yearEstablished: string;
   numberOfEmployees: string;
   businessDescription: string;
   businessType: BusinessType;
   revenueRange: string;
-};
+  businessRegType: string;
+  businessSupportNeeds: string[];
+}
 
-export type IndividualFormValues = CommonFormValues & {
-  dob: string;
-  gender: Gender;
-  address: string;
-  education: EducationLevel;
-  employmentStatus: string;
-  disability?: string;
-};
+export type FormValues = IndividualFormValues | EnterpriseFormValues;
 
-export type FormValues = EnterpriseFormValues | IndividualFormValues;
+export function isEnterpriseFormValues(values: FormValues): values is EnterpriseFormValues {
+  return (values as EnterpriseFormValues).businessType !== undefined;
+}
 
-export const isEnterpriseFormValues = (values: FormValues): values is EnterpriseFormValues => {
-  return 'businessType' in values;
-};
-
-export const isIndividualFormValues = (values: FormValues): values is IndividualFormValues => {
-  return 'employmentStatus' in values;
-}; 
+export function isIndividualFormValues(values: FormValues): values is IndividualFormValues {
+  return (values as IndividualFormValues).education !== undefined;
+} 

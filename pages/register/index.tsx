@@ -17,7 +17,19 @@ import { SplashScreen } from '../../components/splash-screen';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
+// Add redirect to the new registration page
+export default function RegisterPage() {
+  const router = useRouter();
+  
+  // Redirect to the new registration page
+  React.useEffect(() => {
+    router.replace('/register/new');
+  }, []);
+  
+  return <SplashScreen />;
+}
 
+// Original code below (will not be executed due to redirect)
 const steps = [
   'Course Selection',
   'Register',
@@ -264,5 +276,3 @@ export const getServerSideProps: any = async (context: NextPageContext) => {
   const { query } = context;
   return { props: { query } };
 }
-
-export default completeRegistration;

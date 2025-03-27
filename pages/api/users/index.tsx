@@ -40,11 +40,7 @@ export default async function handler(
                     role: filter
                 },
                 include: {
-                    profile: {
-                        select: {
-                            id: true
-                        }
-                    }
+                    profile: true
                 },
                 take,
                 skip        
@@ -65,11 +61,7 @@ export default async function handler(
                     }
                 },
                 include: {
-                    profile: {
-                        select: {
-                            id: true
-                        }
-                    }
+                    profile: true
                 },
                 take,
                 skip
