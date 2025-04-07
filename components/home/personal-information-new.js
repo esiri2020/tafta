@@ -655,7 +655,37 @@ export const PersonalInformation = ({
               return <b>An error occurred.</b>;
             },
           })
-          .then(res => {
+          .then(async (res) => {
+            // Now create enrollment
+            if (sessionStorage.getItem('selectedCourse')) {
+              try {
+                const courseId = sessionStorage.getItem('selectedCourse');
+                const cohortId = sessionStorage.getItem('selectedCohortId');
+                
+                // Get course details from API or passed props
+                const course = cohortCourses.find(c => c.id === courseId);
+                
+                if (course) {
+                  const enrollmentBody = {
+                    userCohortId: cohortId,
+                    course_name: course.course.name,
+                    course_id: parseInt(course.course.id),
+                    user_email: values.email,
+                  };
+                  
+                  const enrollmentResult = await createEnrollment({ body: enrollmentBody });
+                  if (enrollmentResult.data?.message === 'Enrollment created') {
+                    // Enrollment successful
+                    console.log('Enrollment created successfully');
+                  }
+                }
+              } catch (enrollError) {
+                console.error('Enrollment creation error:', enrollError);
+                // Consider whether to show this error to user
+              }
+            }
+            
+            // Continue to next step
             helpers.setStatus({success: true});
             helpers.setSubmitting(false);
             handleNext();
