@@ -41,7 +41,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             {
                 redirect: {
                     permanent: false,
-                    destination: `/register?userId=${session?.userData?.userId}`
+                    destination: `/register-new?userId=${session?.userData?.userId}&step=3`
                 }
             }
         default:

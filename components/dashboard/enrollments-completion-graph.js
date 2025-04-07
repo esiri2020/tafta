@@ -1,8 +1,16 @@
-import { Box, Button, Card, CardContent, CardHeader, Divider, useTheme } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  useTheme,
+} from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 
-import { Chart } from '../chart'
+import {Chart} from '../chart';
 
 // action={(
 //   <Button
@@ -13,11 +21,11 @@ import { Chart } from '../chart'
 //   </Button>
 // )}
 
-export const EnrollmentsCompletedGraph = (props) => {
+export const EnrollmentsCompletedGraph = props => {
   const theme = useTheme();
-  const {data: _data} = props
+  const {data: _data} = props;
 
-  if (!_data) return null
+  if (!_data) return null;
 
   const data = {
     datasets: [
@@ -29,24 +37,31 @@ export const EnrollmentsCompletedGraph = (props) => {
         categoryPercentage: 0.5,
         data: _data?.map(x => x.count),
         label: 'Completed',
-        maxBarThickness: 10
+        maxBarThickness: 10,
       },
     ],
-    labels: _data?.map(x => x.date)
+    labels: _data?.map(x => x.date),
   };
 
+  const xAxisMin =
+    _data && _data.length > 0 && _data[0].date
+      ? Date.parse(_data[0].date)
+      : new Date().setMonth(new Date().getMonth() - 1); // fallback to 1 month ago
+
   const option = {
-    series: [{
-      label: 'Course Completions',
-      data: _data?.map(x => [Date.parse(x.date), x.count])
-    }],
+    series: [
+      {
+        label: 'Course Completions',
+        data: _data?.map(x => [Date.parse(x.date), x.count]),
+      },
+    ],
     chart: {
       id: 'area-datetime',
       type: 'area',
       height: 400,
       zoom: {
-        autoScaleYaxis: true
-      }
+        autoScaleYaxis: true,
+      },
     },
     // annotations: {
     //   yaxis: [{
@@ -76,7 +91,7 @@ export const EnrollmentsCompletedGraph = (props) => {
     //   }]
     // },
     dataLabels: {
-      enabled: false
+      enabled: false,
     },
     markers: {
       size: 0,
@@ -84,14 +99,14 @@ export const EnrollmentsCompletedGraph = (props) => {
     },
     xaxis: {
       type: 'datetime',
-      min: Date.parse(_data[0].date),
+      min: xAxisMin,
       tickAmount: 6,
-      categories: _data.map(x=>x.date)
+      categories: _data && _data.length > 0 ? _data.map(x => x.date) : [],
     },
     tooltip: {
       x: {
-        format: 'dd MMM yyyy'
-      }
+        format: 'dd MMM yyyy',
+      },
     },
     fill: {
       type: 'gradient',
@@ -99,10 +114,10 @@ export const EnrollmentsCompletedGraph = (props) => {
         shadeIntensity: 1,
         opacityFrom: 0.7,
         opacityTo: 0.9,
-        stops: [0, 100]
-      }
+        stops: [0, 100],
+      },
     },
-  }
+  };
 
   // const options = {
   //   animation: false,
@@ -155,20 +170,23 @@ export const EnrollmentsCompletedGraph = (props) => {
 
   return (
     <Card {...props}>
-      <CardHeader
-        title="Enrollment Completions Over Time"
-      />
+      <CardHeader title='Enrollment Completions Over Time' />
       <Divider />
       <CardContent>
         <Box
           sx={{
             height: 400,
-            position: 'relative'
-          }}
-        >
+            position: 'relative',
+          }}>
           <Chart
             options={option}
-            series={[{ type: 'area',data: _data?.map(x => x.count), name: 'Certifications' }]}
+            series={[
+              {
+                type: 'area',
+                data: _data?.map(x => x.count),
+                name: 'Certifications',
+              },
+            ]}
             height={'100%'}
           />
         </Box>
@@ -178,14 +196,12 @@ export const EnrollmentsCompletedGraph = (props) => {
         sx={{
           display: 'flex',
           justifyContent: 'flex-end',
-          p: 2
-        }}
-      >
+          p: 2,
+        }}>
         <Button
-          color="primary"
-          endIcon={<ArrowRightIcon fontSize="small" />}
-          size="small"
-        >
+          color='primary'
+          endIcon={<ArrowRightIcon fontSize='small' />}
+          size='small'>
           Overview
         </Button>
       </Box>

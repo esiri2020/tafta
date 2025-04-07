@@ -14,9 +14,9 @@ export default function VerifyEmail() {
     const router = useRouter();
     const [editApplicant, result] = useEditApplicantMutation()
     useEffect(() => {
-        if (session?.userData?.userId) {
+        if ((session as any)?.userData?.userId) {
             const promise = new Promise(async (resolve, reject) => {
-                let req: any = await editApplicant({ id: session?.userData?.userId, body: { emailVerified: new Date() } })
+                let req: any = await editApplicant({ id: (session as any)?.userData?.userId, body: { emailVerified: new Date() } })
                 if (req?.data?.message === "Applicant Updated") resolve(req)
                 else reject(req)
             })
