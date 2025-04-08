@@ -37,7 +37,6 @@ import {
 import {GetServerSideProps, NextPageContext} from 'next';
 import {SplashScreen} from '../../components/splash-screen';
 import {signIn, useSession} from 'next-auth/react';
-import type {Session} from 'next-auth';
 
 const steps = [
   'Course Selection',
@@ -50,7 +49,7 @@ const steps = [
 type StepContentProps = {
   activeStep: number;
   userId: string | string[] | undefined;
-  session: Session | null;
+  session: any;
   applicant: any;
   coursesData: any;
   handlers: any;
@@ -133,7 +132,8 @@ function RegisterNew() {
   // Skip data fetching for steps that don't need it
   const skipApplicantQuery =
     activeStep < 3 || !(session as any)?.userData?.userId;
-  const skipCohortCoursesQuery = activeStep !== 0 || !cohortId;
+  const skipCohortCoursesQuery =
+    (activeStep !== 0 && activeStep !== 3) || !cohortId;
 
   // Fetch applicant data (for personal info step)
   const {data: applicantData, isLoading: applicantLoading} =

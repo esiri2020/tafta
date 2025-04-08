@@ -27,6 +27,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       locationId,
       profile,
       referrer,
+      businessName,
     }: {
       email: string;
       password: string;
@@ -39,6 +40,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       locationId?: string;
       profile?: any;
       referrer?: any;
+      businessName: string;
     } = body;
 
     let userType: any = undefined;
@@ -104,27 +106,59 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         if (profile.dob) {
           profile.dob = formatISO(Date.parse(profile.dob));
         }
+
+        // Extract course-related fields from profile
+        const {
+          selectedCourse,
+          selectedCourseName,
+          selectedCourseId,
+          cohortId: profileCohortId,
+          ...otherProfileFields
+        } = profile;
+
+        console.log('Profile fields:', {
+          selectedCourse,
+          selectedCourseName,
+          selectedCourseId,
+          profileCohortId,
+          otherProfileFields,
+        });
+
+        // Create base user data
+        const userData = {
+          email,
+          firstName,
+          lastName,
+          middleName: middleName || undefined,
+          type: userType as RegistrationType,
+          role,
+          password: await hash(password, 12),
+        };
+
+        // Create profile data
+        const profileData = {
+          ...otherProfileFields,
+          ...(selectedCourse && {selectedCourse}),
+          ...(selectedCourseName && {selectedCourseName}),
+          ...(selectedCourseId && {selectedCourseId}),
+          cohortId: profileCohortId || cohortId || '',
+        };
+
+        console.log('Profile data being sent to Prisma:', profileData);
+
         const user = await prisma.user.create({
           data: {
-            email,
-            firstName,
-            lastName,
-            middleName: middleName || undefined,
-            type: userType as RegistrationType,
-            role,
-            password: await hash(password, 12),
+            ...userData,
             profile: {
-              create: {
-                ...profile,
-              },
+              create: profileData,
             },
-            userCohort: {
-              create: cohortId
-                ? {
+            userCohort: cohortId
+              ? {
+                  create: {
                     cohortId,
-                  }
-                : undefined,
-            },
+                  },
+                }
+              : undefined,
           },
           include: {
             profile: true,

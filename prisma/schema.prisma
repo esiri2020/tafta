@@ -90,12 +90,16 @@ model Profile {
   projectType          ProjectTypeOption?
   user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   referrer             Referrer?
-  talpParticipation      Boolean?
-  talpType               String?
-  talpOther              String?
-  jobReadiness           String[]
-  businessSupport        String[]
-  registrationMode       String?
+  talpParticipation    Boolean?
+  talpType             String?
+  talpOther            String?
+  jobReadiness         String[]
+  businessSupport      String[]
+  registrationMode     String?
+  selectedCourse       String?
+  cohortId             String?
+  selectedCourseName   String?
+  selectedCourseId     String?
 }
 
 model Enrollment {

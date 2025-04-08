@@ -487,12 +487,15 @@ export const PersonalInformation = ({
 }) => {
   const {activeStep, isStepOptional, handleNext, handleBack, handleSkip} =
     handlers;
-  console.log(applicant);
   const [date, setDate] = useState('');
   const {editApplicant} = state;
+  const [createEnrollment] = useCreateEnrollmentMutation();
+  const router = useRouter();
 
-  // Add useEffect to initialize date from form value when component mounts
+  console.log('Applicant data:', applicant);
+
   useEffect(() => {
+    // Initialize date from form value when component mounts
     if (applicant?.profile?.dob) {
       try {
         const dateObj = new Date(applicant.profile.dob);
@@ -593,56 +596,177 @@ export const PersonalInformation = ({
     onSubmit: async (values, helpers) => {
       try {
         const {
-          email,
           firstName,
           lastName,
-          submit,
-          _disability,
+          email,
+          phoneNumber,
+          gender,
+          dob,
+          homeAddress,
+          zipCode,
+          stateOfResidence,
+          communityArea,
+          disability,
+          educationLevel,
           source,
-          referrer_fullName,
-          referrer_phoneNumber,
-          ...profile
+          employmentStatus,
+          residencyStatus,
+          selfEmployedType,
+          stateOfOrigin,
+          LGADetails,
+          businessName,
+          businessSupportNeeds,
+          businessType,
+          currentSalary,
+          registrationPath,
+          registrationType,
+          revenueRange,
+          salaryExpectation,
+          type,
+          internshipProgram,
+          projectType,
+          talpParticipation,
+          talpType,
+          talpOther,
+          jobReadiness,
+          businessSupport,
+          registrationMode,
         } = values;
 
-        console.log(values);
+        // Get course information from sessionStorage or applicant data
+        const selectedCourse =
+          applicant?.profile?.selectedCourse ||
+          sessionStorage.getItem('selectedCourse') ||
+          '';
+        const cohortId =
+          applicant?.profile?.cohortId ||
+          sessionStorage.getItem('selectedCohortId') ||
+          '';
+        const selectedCourseName =
+          applicant?.profile?.selectedCourseName ||
+          sessionStorage.getItem('selectedCourseName') ||
+          '';
+        const selectedCourseId =
+          applicant?.profile?.selectedCourseId ||
+          sessionStorage.getItem('selectedCourseActualId') ||
+          '';
 
-        // Add disability back to profile if it's true
-        if (_disability === true) {
-          profile.disability = values.disability;
+        console.log('Course information being saved to profile:', {
+          selectedCourse,
+          cohortId,
+          selectedCourseName,
+          selectedCourseId,
+        });
+
+        const profile = {
+          phoneNumber,
+          gender,
+          dob,
+          homeAddress,
+          zipCode,
+          stateOfResidence,
+          communityArea,
+          disability,
+          educationLevel,
+          source,
+          employmentStatus,
+          residencyStatus,
+          selfEmployedType,
+          stateOfOrigin,
+          LGADetails,
+          businessName,
+          businessSupportNeeds,
+          businessType,
+          currentSalary,
+          registrationPath,
+          registrationType,
+          revenueRange,
+          salaryExpectation,
+          type,
+          internshipProgram,
+          projectType,
+          talpParticipation,
+          talpType,
+          talpOther,
+          jobReadiness,
+          businessSupport,
+          registrationMode,
+          // Add course selection fields
+          selectedCourse,
+          cohortId,
+          selectedCourseName,
+          selectedCourseId,
+        };
+
+        if (source === 'by_referral') {
+          profile.referrer = {
+            fullName: values.referrer_fullName,
+            phoneNumber: values.referrer_phoneNumber,
+          };
         }
 
-        // Make sure all fields are included in the profile object
-        profile.homeAddress = values.homeAddress;
-        profile.LGADetails = values.LGADetails;
-        profile.stateOfResidence = values.stateOfResidence;
-        profile.communityArea = values.communityArea;
-        profile.ageRange = values.ageRange;
-        profile.gender = values.gender;
-        profile.educationLevel = values.educationLevel;
-        profile.phoneNumber = values.phoneNumber;
-        profile.employmentStatus = values.employmentStatus;
-        profile.selfEmployedType = values.selfEmployedType;
-        profile.residencyStatus = values.residencyStatus;
-        profile.registrationMode = values.registrationMode;
-        profile.talpParticipation = values.talpParticipation;
-        profile.talpType = values.talpType;
-        profile.talpOther = values.talpOther;
-        profile.jobReadiness = values.jobReadiness;
-        profile.businessSupport = values.businessSupport;
-        profile.dob = values.dob;
-
-        if (referrer_fullName)
-          profile.referrer = {
-            fullName: referrer_fullName,
-            phoneNumber: referrer_phoneNumber,
-          };
         const promise = new Promise(async (resolve, reject) => {
           let req = await editApplicant({
             id: userId,
             body: {firstName, lastName, email, profile},
           });
-          if (req.data?.message === 'Applicant Updated') resolve(req);
-          else reject(req);
+          if (req.data?.message === 'Applicant Updated') {
+            // After successfully updating applicant, create enrollment
+            try {
+              // Get course info from applicant data or session storage
+              const courseId =
+                applicant?.profile?.selectedCourse ||
+                sessionStorage.getItem('selectedCourse');
+              const cohortId =
+                applicant?.profile?.cohortId ||
+                sessionStorage.getItem('selectedCohortId');
+              const courseName =
+                applicant?.profile?.selectedCourseName ||
+                sessionStorage.getItem('selectedCourseName');
+              const actualCourseId =
+                applicant?.profile?.selectedCourseId ||
+                sessionStorage.getItem('selectedCourseActualId');
+
+              if (courseId && cohortId) {
+                try {
+                  // Ensure we have valid data before creating enrollment
+                  if (!actualCourseId || !courseName) {
+                    console.warn('Missing required course data for enrollment');
+                    return;
+                  }
+
+                  const enrollmentReq = await createEnrollment({
+                    body: {
+                      userCohortId: cohortId,
+                      course_id: parseInt(actualCourseId),
+                      course_name: courseName,
+                      user_email: email,
+                    },
+                  });
+
+                  if (enrollmentReq.data?.message === 'Enrollment created') {
+                    console.log('Enrollment successfully created');
+                  } else {
+                    console.warn(
+                      'Enrollment creation response:',
+                      enrollmentReq,
+                    );
+                  }
+                } catch (enrollErr) {
+                  console.error('Error creating enrollment:', enrollErr);
+                }
+              } else {
+                console.warn('Missing course or cohort ID');
+              }
+
+              resolve(req);
+            } catch (err) {
+              console.error('Error in enrollment creation:', err);
+              resolve(req);
+            }
+          } else {
+            reject(req);
+          }
         });
         toast
           .promise(promise, {
@@ -655,37 +779,7 @@ export const PersonalInformation = ({
               return <b>An error occurred.</b>;
             },
           })
-          .then(async (res) => {
-            // Now create enrollment
-            if (sessionStorage.getItem('selectedCourse')) {
-              try {
-                const courseId = sessionStorage.getItem('selectedCourse');
-                const cohortId = sessionStorage.getItem('selectedCohortId');
-                
-                // Get course details from API or passed props
-                const course = cohortCourses.find(c => c.id === courseId);
-                
-                if (course) {
-                  const enrollmentBody = {
-                    userCohortId: cohortId,
-                    course_name: course.course.name,
-                    course_id: parseInt(course.course.id),
-                    user_email: values.email,
-                  };
-                  
-                  const enrollmentResult = await createEnrollment({ body: enrollmentBody });
-                  if (enrollmentResult.data?.message === 'Enrollment created') {
-                    // Enrollment successful
-                    console.log('Enrollment created successfully');
-                  }
-                }
-              } catch (enrollError) {
-                console.error('Enrollment creation error:', enrollError);
-                // Consider whether to show this error to user
-              }
-            }
-            
-            // Continue to next step
+          .then(res => {
             helpers.setStatus({success: true});
             helpers.setSubmitting(false);
             handleNext();
@@ -1674,6 +1768,8 @@ export const MoreInformation = ({
   const {activeStep, isStepOptional, handleNext, handleBack, handleSkip} =
     handlers;
   const {editApplicant} = state;
+  const [createEnrollment] = useCreateEnrollmentMutation();
+
   const formik = useFormik({
     initialValues: {
       _disability: applicant?.profile?.disability ? 'true' : 'false',
@@ -1692,8 +1788,60 @@ export const MoreInformation = ({
       if (fullName) profile.referrer = {fullName, phoneNumber};
       const promise = new Promise(async (resolve, reject) => {
         let req = await editApplicant({id: userId, body: {profile}});
-        if (req.data?.message === 'Applicant Updated') resolve(req);
-        else reject(req);
+        if (req.data?.message === 'Applicant Updated') {
+          // After successfully updating applicant, create enrollment
+          try {
+            // Get course info from applicant data or session storage
+            const courseId =
+              applicant?.profile?.selectedCourse ||
+              sessionStorage.getItem('selectedCourse');
+            const cohortId =
+              applicant?.profile?.cohortId ||
+              sessionStorage.getItem('selectedCohortId');
+            const courseName =
+              applicant?.profile?.selectedCourseName ||
+              sessionStorage.getItem('selectedCourseName');
+            const actualCourseId =
+              applicant?.profile?.selectedCourseId ||
+              sessionStorage.getItem('selectedCourseActualId');
+
+            if (courseId && cohortId && applicant?.email) {
+              try {
+                // Ensure we have valid data before creating enrollment
+                if (!actualCourseId || !courseName) {
+                  console.warn('Missing required course data for enrollment');
+                  return;
+                }
+
+                const enrollmentReq = await createEnrollment({
+                  body: {
+                    userCohortId: cohortId,
+                    course_id: parseInt(actualCourseId),
+                    course_name: courseName,
+                    user_email: applicant.email,
+                  },
+                });
+
+                if (enrollmentReq.data?.message === 'Enrollment created') {
+                  console.log('Enrollment successfully created');
+                } else {
+                  console.warn('Enrollment creation response:', enrollmentReq);
+                }
+              } catch (enrollErr) {
+                console.error('Error creating enrollment:', enrollErr);
+              }
+            } else {
+              console.warn('Missing course, cohort ID, or email');
+            }
+
+            resolve(req);
+          } catch (err) {
+            console.error('Error in enrollment creation:', err);
+            resolve(req);
+          }
+        } else {
+          reject(req);
+        }
       });
       toast
         .promise(promise, {
@@ -1974,7 +2122,32 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
       enrollmentId: Yup.string().required('Course selection is required'),
     }),
     onSubmit: values => {
-      sessionStorage.setItem('selectedCourse', values.enrollmentId);
+      // Find the selected course from cohortCourses
+      const selectedCourse = cohortCourses.find(
+        course => course.id === values.enrollmentId,
+      );
+
+      if (selectedCourse) {
+        // Store all course information
+        sessionStorage.setItem('selectedCourse', selectedCourse.id);
+        sessionStorage.setItem('selectedCohortId', selectedCourse.cohortId);
+        sessionStorage.setItem(
+          'selectedCourseName',
+          selectedCourse.course.name,
+        );
+        sessionStorage.setItem(
+          'selectedCourseActualId',
+          selectedCourse.course.id,
+        );
+
+        console.log('Storing course information:', {
+          selectedCourse: selectedCourse.id,
+          selectedCohortId: selectedCourse.cohortId,
+          selectedCourseName: selectedCourse.course.name,
+          selectedCourseActualId: selectedCourse.course.id,
+        });
+      }
+
       handleNext();
     },
   });

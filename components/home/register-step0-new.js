@@ -87,21 +87,46 @@ export const RegisterStepNew = ({handlers, ...other}) => {
         password,
         cohortId,
       } = values;
+
+      // Get course information from sessionStorage
+      const selectedCourse = sessionStorage.getItem('selectedCourse');
+      const selectedCohortId = sessionStorage.getItem('selectedCohortId');
+      const selectedCourseName = sessionStorage.getItem('selectedCourseName');
+      const selectedCourseActualId = sessionStorage.getItem(
+        'selectedCourseActualId',
+      );
+
+      console.log('Course info from sessionStorage before registration:', {
+        selectedCourse,
+        selectedCohortId,
+        selectedCourseName,
+        selectedCourseActualId,
+      });
+
       const promise = new Promise(async (resolve, reject) => {
-        let req = await createApplicant({
-          body: {
-            firstName,
-            middleName,
-            lastName,
-            businessName:
-              registrationType === 'business' ? businessName : undefined,
-            email,
-            password,
-            cohortId,
-            registrationType,
-            type: registrationType,
-            selectedCourse: sessionStorage.getItem('selectedCourse') || '',
+        const userData = {
+          firstName,
+          middleName,
+          lastName,
+          businessName:
+            registrationType === 'business' ? businessName : undefined,
+          email,
+          password,
+          cohortId: selectedCohortId || cohortId,
+          registrationType,
+          type: registrationType,
+          profile: {
+            selectedCourse: selectedCourse || '',
+            selectedCourseName: selectedCourseName || '',
+            selectedCourseId: selectedCourseActualId || '',
+            cohortId: selectedCohortId || cohortId || '',
           },
+        };
+
+        console.log('Sending user data to createApplicant API:', userData);
+
+        let req = await createApplicant({
+          body: userData,
         });
         if (req.data?.message === 'User created') resolve(req);
         else reject(req);
