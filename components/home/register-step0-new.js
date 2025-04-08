@@ -88,28 +88,22 @@ export const RegisterStepNew = ({handlers, ...other}) => {
         cohortId,
       } = values;
 
-      // Get course information from sessionStorage
-      const selectedCourse = sessionStorage.getItem('selectedCourse');
-      const selectedCohortId = sessionStorage.getItem('selectedCohortId');
-      const selectedCourseName = sessionStorage.getItem('selectedCourseName');
-      const selectedCourseActualId = sessionStorage.getItem(
-        'selectedCourseActualId',
-      );
-
-      console.log('Course info from sessionStorage before registration:', {
-        selectedCourse,
-        selectedCohortId,
-        selectedCourseName,
-        selectedCourseActualId,
-      });
-
       const promise = new Promise(async (resolve, reject) => {
+        // Get course information from sessionStorage
+        const selectedCourse = sessionStorage.getItem('selectedCourse') || '';
+        const selectedCohortId =
+          sessionStorage.getItem('selectedCohortId') || '';
+        const selectedCourseName =
+          sessionStorage.getItem('selectedCourseName') || '';
+        const selectedCourseActualId =
+          sessionStorage.getItem('selectedCourseActualId') || '';
+
         const userData = {
           firstName,
           middleName,
           lastName,
           businessName:
-            registrationType === 'business' ? businessName : undefined,
+            registrationType === 'ENTERPRISE' ? businessName : undefined,
           email,
           password,
           cohortId: selectedCohortId || cohortId,
@@ -120,10 +114,10 @@ export const RegisterStepNew = ({handlers, ...other}) => {
             selectedCourseName: selectedCourseName || '',
             selectedCourseId: selectedCourseActualId || '',
             cohortId: selectedCohortId || cohortId || '',
+            type: registrationType,
+            registrationPath: registrationType,
           },
         };
-
-        console.log('Sending user data to createApplicant API:', userData);
 
         let req = await createApplicant({
           body: userData,
@@ -192,12 +186,12 @@ export const RegisterStepNew = ({handlers, ...other}) => {
                 marginBottom: '30px',
               }}>
               Register for TAFTA Cohort (
-              {registrationType === 'business' ? 'Business' : 'Individual'})
+              {registrationType === 'ENTERPRISE' ? 'Enterprise' : 'Individual'})
             </Typography>
 
             <form noValidate onSubmit={formik.handleSubmit} {...other}>
               <Grid container spacing={3}>
-                {registrationType === 'business' && (
+                {registrationType === 'ENTERPRISE' && (
                   <Grid item xs={12}>
                     <TextField
                       error={Boolean(

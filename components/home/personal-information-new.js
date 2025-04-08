@@ -2140,12 +2140,7 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
           selectedCourse.course.id,
         );
 
-        console.log('Storing course information:', {
-          selectedCourse: selectedCourse.id,
-          selectedCohortId: selectedCourse.cohortId,
-          selectedCourseName: selectedCourse.course.name,
-          selectedCourseActualId: selectedCourse.course.id,
-        });
+      
       }
 
       handleNext();
