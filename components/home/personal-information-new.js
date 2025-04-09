@@ -492,8 +492,6 @@ export const PersonalInformation = ({
   const [createEnrollment] = useCreateEnrollmentMutation();
   const router = useRouter();
 
-  console.log('Applicant data:', applicant);
-
   useEffect(() => {
     // Initialize date from form value when component mounts
     if (applicant?.profile?.dob) {
@@ -579,6 +577,7 @@ export const PersonalInformation = ({
       firstName: Yup.string().max(255).required('First Name is required'),
       lastName: Yup.string().max(255).required('Last Name is required'),
       phoneNumber: Yup.string().max(15),
+      ageRange: Yup.string().max(255),
       stateOfResidence: Yup.string().max(255),
       gender: Yup.string().max(6).required('Gender is required'),
       disability: Yup.string().max(128),
@@ -602,6 +601,7 @@ export const PersonalInformation = ({
           phoneNumber,
           gender,
           dob,
+          ageRange,
           homeAddress,
           zipCode,
           stateOfResidence,
@@ -673,6 +673,7 @@ export const PersonalInformation = ({
           residencyStatus,
           selfEmployedType,
           stateOfOrigin,
+          ageRange,
           LGADetails,
           businessName,
           businessSupportNeeds,
@@ -2139,8 +2140,6 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
           'selectedCourseActualId',
           selectedCourse.course.id,
         );
-
-      
       }
 
       handleNext();

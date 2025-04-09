@@ -73,7 +73,7 @@ export const RegisterStepNew = ({handlers, ...other}) => {
       businessName: Yup.string()
         .max(255)
         .when('registrationType', {
-          is: 'business',
+          is: 'ENTERPRISE',
           then: Yup.string().required('Business Name is required'),
         }),
     }),
@@ -116,6 +116,8 @@ export const RegisterStepNew = ({handlers, ...other}) => {
             cohortId: selectedCohortId || cohortId || '',
             type: registrationType,
             registrationPath: registrationType,
+            businessName:
+              registrationType === 'ENTERPRISE' ? businessName : undefined,
           },
         };
 
