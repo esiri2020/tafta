@@ -80,11 +80,21 @@ model Profile {
   businessName         String?
   businessSupportNeeds String[]
   businessType         BusinessType?
+  businessSize         BusinessSize?
+  businessSector       String?
+  businessPartners     String?
+  companyPhoneNumber   String?  
+  additionalPhoneNumber String?
+  companyEmail         String?
+  countryOfBusiness    String?
+  businessState        String?
+  businessLGA          String?
   currentSalary        Float?
   registrationPath     RegistrationType          @default(INDIVIDUAL)
   registrationType     BusinessRegistrationType?
   revenueRange         String?
   salaryExpectation    Float?
+  salaryRange          String?
   type                 RegistrationType          @default(INDIVIDUAL)
   internshipProgram    InternshipProgramOption?
   projectType          ProjectTypeOption?
@@ -361,11 +371,19 @@ enum RegistrationType {
 }
 
 enum BusinessType {
+  INFORMAL
   STARTUP
-  EXISTING
+  FORMAL_EXISTING
 }
 
 enum BusinessRegistrationType {
   CAC
   SMEDAN
+}
+
+enum BusinessSize {
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
 }

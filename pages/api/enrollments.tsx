@@ -126,8 +126,10 @@ export default async function handler(
 
       console.log('is_eligible: ', is_eligible);
 
+      let eligible = true
+
       // If all requirements are met, register on LMS
-      if (is_eligible) {
+      if (eligible) {
         const promises: Promise<User>[] = [];
         const enrollment_promises: Promise<Enrollment>[] = [];
 

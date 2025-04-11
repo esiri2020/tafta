@@ -346,6 +346,29 @@ const MenuProps = {
   },
 };
 
+const businessSupportNeeds = [
+  'business_registered',
+  'business_coaching_attended',
+  'business_coaching_attended',
+  'business_coaching_attended',
+  'business_coaching_attended',
+];
+
+const businessType = [
+  'INFORMAL',
+  'STARTUP',
+  'FORMAL_EXISTING',
+];
+
+const businessSize = [
+  'MICRO',
+  'SMALL',
+  'MEDIUM',
+  'LARGE',
+];
+
+
+
 export const CourseInformation = ({
   userId,
   applicant,
@@ -506,6 +529,8 @@ export const PersonalInformation = ({
     }
   }, [applicant]);
 
+  console.log(applicant.profile?.type);
+
   const formik = useFormik({
     initialValues: applicant
       ? {
@@ -534,6 +559,13 @@ export const PersonalInformation = ({
           talpOther: applicant.profile?.talpOther || '',
           jobReadiness: applicant.profile?.jobReadiness || [],
           businessSupport: applicant.profile?.businessSupport || [],
+          businessSupportNeeds: applicant.profile?.businessSupportNeeds || [],
+          businessType: applicant.profile?.businessType || '',
+          businessSize: applicant.profile?.businessSize || '',
+          businessPartners: applicant.profile?.businessPartners || '',
+          companyPhoneNumber: applicant.profile?.companyPhoneNumber || '',
+          additionalPhoneNumber: applicant.profile?.additionalPhoneNumber || '',
+          companyEmail: applicant.profile?.companyEmail || '',
           submit: null,
           dob: applicant.profile?.dob || '',
         }
@@ -563,6 +595,13 @@ export const PersonalInformation = ({
           talpOther: '',
           jobReadiness: [],
           businessSupport: [],
+          businessSupportNeeds: [],
+          businessType: '',
+          businessSize: '',
+          businessPartners: '',
+          companyPhoneNumber: '',
+          additionalPhoneNumber: '',
+          companyEmail: '',
           dob: '',
           submit: null,
         },
@@ -591,6 +630,13 @@ export const PersonalInformation = ({
       }),
       communityArea: Yup.string().required('Community Area is required'),
       ageRange: Yup.string().required('Age Range is required'),
+      businessSupportNeeds: Yup.array().of(Yup.string()),
+      businessType: Yup.string().required('Business Type is required'),
+      businessSize: Yup.string().required('Business Size is required'),
+      businessPartners: Yup.string().required('Business Partners is required'),
+      companyPhoneNumber: Yup.string().required('Company Phone Number is required'),
+      additionalPhoneNumber: Yup.string().required('Additional Phone Number is required'),  
+      companyEmail: Yup.string().required('Company Email is required'),
     }),
     onSubmit: async (values, helpers) => {
       try {
@@ -631,6 +677,11 @@ export const PersonalInformation = ({
           jobReadiness,
           businessSupport,
           registrationMode,
+          businessSize,
+          businessPartners,
+          companyPhoneNumber,
+          additionalPhoneNumber,
+          companyEmail,
         } = values;
 
         // Get course information from sessionStorage or applicant data
@@ -697,6 +748,13 @@ export const PersonalInformation = ({
           cohortId,
           selectedCourseName,
           selectedCourseId,
+          businessSupportNeeds,
+          businessType,
+          businessSize,
+          businessPartners,
+          companyPhoneNumber,
+          additionalPhoneNumber,
+          companyEmail,
         };
 
         if (source === 'by_referral') {
@@ -811,6 +869,8 @@ export const PersonalInformation = ({
       setAvailableLGAs(allLGAs);
     }
   }, [formik.values.stateOfResidence]);
+
+
 
   return (
     <Box>
@@ -1503,76 +1563,241 @@ export const PersonalInformation = ({
               </Grid>
 
               {/* Business Support Options */}
-              <Grid item md={6} xs={12}>
-                <Typography sx={{ml: 2}} variant='p'>
-                  Business Support
-                </Typography>
-                <Grid sx={{ml: 2}}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.businessSupport.includes(
-                          'business_registered',
-                        )}
-                        onChange={e => {
-                          const newValues = e.target.checked
-                            ? [
-                                ...formik.values.businessSupport,
-                                'business_registered',
-                              ]
-                            : formik.values.businessSupport.filter(
-                                v => v !== 'business_registered',
+              {applicant.profile?.type === 'ENTERPRISE' && (
+                <>
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business Support
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formik.values.businessSupport.includes(
+                              'business_registered',
+                            )}
+                            onChange={e => {
+                              const newValues = e.target.checked
+                                ? [
+                                    ...formik.values.businessSupport,
+                                    'business_registered',
+                                  ]
+                                : formik.values.businessSupport.filter(
+                                    v => v !== 'business_registered',
+                                  );
+                              formik.setFieldValue(
+                                'businessSupport',
+                                newValues,
                               );
-                          formik.setFieldValue('businessSupport', newValues);
-                        }}
+                            }}
+                          />
+                        }
+                        label='Business Registered'
                       />
-                    }
-                    label='Business Registered'
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.businessSupport.includes(
-                          'clinic_attended',
-                        )}
-                        onChange={e => {
-                          const newValues = e.target.checked
-                            ? [
-                                ...formik.values.businessSupport,
-                                'clinic_attended',
-                              ]
-                            : formik.values.businessSupport.filter(
-                                v => v !== 'clinic_attended',
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formik.values.businessSupport.includes(
+                              'clinic_attended',
+                            )}
+                            onChange={e => {
+                              const newValues = e.target.checked
+                                ? [
+                                    ...formik.values.businessSupport,
+                                    'clinic_attended',
+                                  ]
+                                : formik.values.businessSupport.filter(
+                                    v => v !== 'clinic_attended',
+                                  );
+                              formik.setFieldValue(
+                                'businessSupport',
+                                newValues,
                               );
-                          formik.setFieldValue('businessSupport', newValues);
-                        }}
+                            }}
+                          />
+                        }
+                        label='Business Clinic Attended'
                       />
-                    }
-                    label='Business Clinic Attended'
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.businessSupport.includes(
-                          'coaching_attended',
-                        )}
-                        onChange={e => {
-                          const newValues = e.target.checked
-                            ? [
-                                ...formik.values.businessSupport,
-                                'coaching_attended',
-                              ]
-                            : formik.values.businessSupport.filter(
-                                v => v !== 'coaching_attended',
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formik.values.businessSupport.includes(
+                              'coaching_attended',
+                            )}
+                            onChange={e => {
+                              const newValues = e.target.checked
+                                ? [
+                                    ...formik.values.businessSupport,
+                                    'coaching_attended',
+                                  ]
+                                : formik.values.businessSupport.filter(
+                                    v => v !== 'coaching_attended',
+                                  );
+                              formik.setFieldValue(
+                                'businessSupport',
+                                newValues,
                               );
-                          formik.setFieldValue('businessSupport', newValues);
-                        }}
+                            }}
+                          />
+                        }
+                        label='Business Coaching Attended'
                       />
-                    }
-                    label='Business Coaching Attended'
-                  />
-                </Grid>
-              </Grid>
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business Support Needs
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formik.values.businessSupportNeeds.includes(
+                              'business_registered',
+                            )}
+                            onChange={e => {
+                              const newValues = e.target.checked
+                                ? [
+                                    ...formik.values.businessSupportNeeds,
+                                    'business_registered',
+                                  ]
+                                : formik.values.businessSupportNeeds.filter(
+                                    v => v !== 'business_registered',
+                                  );
+                            }}
+                          />
+                        }
+                        label='Business Registered'
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business Type
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <RadioGroup
+                        name='businessType'
+                        value={formik.values.businessType}
+                        onChange={formik.handleChange}>
+                        <FormControlLabel value='INFORMAL' label='Informal' />
+                        <FormControlLabel value='STARTUP' label='Startup' />
+                        <FormControlLabel
+                          value='FORMAL_EXISTING'
+                          label='Formal Existing'
+                        />
+                      </RadioGroup>
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business Size
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <RadioGroup
+                        name='businessSize'
+                        value={formik.values.businessSize}
+                        onChange={formik.handleChange}>
+                        <FormControlLabel value='MICRO' label='Micro' />
+                        <FormControlLabel value='SMALL' label='Small' />
+                        <FormControlLabel value='MEDIUM' label='Medium' />
+                        <FormControlLabel value='LARGE' label='Large' />
+                      </RadioGroup>
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business Partners
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <TextField
+                        fullWidth
+                        name='businessPartners'
+                        value={formik.values.businessPartners}
+                        onChange={formik.handleChange}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Company Phone Number
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <TextField
+                        fullWidth
+                        name='companyPhoneNumber'
+                        value={formik.values.companyPhoneNumber}
+                        onChange={formik.handleChange}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Additional Phone Number
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <TextField
+                        fullWidth
+                        name='additionalPhoneNumber'
+                        value={formik.values.additionalPhoneNumber}
+                        onChange={formik.handleChange}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Company Email
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <TextField
+                        fullWidth
+                        name='companyEmail'
+                        value={formik.values.companyEmail}
+                        onChange={formik.handleChange}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Country of Business
+                    </Typography>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business State
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <TextField
+                        fullWidth
+                        name='businessState'
+                        value={formik.values.businessState}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Grid item md={6} xs={12}>
+                    <Typography sx={{ml: 2}} variant='p'>
+                      Business LGA
+                    </Typography>
+                    <Grid sx={{ml: 2}}>
+                      <TextField
+                        fullWidth
+                        name='businessLGA'
+                        value={formik.values.businessLGA}
+                      />
+                    </Grid>
+                  </Grid>
+                </>
+              )}
 
               {/* Date of Birth */}
               <Grid item md={6} xs={12} className=''>

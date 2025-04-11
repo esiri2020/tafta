@@ -32,7 +32,7 @@ export const RegisterStepNew = ({handlers, ...other}) => {
   const [createApplicant, result] = useCreateApplicantMutation();
   const router = useRouter();
   const {cohortId, userId} = router.query;
-  const [registrationType, setRegistrationType] = useState('individual');
+  const [registrationType, setRegistrationType] = useState('INDIVIDUAL');
 
   useEffect(() => {
     if (userId) setActiveStep(2);

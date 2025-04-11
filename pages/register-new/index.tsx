@@ -37,6 +37,7 @@ import {
 import {GetServerSideProps, NextPageContext} from 'next';
 import {SplashScreen} from '../../components/splash-screen';
 import {signIn, useSession} from 'next-auth/react';
+import PersonalInformation from '../../components/home/personal-information-main';
 
 const steps = [
   'Course Selection',
@@ -77,11 +78,12 @@ function StepContent({
       return <VerifyEmail />;
     case 3:
       return (
-        <PersonalInformationNew
+        <PersonalInformation
           userId={(session as any)?.userData?.userId}
           handlers={handlers}
           state={{editApplicant: handlers.editApplicant}}
           applicant={applicant}
+          // cohortCourses={coursesData}
         />
       );
     case 4:
@@ -278,7 +280,9 @@ function RegisterNew() {
             sx={{
               marginBottom: '50px',
             }}>
-            Registration Form
+            {activeStep === 3
+              ? `${applicant?.profile?.selectedCourseName} Registration form`
+              : 'Registration Form'}
           </Typography>
         </Box>
 
