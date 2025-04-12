@@ -93,7 +93,7 @@ export default async function handler(
                     },
                   },
                 },
-              },  
+              },
             });
             promises.push(updatedUser);
             const thinkific_data = {

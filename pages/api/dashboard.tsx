@@ -1,6 +1,6 @@
-import { getToken } from "next-auth/jwt";
-import type { NextApiRequest, NextApiResponse } from "next";
-import prisma from "../../lib/prismadb";
+import {getToken} from 'next-auth/jwt';
+import type {NextApiRequest, NextApiResponse} from 'next';
+import prisma from '../../lib/prismadb';
 
 interface Profile {
   ageRange: string | null;
@@ -8,40 +8,48 @@ interface Profile {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   try {
-    const token = await getToken({ req });
+    const token = await getToken({req});
     if (!token || !token.userData) {
       return res.status(401).send({
         error:
-          "You must be signed in to view the protected content on this page.",
+          'You must be signed in to view the protected content on this page.',
       });
     }
     if (
-      token.userData.role !== "SUPERADMIN" &&
-      token.userData.role !== "ADMIN"
+      token.userData.role !== 'SUPERADMIN' &&
+      token.userData.role !== 'ADMIN'
     ) {
       return res.status(403).send({
-        error: "Unauthorized.",
+        error: 'Unauthorized.',
       });
     }
-    const { cohortId }: { cohortId?: string } = req.query;
+    const {cohortId}: {cohortId?: string} = req.query;
 
-    if (!cohortId) return res.status(400);
+    // Define a base condition for filtering by cohort
+    // When cohortId is not provided, don't filter by cohort (show all active cohorts)
+    const cohortFilter = cohortId
+      ? {
+          cohortId,
+        }
+      : {
+          cohort: {
+            active: true, // Only include active cohorts when no specific cohort is selected
+          },
+        };
 
     const total_enrolled_by_courses = await prisma.enrollment.count({
       where: {
-        userCohort: {
-          cohortId,
-        },
+        userCohort: cohortId ? {cohortId} : undefined,
       },
     });
     const total_enrolled_applicants = await prisma.user.count({
       where: {
         userCohort: {
           some: {
-            cohortId,
+            ...cohortFilter,
             enrollments: {
               some: {},
             },
@@ -53,12 +61,12 @@ export default async function handler(
       where: {
         profile: {
           gender: {
-            equals: "FEMALE",
+            equals: 'FEMALE',
           },
         },
         userCohort: {
           some: {
-            cohortId,
+            ...cohortFilter,
             enrollments: {
               some: {},
             },
@@ -70,12 +78,12 @@ export default async function handler(
       where: {
         profile: {
           gender: {
-            equals: "MALE",
+            equals: 'MALE',
           },
         },
         userCohort: {
           some: {
-            cohortId,
+            ...cohortFilter,
             enrollments: {
               some: {},
             },
@@ -87,7 +95,7 @@ export default async function handler(
       where: {
         userCohort: {
           some: {
-            cohortId,
+            ...cohortFilter,
             enrollments: {
               some: {
                 AND: [
@@ -112,7 +120,7 @@ export default async function handler(
       where: {
         userCohort: {
           some: {
-            cohortId,
+            ...cohortFilter,
             enrollments: {
               some: {
                 completed: {
@@ -128,7 +136,7 @@ export default async function handler(
       where: {
         userCohort: {
           some: {
-            cohortId,
+            ...cohortFilter,
           },
         },
       },
@@ -157,16 +165,16 @@ export default async function handler(
 
     // Define the age ranges in descending order
     const ageRanges = [
-      { min: 16, max: 20, label: "16-20" },
-      { min: 21, max: 25, label: "21-25" },
-      { min: 26, max: 30, label: "26-30" },
-      { min: 31, max: 35, label: "31-35" },
-      { min: 36, max: 40, label: "36-40" },
-      { min: 41, max: 45, label: "41-45" },
-      { min: 46, max: 50, label: "46-50" },
-      { min: 51, max: 55, label: "51-55" },
-      { min: 56, max: 60, label: "56-60" },
-      { min: 61, max: 65, label: "61-65" },
+      {min: 16, max: 20, label: '16-20'},
+      {min: 21, max: 25, label: '21-25'},
+      {min: 26, max: 30, label: '26-30'},
+      {min: 31, max: 35, label: '31-35'},
+      {min: 36, max: 40, label: '36-40'},
+      {min: 41, max: 45, label: '41-45'},
+      {min: 46, max: 50, label: '46-50'},
+      {min: 51, max: 55, label: '51-55'},
+      {min: 56, max: 60, label: '56-60'},
+      {min: 61, max: 65, label: '61-65'},
       // Add more age ranges as needed
     ];
 
@@ -180,13 +188,13 @@ export default async function handler(
       const ageRange = profile.ageRange;
       if (ageRange && ageRange.match(/^\d+\s*-\s*\d+$/)) {
         // Extract the minimum and maximum ages from the 'ageRange' field
-        const [minAgeStr, maxAgeStr] = ageRange.split("-");
+        const [minAgeStr, maxAgeStr] = ageRange.split('-');
         const minAge = parseInt(minAgeStr.trim());
         const maxAge = parseInt(maxAgeStr.trim());
 
         // Find the corresponding age range
         const ageRangeObj = ageRanges.find(
-          (range) => minAge >= range.min && maxAge <= range.max
+          range => minAge >= range.min && maxAge <= range.max,
         );
 
         // If the age falls within one of the defined age ranges, increment the count
@@ -209,8 +217,8 @@ export default async function handler(
       }))
       .sort((a, b) => {
         // Extract the minimum ages from the ageRange labels
-        const aMinAge = parseInt(a.ageRange.split("-")[0]);
-        const bMinAge = parseInt(b.ageRange.split("-")[0]);
+        const aMinAge = parseInt(a.ageRange.split('-')[0]);
+        const bMinAge = parseInt(b.ageRange.split('-')[0]);
 
         // Sort in descending order based on the minimum ages
         return bMinAge - aMinAge;
@@ -218,47 +226,47 @@ export default async function handler(
       .reverse();
 
     const locations = [
-      "Abia",
-      "Adamawa",
-      "Akwa Ibom",
-      "Anambra",
-      "Bauchi",
-      "Bayelsa",
-      "Benue",
-      "Borno",
-      "Cross River",
-      "Delta",
-      "Ebonyi",
-      "Edo",
-      "Ekiti",
-      "Enugu",
-      "FCT - Abuja",
-      "Gombe",
-      "Imo",
-      "Jigawa",
-      "Kaduna",
-      "Kano",
-      "Katsina",
-      "Kebbi",
-      "Kogi",
-      "Kwara",
-      "Lagos",
-      "Nasarawa",
-      "Niger",
-      "Ogun",
-      "Ondo",
-      "Osun",
-      "Oyo",
-      "Plateau",
-      "Rivers",
-      "Sokoto",
-      "Taraba",
-      "Yobe",
-      "Zamfara",
+      'Abia',
+      'Adamawa',
+      'Akwa Ibom',
+      'Anambra',
+      'Bauchi',
+      'Bayelsa',
+      'Benue',
+      'Borno',
+      'Cross River',
+      'Delta',
+      'Ebonyi',
+      'Edo',
+      'Ekiti',
+      'Enugu',
+      'FCT - Abuja',
+      'Gombe',
+      'Imo',
+      'Jigawa',
+      'Kaduna',
+      'Kano',
+      'Katsina',
+      'Kebbi',
+      'Kogi',
+      'Kwara',
+      'Lagos',
+      'Nasarawa',
+      'Niger',
+      'Ogun',
+      'Ondo',
+      'Osun',
+      'Oyo',
+      'Plateau',
+      'Rivers',
+      'Sokoto',
+      'Taraba',
+      'Yobe',
+      'Zamfara',
     ];
 
     const locationCounts = await Promise.all(
-      locations.map(async (location) => {
+      locations.map(async location => {
         const count = await prisma.user.count({
           where: {
             profile: {
@@ -268,13 +276,13 @@ export default async function handler(
             },
             userCohort: {
               some: {
-                cohortId,
+                ...cohortFilter,
               },
             },
           },
         });
-        return { location, count };
-      })
+        return {location, count};
+      }),
     );
 
     // const coursesByLocation: Record<string, number> = {};
@@ -309,7 +317,7 @@ export default async function handler(
     // }
 
     // Filter locations with count greater than 1
-    const location = locationCounts.filter((item) => item.count > 0);
+    const location = locationCounts.filter(item => item.count > 0);
     // const courses_by_location = Object.fromEntries(
     //   Object.entries(coursesByLocation).filter(([location, count]) => count > 0)
     // );
@@ -320,12 +328,12 @@ export default async function handler(
         where: {
           profile: {
             residencyStatus: {
-              equals: "REFUGEE",
+              equals: 'REFUGEE',
             },
           },
           userCohort: {
             some: {
-              cohortId,
+              ...cohortFilter,
             },
           },
         },
@@ -334,12 +342,12 @@ export default async function handler(
         where: {
           profile: {
             residencyStatus: {
-              equals: "MIGRANT_WORKER",
+              equals: 'MIGRANT_WORKER',
             },
           },
           userCohort: {
             some: {
-              cohortId,
+              ...cohortFilter,
             },
           },
         },
@@ -348,12 +356,12 @@ export default async function handler(
         where: {
           profile: {
             residencyStatus: {
-              equals: "IDP",
+              equals: 'IDP',
             },
           },
           userCohort: {
             some: {
-              cohortId,
+              ...cohortFilter,
             },
           },
         },
@@ -362,12 +370,12 @@ export default async function handler(
         where: {
           profile: {
             residencyStatus: {
-              equals: "RESIDENT",
+              equals: 'RESIDENT',
             },
           },
           userCohort: {
             some: {
-              cohortId,
+              ...cohortFilter,
             },
           },
         },
@@ -383,18 +391,16 @@ export default async function handler(
         active_enrollees: active_enrollees.toString(),
         certified_enrollees: certified_enrollees.toString(),
         total_applicants: total_applicants.toString(),
-        enrollment_completion_graph: enrollment_completion_graph.map(
-          (item) => ({
-            date: item.date,
-            count: item.count.toString(),
-          })
-        ),
+        enrollment_completion_graph: enrollment_completion_graph.map(item => ({
+          date: item.date,
+          count: item.count.toString(),
+        })),
         inactive_enrollments: inactive_enrollments.toString(),
-        age_range: age_range.map((item) => ({
+        age_range: age_range.map(item => ({
           ageRange: item.ageRange,
           count: item.count.toString(),
         })),
-        location: location.map((item) => ({
+        location: location.map(item => ({
           location: item.location,
           count: item.count.toString(),
         })),
@@ -404,7 +410,7 @@ export default async function handler(
           idp: statusOfResidency.idp.toString(),
           resident: statusOfResidency.resident.toString(),
         },
-      })
+      }),
     );
   } catch (err) {
     console.error(err);

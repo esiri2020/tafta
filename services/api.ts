@@ -63,11 +63,16 @@ export const apiService = createApi({
       }),
     }),
     getDashboardData: builder.query<DashboardData, string | undefined | any>({
-      query: ({cohortId}) => `dashboard?cohortId=${cohortId}`,
+      query: ({cohortId}) =>
+        cohortId ? `dashboard?cohortId=${cohortId}` : `dashboard`, // No cohortId for All active cohorts
     }),
     getEnrollments: builder.query({
       query: ({page, limit, course, status, cohort}) =>
-        `enrollments?page=${page}&limit=${limit}&course=${course}&status=${status}&cohort=${cohort}`,
+        `enrollments?page=${page}&limit=${limit}${
+          course ? `&course=${course}` : ''
+        }${status ? `&status=${status}` : ''}${
+          cohort ? `&cohort=${cohort}` : ''
+        }`,
       providesTags: result =>
         result
           ? [

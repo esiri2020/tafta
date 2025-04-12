@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import Head from "next/head";
-import NextLink from "next/link";
+import {useEffect, useRef, useState} from 'react';
+import Head from 'next/head';
+import NextLink from 'next/link';
 import {
   Box,
   Button,
@@ -13,85 +13,86 @@ import {
   Tabs,
   TextField,
   Typography,
-} from "@mui/material";
-import {
-  useGetApplicantsQuery,
-  useGetCohortsQuery,
-} from "../../../services/api";
-import { DashboardLayout } from "../../../components/dashboard/dashboard-layout";
-import { ApplicantsListTable } from "../../../components/dashboard/applicants/applicants-list-table";
-import { Plus as PlusIcon } from "../../../icons/plus";
-import { Search as SearchIcon } from "../../../icons/search";
-import { SplashScreen } from "../../../components/splash-screen";
-import { selectCohort } from "../../../services/cohortSlice";
-import { useAppSelector } from "../../../hooks/rtkHook";
-import { CSVLink, CSVDownload } from "react-csv";
+} from '@mui/material';
+import {useGetApplicantsQuery, useGetCohortsQuery} from '../../../services/api';
+import {DashboardLayout} from '../../../components/dashboard/dashboard-layout';
+import {ApplicantsListTable} from '../../../components/dashboard/applicants/applicants-list-table';
+import {Plus as PlusIcon} from '../../../icons/plus';
+import {Search as SearchIcon} from '../../../icons/search';
+import {SplashScreen} from '../../../components/splash-screen';
+import {selectCohort} from '../../../services/cohortSlice';
+import {useAppSelector} from '../../../hooks/rtkHook';
+import {CSVLink, CSVDownload} from 'react-csv';
 
 const tabs = [
   {
-    label: "All",
-    value: "all",
+    label: 'All',
+    value: 'all',
   },
   {
-    label: "Male",
-    value: "MALE",
+    label: 'Male',
+    value: 'MALE',
   },
   {
-    label: "Female",
-    value: "FEMALE",
+    label: 'Female',
+    value: 'FEMALE',
   },
   {
-    label: "Active",
-    value: "Active",
+    label: 'Active',
+    value: 'Active',
   },
   // {
   //   label: 'Inactive',
   //   value: 'Inactive'
   // },
   {
-    label: "Awaiting Approval",
-    value: "awaiting_approval",
+    label: 'Awaiting Approval',
+    value: 'awaiting_approval',
   },
 ];
 
 const ApplicantList = () => {
   const queryRef = useRef(null);
-  const cohort = useAppSelector((state) => selectCohort(state));
+  const cohort = useAppSelector(state => selectCohort(state));
 
-  const [currentTab, setCurrentTab] = useState("all");
+  const [currentTab, setCurrentTab] = useState('all');
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
-  const [filter, setFilters] = useState("");
-  const [query, setQuery] = useState("");
-  const [cohortId, setCohortId] = useState(cohort?.id);
-  const { data: { cohorts } = { cohorts: [] }, error: cohortError } =
+  const [filter, setFilters] = useState('');
+  const [query, setQuery] = useState('');
+  const [cohortId, setCohortId] = useState(null); // Default to null for "All active cohorts"
+  const {data: {cohorts} = {cohorts: []}, error: cohortError} =
     useGetCohortsQuery({});
-  const { data, error, isLoading } = useGetApplicantsQuery({
+  const {data, error, isLoading} = useGetApplicantsQuery({
     page,
     limit,
     filter,
     query,
-    cohortId,
+    cohortId: cohortId || undefined, // Pass undefined when null (All active cohorts)
   });
+
   useEffect(() => {
+    // Only update cohortId if cohort is not null (specific cohort selected)
     if (cohort) {
       setCohortId(cohort.id);
+    } else {
+      setCohortId(null); // Set to null for "All active cohorts"
     }
   }, [cohort]);
 
   const handleTabsChange = (event, value) => {
     setFilters(value);
     setCurrentTab(value);
-    setQuery("");
+    setQuery('');
   };
 
-  const handleQueryChange = (event) => {
+  const handleQueryChange = event => {
     event.preventDefault();
-    setFilters("all");
+    setFilters('all');
     setQuery(queryRef.current?.value);
   };
 
-  const handleSortChange = (event) => {
+  const handleSortChange = event => {
     setCohortId(event.target.value);
   };
 
@@ -99,23 +100,24 @@ const ApplicantList = () => {
     setPage(newPage);
   };
 
-  const handleLimitChange = (event) => {
+  const handleLimitChange = event => {
     setLimit(parseInt(event.target.value, 10));
   };
 
   if (isLoading) return <SplashScreen />;
   if (!data) return <div>No Data!</div>;
-  const { applicants, count } = data;
+  const {applicants, count} = data;
 
   const formatDataForExport = () => {
-    const formattedData = applicants.map((applicant) => {
-      const { firstName, lastName, email, userCohort } = applicant;
+    const formattedData = applicants.map(applicant => {
+      const {firstName, lastName, email, userCohort} = applicant;
       const userCohortData = userCohort[0];
 
-      const cohortName = userCohortData.cohort.name;
-      const startDate = userCohortData.cohort.start_date;
-      const endDate = userCohortData.cohort.end_date;
-      const status = userCohortData.enrollments.length > 0 ? "Enrolled" : "Not Enrolled";
+      const cohortName = userCohortData?.cohort?.name;
+      const startDate = userCohortData?.cohort?.start_date;
+      const endDate = userCohortData?.cohort?.end_date;
+      const status =
+        userCohortData?.enrollments?.length > 0 ? 'Enrolled' : 'Not Enrolled';
 
       return {
         Name: `${firstName} ${lastName}`,
@@ -136,25 +138,23 @@ const ApplicantList = () => {
         <title>Applicant List</title>
       </Head>
       <Box
-        component="main"
+        component='main'
         sx={{
           flexGrow: 1,
           py: 8,
-        }}
-      >
-        <Container maxWidth="xl">
-          <Box sx={{ mb: 4 }}>
-            <Grid container justifyContent="space-between" spacing={3}>
+        }}>
+        <Container maxWidth='xl'>
+          <Box sx={{mb: 4}}>
+            <Grid container justifyContent='space-between' spacing={3}>
               <Grid item>
-                <Typography variant="h4">Applicants</Typography>
+                <Typography variant='h4'>Applicants</Typography>
               </Grid>
               <Grid item>
                 <NextLink href={`/admin-dashboard/applicants/create`} passHref>
                   <Button
-                    component="a"
-                    startIcon={<PlusIcon fontSize="small" />}
-                    variant="contained"
-                  >
+                    component='a'
+                    startIcon={<PlusIcon fontSize='small' />}
+                    variant='contained'>
                     Add
                   </Button>
                 </NextLink>
@@ -163,78 +163,74 @@ const ApplicantList = () => {
           </Box>
           <Card>
             <Tabs
-              indicatorColor="primary"
+              indicatorColor='primary'
               onChange={handleTabsChange}
-              scrollButtons="auto"
-              sx={{ px: 3 }}
-              textColor="primary"
+              scrollButtons='auto'
+              sx={{px: 3}}
+              textColor='primary'
               value={currentTab}
-              variant="scrollable"
-            >
-              {tabs.map((tab) => (
+              variant='scrollable'>
+              {tabs.map(tab => (
                 <Tab key={tab.value} label={tab.label} value={tab.value} />
               ))}
             </Tabs>
             <Divider />
             <Box
               sx={{
-                alignItems: "center",
-                display: "flex",
-                flexWrap: "wrap",
+                alignItems: 'center',
+                display: 'flex',
+                flexWrap: 'wrap',
                 m: -1.5,
                 p: 3,
-              }}
-            >
+              }}>
               <Box
-                component="form"
+                component='form'
                 onSubmit={handleQueryChange}
                 sx={{
                   flexGrow: 1,
                   m: 1.5,
-                }}
-              >
+                }}>
                 <TextField
-                  defaultValue=""
+                  defaultValue=''
                   fullWidth
-                  inputProps={{ ref: queryRef }}
+                  inputProps={{ref: queryRef}}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
+                      <InputAdornment position='start'>
+                        <SearchIcon fontSize='small' />
                       </InputAdornment>
                     ),
                   }}
-                  placeholder="Search applicants"
+                  placeholder='Search applicants'
                 />
               </Box>
 
-              <Button component="a" variant="contained" sx={{ m: 1.5 }}>
+              <Button component='a' variant='contained' sx={{m: 1.5}}>
                 <CSVLink
                   data={formatDataForExport()}
-                  filename={"applicants.csv"}
-                  target="_blank"
-                  style={{ textDecoration: "none", color: "white" }}
+                  filename={'applicants.csv'}
+                  target='_blank'
+                  style={{textDecoration: 'none', color: 'white'}}
                   // className="MuiButtonBase-root MuiButton-root MuiButton-contained"
                 >
                   Export Data
                 </CSVLink>
               </Button>
 
-              <TextField
-                label="Select Cohort"
-                name="cohorts"
+              {/* <TextField
+                label='Select Cohort'
+                name='cohorts'
                 onChange={handleSortChange}
                 select
-                SelectProps={{ native: true }}
-                sx={{ m: 1.5 }}
-                value={cohortId}
-              >
-                {cohorts.map((option) => (
+                SelectProps={{native: true}}
+                sx={{m: 1.5}}
+                value={cohortId}>
+                {cohorts.map(option => (
                   <option key={option.id} value={option.id}>
                     {option.name}
                   </option>
                 ))}
-              </TextField>
+              </TextField> */}
             </Box>
             <ApplicantsListTable
               applicants={applicants}
@@ -252,6 +248,6 @@ const ApplicantList = () => {
   );
 };
 
-ApplicantList.getLayout = (page) => <DashboardLayout>{page}</DashboardLayout>;
+ApplicantList.getLayout = page => <DashboardLayout>{page}</DashboardLayout>;
 
 export default ApplicantList;

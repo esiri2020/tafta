@@ -126,7 +126,7 @@ export default async function handler(
 
       console.log('is_eligible: ', is_eligible);
 
-      let eligible = true
+      let eligible = true;
 
       // If all requirements are met, register on LMS
       if (eligible) {
@@ -154,6 +154,11 @@ export default async function handler(
               //     .status(400)
               //     .send({ message: error.response?.data || error.message });
               // });
+              console.error(
+                'LMS user creation failed:',
+                error.response?.data || error.message,
+              );
+              return null;
             });
           if (response?.status === 201) {
             const promises: Promise<User>[] = [];
@@ -382,7 +387,12 @@ export default async function handler(
                     in: cohorts,
                   },
                 }
-              : undefined,
+              : {
+                  // When no specific cohort is selected, only show enrollments for active cohorts
+                  cohort: {
+                    active: true,
+                  },
+                },
           ...status_object,
         },
       });
@@ -400,7 +410,12 @@ export default async function handler(
                     in: cohorts,
                   },
                 }
-              : undefined,
+              : {
+                  // When no specific cohort is selected, only show enrollments for active cohorts
+                  cohort: {
+                    active: true,
+                  },
+                },
           ...status_object,
         },
         include: {
@@ -419,6 +434,7 @@ export default async function handler(
                   },
                 },
               },
+              cohort: true, // Include cohort details
             },
           },
         },
@@ -437,7 +453,14 @@ export default async function handler(
             },
             {
               userCohort:
-                cohorts.length > 0 ? {cohortId: {in: cohorts}} : undefined,
+                cohorts.length > 0
+                  ? {cohortId: {in: cohorts}}
+                  : {
+                      // When no specific cohort is selected, only show enrollments for active cohorts
+                      cohort: {
+                        active: true,
+                      },
+                    },
             },
           ],
           ...status_object,
