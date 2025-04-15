@@ -42,6 +42,7 @@ export const apiService = createApi({
     'Courses',
     'CohortCourses',
     'Reports',
+    'Notifications',
     'UNAUTHORIZED',
     'NOT ALLOWED',
     'UNKNOWN_ERROR',
@@ -66,13 +67,69 @@ export const apiService = createApi({
       query: ({cohortId}) =>
         cohortId ? `dashboard?cohortId=${cohortId}` : `dashboard`, // No cohortId for All active cohorts
     }),
+    // getEnrollments: builder.query({
+    //   query: ({page, limit, course, status, cohort}) =>
+    //     `enrollments?page=${page}&limit=${limit}${
+    //       course ? `&course=${course}` : ''
+    //     }${status ? `&status=${status}` : ''}${
+    //       cohort ? `&cohort=${cohort}` : ''
+    //     }`,
+    //   providesTags: result =>
+    //     result
+    //       ? [
+    //           ...result.enrollments?.map(({id}: ResultData) => ({
+    //             type: 'Enrollments',
+    //             id,
+    //           })),
+    //           {type: 'Enrollments', id: 'PARTIAL-LIST'},
+    //         ]
+    //       : [{type: 'Enrollments', id: 'PARTIAL-LIST'}],
+    // }),
     getEnrollments: builder.query({
-      query: ({page, limit, course, status, cohort}) =>
-        `enrollments?page=${page}&limit=${limit}${
-          course ? `&course=${course}` : ''
-        }${status ? `&status=${status}` : ''}${
-          cohort ? `&cohort=${cohort}` : ''
-        }`,
+      query: ({
+        page,
+        limit,
+        course,
+        status,
+        cohort,
+        gender,
+        search,
+        dateFrom,
+        dateTo,
+      }) => {
+        // Build the query string with all parameters
+        let queryString = `enrollments?page=${page}&limit=${limit}`;
+
+        if (course && course.length) {
+          queryString += `&course=${course}`;
+        }
+
+        if (status) {
+          queryString += `&status=${status}`;
+        }
+
+        if (cohort) {
+          queryString += `&cohort=${cohort}`;
+        }
+
+        if (gender) {
+          queryString += `&gender=${gender}`;
+        }
+
+        if (search) {
+          queryString += `&search=${search}`;
+        }
+
+        if (dateFrom) {
+          queryString += `&dateFrom=${dateFrom}`;
+        }
+
+        if (dateTo) {
+          queryString += `&dateTo=${dateTo}`;
+        }
+
+        return queryString;
+      },
       providesTags: result =>
         result
           ? [
@@ -372,6 +429,82 @@ export const apiService = createApi({
       }),
       invalidatesTags: ['Enrollments'],
     }),
+    // Notification endpoints
+    getNotifications: builder.query({
+      query: ({page = 0, limit = 10, isRead}) =>
+        `notifications?page=${page}&limit=${limit}${
+          isRead !== undefined ? `&isRead=${isRead}` : ''
+        }`,
+      providesTags: result =>
+        result
+          ? [
+              ...result.notifications.map(({id}: {id: string}) => ({
+                type: 'Notifications' as const,
+                id,
+              })),
+              {type: 'Notifications' as const, id: 'PARTIAL-LIST'},
+            ]
+          : [{type: 'Notifications' as const, id: 'PARTIAL-LIST'}],
+    }),
+
+    sendNotification: builder.mutation({
+      query: body => {
+        console.log('RTK Query sending notification:', body);
+        return {
+          url: 'notifications',
+          method: 'POST',
+          body,
+        };
+      },
+      // Transform the response to handle errors better
+      transformResponse: (response, meta, arg) => {
+        console.log('Notification response:', response);
+        return response;
+      },
+      // Transform errors for better debugging
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Notification error:', response);
+        return response;
+      },
+      invalidatesTags: [{type: 'Notifications', id: 'PARTIAL-LIST'}],
+    }),
+
+    sendCohortNotification: builder.mutation({
+      query: body => ({
+        url: 'notifications/cohort',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{type: 'Notifications', id: 'PARTIAL-LIST'}],
+    }),
+
+    markNotificationsAsRead: builder.mutation({
+      query: body => ({
+        url: 'notifications',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (result, error, arg) =>
+        arg.markAllAsRead
+          ? [{type: 'Notifications' as const, id: 'PARTIAL-LIST'}]
+          : arg.notificationIds?.map((id: string) => ({
+              type: 'Notifications' as const,
+              id,
+            })) || [],
+    }),
+
+    deleteNotifications: builder.mutation({
+      query: body => ({
+        url: 'notifications',
+        method: 'DELETE',
+        body,
+      }),
+      invalidatesTags: (result, error, arg) =>
+        arg.notificationIds?.map((id: string) => ({
+          type: 'Notifications' as const,
+          id,
+        })) || [],
+    }),
   }),
 });
 
@@ -407,4 +540,9 @@ export const {
   useCreateReportMutation,
   useDeleteReportMutation,
   useAutoEnrollmentMutation,
+  useGetNotificationsQuery,
+  useSendNotificationMutation,
+  useSendCohortNotificationMutation,
+  useMarkNotificationsAsReadMutation,
+  useDeleteNotificationsMutation,
 } = apiService;

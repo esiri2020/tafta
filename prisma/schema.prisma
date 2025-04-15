@@ -54,6 +54,8 @@ model User {
   seatBooking       SeatBooking[]
   sessions          Session[]
   userCohort        UserCohort[]
+  sentNotifications     Notification[]    @relation("SentNotifications")
+  receivedNotifications Notification[]    @relation("ReceivedNotifications")
 }
 
 model Profile {
@@ -146,6 +148,7 @@ model Cohort {
   reports       Report[]
   userCohort    UserCohort[]
   centers       Location[]     @relation("CohortToLocation")
+  notifications Notification[]
 }
 
 model UserCohort {
@@ -386,4 +389,30 @@ enum BusinessSize {
   SMALL
   MEDIUM
   LARGE
+}
+
+model Notification {
+  id              String     @id @default(cuid())
+  title           String
+  message         String
+  createdAt       DateTime   @default(now())
+  isRead          Boolean    @default(false)
+  readAt          DateTime?
+  senderId        String
+  recipientId     String
+  type            NotificationType @default(GENERAL)
+  cohortId        String?
+  relatedEntityId String?
+  sender          User       @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient       User       @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  cohort          Cohort?    @relation(fields: [cohortId], references: [id])
+}
+
+enum NotificationType {
+  GENERAL
+  ENROLLMENT
+  COURSE_UPDATE
+  ANNOUNCEMENT
+  REMINDER
+  APPROVAL
 }

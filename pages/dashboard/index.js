@@ -13,6 +13,20 @@ import {
   Tab,
   Tabs,
   Typography,
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  ListItemIcon,
+  Pagination,
+  Stack,
+  IconButton,
+  Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   Autocomplete,
@@ -20,8 +34,6 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
-  Card,
-  CardContent,
   Button,
   Grid,
   Switch,
@@ -40,14 +52,33 @@ import {
   useGetApplicantQuery,
   useGetSeatBookingsQuery,
   useGetCohortCoursesQuery,
+  useGetNotificationsQuery,
+  useMarkNotificationsAsReadMutation,
+  useDeleteNotificationsMutation,
 } from '../../services/api';
 import {SplashScreen} from '../../components/splash-screen';
+import {
+  Notifications as NotificationsIcon,
+  NotificationsActive as NotificationsActiveIcon,
+  School as SchoolIcon,
+  AccessTime as AccessTimeIcon,
+  Check as CheckIcon,
+  CheckCircle as CheckCircleIcon,
+  Delete as DeleteIcon,
+  MarkEmailRead as MarkEmailReadIcon,
+  Announcement as AnnouncementIcon,
+  Mail as MailIcon,
+  MailOpen as MailOpenIcon,
+} from '@mui/icons-material';
+import {format} from 'date-fns';
+import {NotificationPanel} from '../../components/dashboard/notifications/notification-panel';
 
 const tabs = [
   {label: 'Welcome Message', value: 'general'},
   {label: 'Current Enrollment', value: 'current-enrollment'},
   {label: 'Active Courses', value: 'active-courses'},
   {label: 'Book a Seat', value: 'book-a-seat'},
+  {label: 'Notifications', value: 'notifications'},
   {label: 'Personal Information', value: 'personal-information'},
 ];
 
@@ -252,6 +283,18 @@ const Account = () => {
   const {data: cohortCoursesData, error: cohortCourseError} =
     useGetCohortCoursesQuery({id: cohortId || 'default'}, {skip: !cohortId});
 
+  // Add a query for notifications to show in the notifications tab
+  const {
+    data: notificationsData,
+    error: notificationsError,
+    isLoading: notificationsLoading,
+  } = useGetNotificationsQuery({
+    page: 0,
+    limit: 10,
+  }); // Fetch notifications regardless of tab
+
+  console.log('notificationsData', notificationsData);
+
   if (isLoading) return <SplashScreen />;
   if (error) {
     switch (error.status) {
@@ -273,6 +316,10 @@ const Account = () => {
   }
   if (!data) return <div>No Data!</div>;
   const {user: applicant} = data;
+
+  // Get unread notifications count
+  const unreadNotificationsCount =
+    notificationsData?.notifications?.filter(n => !n.isRead).length || 0;
 
   return (
     <>
@@ -328,6 +375,20 @@ const Account = () => {
                     Edit Personal Information
                   </Button>
                 </NextLink>
+                <Button
+                  onClick={() => setCurrentTab('notifications')}
+                  startIcon={
+                    <Badge
+                      badgeContent={unreadNotificationsCount}
+                      color='error'
+                      max={99}>
+                      <NotificationsIcon />
+                    </Badge>
+                  }
+                  sx={{m: 1}}
+                  variant='outlined'>
+                  Notifications
+                </Button>
                 <NextLink
                   href={`https://portal.terraacademyforarts.com/users/sign_in`}
                   passHref>
@@ -366,6 +427,17 @@ const Account = () => {
               seatBooking={applicant.seatBooking}
               seatDataQueryRes={seatDataQueryRes}
             />
+          )}
+          {currentTab === 'notifications' && (
+            <Box sx={{mt: 4}}>
+              <Card>
+                <CardHeader title='Notifications' />
+                <Divider />
+                <CardContent>
+                  <NotificationPanel notificationsData={notificationsData} />
+                </CardContent>
+              </Card>
+            </Box>
           )}
           {currentTab === 'personal-information' && (
             <Grid container spacing={3}>

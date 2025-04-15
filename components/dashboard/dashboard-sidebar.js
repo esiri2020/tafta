@@ -394,7 +394,7 @@ export const DashboardSidebar = props => {
   const [openCohortPopover, setOpenCohortPopover] = useState(false);
   const {data, error, isLoading} = useGetCohortsQuery({
     page: 0,
-    filter: true,
+    filter: undefined,
   });
 
   const dispatch = useAppDispatch();
@@ -494,12 +494,12 @@ export const DashboardSidebar = props => {
                   }}>
                   <div>
                     <Typography color='inherit' variant='subtitle1'>
-                      {cohort ? cohort.name : 'All active cohorts'}
+                      {cohort ? cohort.name : 'All cohorts'}
                     </Typography>
                     <Typography color='neutral.400' variant='body2'>
                       {cohort
                         ? `Status: ${cohort.active ? 'Active' : 'Ended'}`
-                        : 'Viewing all active cohorts'}
+                        : 'Viewing all cohorts'}
                     </Typography>
                   </div>
                   <SelectorIcon

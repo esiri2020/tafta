@@ -40,8 +40,8 @@ export const CohortPopover = props => {
                 },
               }}>
               <ListItemText
-                primary='All active cohorts'
-                secondary='View all active cohorts'
+                primary='All cohorts'
+                secondary='View all cohorts'
               />
             </ListItem>
           )}

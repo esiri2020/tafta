@@ -29,16 +29,12 @@ export default async function handler(
     const {cohortId}: {cohortId?: string} = req.query;
 
     // Define a base condition for filtering by cohort
-    // When cohortId is not provided, don't filter by cohort (show all active cohorts)
+    // When cohortId is not provided, don't filter by cohort (show all cohorts)
     const cohortFilter = cohortId
       ? {
           cohortId,
         }
-      : {
-          cohort: {
-            active: true, // Only include active cohorts when no specific cohort is selected
-          },
-        };
+      : {}; // Empty object means no filter, so include all cohorts
 
     const total_enrolled_by_courses = await prisma.enrollment.count({
       where: {

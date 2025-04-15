@@ -33,30 +33,47 @@ export default function EnrollmentsPage() {
 
   // Update the cohort filter when the selected cohort changes
   useEffect(() => {
+    // Set cohort to the ID if a cohort is selected, or empty string if showing all cohorts
     setCohort(selectedCohort?.id || '');
   }, [selectedCohort]);
 
-  const {data, error, isLoading, refetch} = useGetEnrollmentsQuery({
+  // Prepare query parameters, ensuring we don't send undefined values
+  const queryParams = {
     page,
     limit: rowsPerPage,
-    course,
-    status,
-    cohort, // This will be empty string for "All active cohorts"
-    gender,
-    search: searchQuery,
+    course: course.length > 0 ? course : undefined,
+    status: status || undefined,
+    cohort: cohort || undefined,
+    gender: gender || undefined,
+    search: searchQuery || undefined,
     dateFrom: dateRange.from
       ? new Date(dateRange.from).toISOString()
       : undefined,
     dateTo: dateRange.to ? new Date(dateRange.to).toISOString() : undefined,
-  });
+  };
+
+  // Clean undefined values from query params
+  Object.keys(queryParams).forEach(
+    key => queryParams[key] === undefined && delete queryParams[key],
+  );
+
+  const {data, error, isLoading, refetch} = useGetEnrollmentsQuery(queryParams);
 
   const handleFiltersChange = useCallback(filters => {
-    setCourse(filters.course || []);
+    // Handle course filter (array)
+    setCourse(filters.course && filters.course.length ? filters.course : []);
+
+    // Handle string filters with empty string fallback
     setStatus(filters.status || '');
     // Don't set the cohort here, as it's managed by the sidebar cohort selector
     setGender(filters.gender || '');
     setSearchQuery(filters.search || '');
+
+    // Handle date range
     setDateRange(filters.dateRange || {from: null, to: null});
+
+    // Reset to first page when filters change
+    setPage(0);
   }, []);
 
   const handlePageChange = newPage => {
@@ -70,10 +87,15 @@ export default function EnrollmentsPage() {
 
   const rehydrate = async () => {
     toast.promise(
-      fetch('/api/rehydrate').then(res => res.json()),
+      fetch('/api/rehydrate').then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to rehydrate');
+        }
+        return res.json();
+      }),
       {
         loading: 'Updating enrollments...',
-        success: data => `${data?.count} enrollments updated successfully`,
+        success: data => `${data?.count || 0} enrollments updated successfully`,
         error: 'Failed to update enrollments',
       },
     );
@@ -92,7 +114,9 @@ export default function EnrollmentsPage() {
           <h2 className='text-xl font-semibold text-destructive'>
             Error loading enrollments
           </h2>
-          <p className='mt-2 text-muted-foreground'>Please try again later</p>
+          <p className='mt-2 text-muted-foreground'>
+            {error.data?.message || 'Please try again later'}
+          </p>
           <Button onClick={() => refetch()} className='mt-4'>
             Retry
           </Button>
@@ -113,25 +137,26 @@ export default function EnrollmentsPage() {
       </Container>
     );
 
-  const {enrollments, count, femaleCount, maleCount} = data;
+  const {enrollments = [], count = 0, femaleCount = 0, maleCount = 0} = data;
 
-  if (enrollments === undefined)
-    return (
-      <Container>
-        <div className='py-10 text-center'>
-          <h2 className='text-xl font-semibold'>No Enrollments Found</h2>
-          <p className='mt-2 text-muted-foreground'>
-            Try adjusting your filters
-          </p>
-        </div>
-      </Container>
-    );
+  // Safe enrollment filtering with null checks
+  const safeEnrollments = enrollments || [];
+  const activeCount = safeEnrollments.filter(
+    e => !e.expired && !e.completed && e.activated_at,
+  ).length;
+  const completedCount = safeEnrollments.filter(e => e.completed).length;
+  const expiredCount = safeEnrollments.filter(e => e.expired).length;
+  const pendingCount = safeEnrollments.filter(e => !e.activated_at).length;
 
   return (
     <Container>
       <DashboardHeader
         title='Enrollments'
-        description='Manage and track student enrollments across all courses'
+        description={
+          selectedCohort
+            ? `Enrollments for ${selectedCohort.name}`
+            : 'Enrollments across all cohorts'
+        }
         actions={
           <Button onClick={rehydrate} className='ml-auto'>
             <RefreshCcw className='mr-2 h-4 w-4' />
@@ -144,19 +169,16 @@ export default function EnrollmentsPage() {
         count={count}
         femaleCount={femaleCount}
         maleCount={maleCount}
-        activeCount={
-          enrollments.filter(e => !e.expired && !e.completed && e.activated_at)
-            .length
-        }
-        completedCount={enrollments.filter(e => e.completed).length}
-        expiredCount={enrollments.filter(e => e.expired).length}
-        pendingCount={enrollments.filter(e => !e.activated_at).length}
+        activeCount={activeCount}
+        completedCount={completedCount}
+        expiredCount={expiredCount}
+        pendingCount={pendingCount}
       />
 
       <Card className='mt-6'>
         <EnrollmentListFilters onChange={handleFiltersChange} />
         <EnrollmentListTable
-          enrollments={enrollments}
+          enrollments={safeEnrollments}
           enrollmentsCount={count}
           page={page}
           rowsPerPage={rowsPerPage}

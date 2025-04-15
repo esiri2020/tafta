@@ -77,11 +77,7 @@ export default async function handler(
                 thinkific_user_id: `${response?.data.id}`,
               },
               include: {
-                profile: {
-                  select: {
-                    id: true,
-                  },
-                },
+                profile: true,
                 userCohort: {
                   select: {
                     enrollments: {
@@ -199,6 +195,7 @@ export default async function handler(
     query?: string;
     cohortId?: string;
   } = req.query;
+
   const take = parseInt(typeof limit == 'string' && limit ? limit : '30');
   const skip = take * parseInt(typeof page == 'string' ? page : '0');
   let count, applicants;
@@ -209,11 +206,29 @@ export default async function handler(
         },
       }
     : undefined;
-  const c = prisma.user.findMany({
-    where: {
-      userCohort: userCohortFilter,
-    },
-  });
+
+  // Parse the filter if it's a stringified JSON object
+  interface FilterParams {
+    gender?: string[];
+    status?: string[];
+    ageRange?: string[];
+    educationLevel?: string[];
+    employmentStatus?: string[];
+    residencyStatus?: string[];
+    communityArea?: string[];
+    talpParticipation?: boolean | null;
+  }
+
+  let parsedFilter: string | FilterParams | undefined = filter;
+
+  try {
+    if (filter && filter !== 'undefined' && filter !== '[object Object]') {
+      parsedFilter = JSON.parse(filter) as FilterParams;
+    }
+  } catch (e) {
+    console.log('Filter parsing error:', e);
+    // Keep the original filter value if parsing fails
+  }
 
   try {
     if (query) {
@@ -236,11 +251,7 @@ export default async function handler(
             },
           },
           include: {
-            profile: {
-              select: {
-                id: true,
-              },
-            },
+            profile: true,
             userCohort: {
               select: {
                 enrollments: {
@@ -287,11 +298,7 @@ export default async function handler(
             ],
           },
           include: {
-            profile: {
-              select: {
-                id: true,
-              },
-            },
+            profile: true,
             userCohort: {
               select: {
                 enrollments: {
@@ -308,7 +315,131 @@ export default async function handler(
           skip,
         });
       }
-    } else if (filter === 'MALE' || filter === 'FEMALE') {
+    }
+    // Check if parsedFilter is an object (complex filter)
+    else if (
+      typeof parsedFilter === 'object' &&
+      parsedFilter !== null &&
+      parsedFilter !== undefined
+    ) {
+      // Build filter conditions based on the parsed filter object
+      const filterConditions: any = {
+        role: 'APPLICANT',
+        userCohort: userCohortFilter,
+      };
+
+      // Add profile conditions if there are any profile-related filters
+      const profileConditions: any = {};
+
+      // Handle gender filter
+      if (parsedFilter.gender && parsedFilter.gender.length > 0) {
+        profileConditions.gender = {in: parsedFilter.gender};
+      }
+
+      // Handle age range filter
+      if (parsedFilter.ageRange && parsedFilter.ageRange.length > 0) {
+        profileConditions.ageRange = {in: parsedFilter.ageRange};
+      }
+
+      // Handle education level filter
+      if (
+        parsedFilter.educationLevel &&
+        parsedFilter.educationLevel.length > 0
+      ) {
+        profileConditions.educationLevel = {in: parsedFilter.educationLevel};
+      }
+
+      // Handle employment status filter
+      if (
+        parsedFilter.employmentStatus &&
+        parsedFilter.employmentStatus.length > 0
+      ) {
+        profileConditions.employmentStatus = {
+          in: parsedFilter.employmentStatus,
+        };
+      }
+
+      // Handle residency status filter
+      if (
+        parsedFilter.residencyStatus &&
+        parsedFilter.residencyStatus.length > 0
+      ) {
+        profileConditions.residencyStatus = {in: parsedFilter.residencyStatus};
+      }
+
+      // Handle community area filter
+      if (parsedFilter.communityArea && parsedFilter.communityArea.length > 0) {
+        profileConditions.communityArea = {in: parsedFilter.communityArea};
+      }
+
+      // Handle TALP participation filter
+      if (
+        parsedFilter.talpParticipation !== null &&
+        parsedFilter.talpParticipation !== undefined
+      ) {
+        profileConditions.talpParticipation = parsedFilter.talpParticipation;
+      }
+
+      // Add profile conditions if any were set
+      if (Object.keys(profileConditions).length > 0) {
+        filterConditions.profile = profileConditions;
+      }
+
+      // Handle application status filters
+      if (parsedFilter.status && parsedFilter.status.length > 0) {
+        // Handle the different status types
+        const statusFilters = [];
+
+        if (parsedFilter.status.includes('approved')) {
+          statusFilters.push({thinkific_user_id: {not: null}});
+        }
+
+        if (parsedFilter.status.includes('pending')) {
+          statusFilters.push({
+            thinkific_user_id: null,
+            profile: {is: null},
+          });
+        }
+
+        if (parsedFilter.status.includes('completed')) {
+          statusFilters.push({
+            thinkific_user_id: null,
+            profile: {isNot: null},
+          });
+        }
+
+        if (statusFilters.length > 0) {
+          filterConditions.OR = statusFilters;
+        }
+      }
+
+      // Apply the constructed filter conditions
+      count = await prisma.user.count({
+        where: filterConditions,
+      });
+
+      applicants = await prisma.user.findMany({
+        where: filterConditions,
+        include: {
+          profile: true,
+          userCohort: {
+            select: {
+              enrollments: {
+                select: {
+                  enrolled: true,
+                  course_name: true,
+                },
+              },
+              cohort: true,
+            },
+          },
+        },
+        take,
+        skip,
+      });
+    }
+    // Handle the existing string filter types
+    else if (filter === 'MALE' || filter === 'FEMALE') {
       count = await prisma.user.count({
         where: {
           role: 'APPLICANT',
@@ -327,11 +458,7 @@ export default async function handler(
           userCohort: userCohortFilter,
         },
         include: {
-          profile: {
-            select: {
-              id: true,
-            },
-          },
+          profile: true,
           userCohort: {
             select: {
               enrollments: {
@@ -380,11 +507,7 @@ export default async function handler(
           },
         },
         include: {
-          profile: {
-            select: {
-              id: true,
-            },
-          },
+          profile: true,
           userCohort: {
             select: {
               enrollments: {
@@ -415,11 +538,7 @@ export default async function handler(
           userCohort: userCohortFilter,
         },
         include: {
-          profile: {
-            select: {
-              id: true,
-            },
-          },
+          profile: true,
           userCohort: {
             select: {
               enrollments: {
@@ -448,11 +567,7 @@ export default async function handler(
           userCohort: userCohortFilter,
         },
         include: {
-          profile: {
-            select: {
-              id: true,
-            },
-          },
+          profile: true,
           userCohort: {
             select: {
               enrollments: {
