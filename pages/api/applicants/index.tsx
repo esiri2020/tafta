@@ -217,6 +217,7 @@ export default async function handler(
     residencyStatus?: string[];
     communityArea?: string[];
     talpParticipation?: boolean | null;
+    type?: string[];
   }
 
   let parsedFilter: string | FilterParams | undefined = filter;
@@ -378,6 +379,11 @@ export default async function handler(
         parsedFilter.talpParticipation !== undefined
       ) {
         profileConditions.talpParticipation = parsedFilter.talpParticipation;
+      }
+
+      // Handle type of applicant filter
+      if (parsedFilter.type && parsedFilter.type.length > 0) {
+        profileConditions.type = {in: parsedFilter.type};
       }
 
       // Add profile conditions if any were set

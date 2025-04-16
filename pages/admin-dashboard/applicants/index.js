@@ -63,6 +63,7 @@ import {
   useGetNotificationsQuery,
 } from '../../../services/api';
 import {NotificationDialog} from '../../../components/dashboard/notifications/notification-dialog';
+import {CSVDownload, CSVLink} from 'react-csv';
 
 // Mock delete mutation
 const useDeleteApplicantsMutation = () => {
@@ -108,6 +109,7 @@ function ApplicantList() {
     residencyStatus: [],
     communityArea: [],
     talpParticipation: null,
+    type: [],
   });
 
   const [page, setPage] = useState(0);
@@ -171,7 +173,11 @@ function ApplicantList() {
       filters.residencyStatus.length > 0 ? filters.residencyStatus : undefined,
     communityArea:
       filters.communityArea.length > 0 ? filters.communityArea : undefined,
-    talpParticipation: filters.talpParticipation,
+    talpParticipation:
+      filters.talpParticipation !== null
+        ? filters.talpParticipation
+        : undefined,
+    type: filters.type.length > 0 ? filters.type : undefined,
   });
 
   // Log the current filter state for debugging
@@ -246,6 +252,7 @@ function ApplicantList() {
       residencyStatus: [],
       communityArea: [],
       talpParticipation: null,
+      type: [],
     });
     setSearchQuery('');
   };
@@ -494,7 +501,15 @@ function ApplicantList() {
                 // In a real app, this would trigger a CSV download
               }}>
               <Download className='mr-2 h-4 w-4' />
-              Export
+              <CSVLink
+                data={formatDataForExport()}
+                filename={'applicants.csv'}
+                target='_blank'
+                // style={{textDecoration: 'none', color: 'white'}}
+                // className="MuiButtonBase-root MuiButton-root MuiButton-contained"
+              >
+                Export Data
+              </CSVLink>
             </Button>
           </div>
         </div>
@@ -580,6 +595,30 @@ function ApplicantList() {
 
                       <Separator />
 
+                      {/* Filter by type of applicant */}
+                      <div className='space-y-2'>
+                        <h3 className='text-sm font-medium'>
+                          Type of Applicant
+                        </h3>
+                        <div className='space-y-2'>
+                          {['INDIVIDUAL', 'ENTERPRISE'].map(type => (
+                            <div
+                              key={type}
+                              className='flex items-center space-x-2'>
+                              <Checkbox
+                                id={type}
+                                checked={filters.type.includes(type)}
+                                onCheckedChange={checked =>
+                                  handleFilterChange('type', type)
+                                }
+                              />
+                              <Label htmlFor={type}>{type}</Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator />
                       <div className='space-y-2'>
                         <h3 className='text-sm font-medium'>Age Range</h3>
                         <div className='space-y-2'>
@@ -896,9 +935,9 @@ function ApplicantList() {
                   className='mr-2'>
                   Delete
                 </Button>
-                <Button size='sm' onClick={handleBulkApprove}>
+                {/* <Button size='sm' onClick={handleBulkApprove}>
                   Approve and Enroll
-                </Button>
+                </Button> */}
                 <Button
                   variant='outline'
                   size='sm'
@@ -922,6 +961,7 @@ function ApplicantList() {
                       />
                     </TableHead>
                     <TableHead>Applicant</TableHead>
+                    <TableHead>Business Name</TableHead>
                     <TableHead className='hidden md:table-cell'>
                       Profile Details
                     </TableHead>
@@ -959,6 +999,9 @@ function ApplicantList() {
                             </span>
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {applicant.profile?.businessName || 'Not a business'}
                       </TableCell>
                       <TableCell className='hidden md:table-cell'>
                         {applicant.profile ? (
@@ -1118,11 +1161,11 @@ function ApplicantList() {
               </div>
             </div>
 
-            <div className='mt-6'>
+            {/* <div className='mt-6'>
               <Button variant='secondary' onClick={handleAutoEnrollment}>
                 Enroll Eligible Applicants
               </Button>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
