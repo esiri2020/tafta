@@ -23,6 +23,7 @@ export interface Applicant {
       | 'PHD';
     source?: string;
     employmentStatus?: string;
+    employmentSector?: string;
     residencyStatus?: string;
     selfEmployedType?: string;
     stateOfOrigin?: string;
@@ -80,6 +81,7 @@ export interface FormValues {
   referrer_fullName: string;
   referrer_phoneNumber: string;
   employmentStatus: string;
+  employmentSector: string;
   residencyStatus: string;
   selfEmployedType: string;
   registrationMode: string;

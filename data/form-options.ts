@@ -1,48 +1,66 @@
 // Nigerian states
-export const nigeria_states = ['Kaduna', 'Lagos', 'Ogun'];
+export const nigeria_states = ['Kano', 'Lagos', 'Ogun'];
 
 // LGAs by state (simplified example)
-export const LGAs: Record<string, Record<string, string[]>> = {
+export const LGAs = {
   Lagos: {
-    group1: [
+    Group1: ['Lagos Island', 'Lagos Mainland'],
+    Group2: [
+      'Agege',
       'Alimosho',
-      'Ajeromi-Ifelodun',
-      'Kosofe',
+      'Ifako-Ijaiye',
+      'Ikeja',
       'Mushin',
       'Oshodi-Isolo',
     ],
-    group2: ['Ojo', 'Ikorodu', 'Surulere', 'Agege', 'Ifako-Ijaiye', 'Shomolu'],
-    group3: [
-      'Amuwo-Odofin',
-      'Lagos Mainland',
-      'Ikeja',
-      'Eti-Osa',
-      'Badagry',
-      'Apapa',
-      'Lagos Island',
-      'Epe',
-      'Ibeju-Lekki',
+    Group3: ['Ajeromi-Ifelodun', 'Apapa', 'Badagry', 'Ojo'],
+    Group4: ['Amuwo-Odofin', 'Ikorodu', 'Kosofe', 'Surulere'],
+    Group5: ['Epe', 'Eti-Osa', 'Ibeju-Lekki'],
+  },
+  Ogun: {
+    Group1: ['Abeokuta North', 'Abeokuta South', 'Odeda', 'Obafemi Owode'],
+    Group2: ['Ado-Odo/Ota', 'Ifo'],
+    Group3: ['Ijebu East', 'Ijebu North', 'Ijebu North East', 'Ijebu Ode'],
+    Group4: ['Egbado North', 'Egbado South', 'Imeko Afon'],
+    Group5: [
+      'Ewekoro',
+      'Ikenne',
+      'Ipokia',
+      'Ogun Waterside',
+      'Remo North',
+      'Shagamu',
     ],
   },
-  FCT: {
-    group1: [
-      'Abaji',
-      'Bwari',
-      'Gwagwalada',
-      'Kuje',
-      'Kwali',
-      'Municipal Area Council',
+  Kano: {
+    Group1: [
+      'Dala',
+      'Fagge',
+      'Gwale',
+      'Kano Municipal',
+      'Nasarawa',
+      'Tarauni',
+      'Ungogo',
     ],
-  },
-  Kaduna: {
-    group1: ['Birnin Gwari', 'Chikun', 'Giwa', 'Igabi', 'Ikara', 'Jaba'],
-    group2: [
-      "Jema'a",
-      'Kachia',
-      'Kaduna North',
-      'Kaduna South',
-      'Kagarko',
-      'Kajuru',
+    Group2: ['Dawakin Tofa', 'Gwarzo', 'Madobi', 'Makoda', 'Rogo', 'Tsanyawa'],
+    Group3: [
+      'Bunkure',
+      'Dambatta',
+      'Garun Mallam',
+      'Kibiya',
+      'Maimako',
+      'Rano',
+      'Sumaila',
+      'Wudil',
+    ],
+    Group4: ['Kabo', 'Kibiya', 'Kiru', 'Rimin Gado', 'Shanono'],
+    Group5: [
+      'Ajingi',
+      'Bebeji',
+      'Bichi',
+      'Doguwa',
+      'Gezawa',
+      'Karaye',
+      'Kunchi',
     ],
   },
 };
@@ -176,7 +194,10 @@ export const mobilizer = [
 export const business_types = [
   {value: 'INFORMAL', label: 'Informal (unregistered business)'},
   {value: 'STARTUP', label: 'Startup (registered business  1 - 50 staffs)'},
-  {value: 'FORMAL_EXISTING', label: 'Formal Existing (registered business  50+ staffs)'},
+  {
+    value: 'FORMAL_EXISTING',
+    label: 'Formal Existing (registered business  50+ staffs)',
+  },
 ];
 
 export const business_size = [

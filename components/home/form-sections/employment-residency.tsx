@@ -11,6 +11,7 @@ import {
   self_employed_types,
   residency_status,
   salary_ranges,
+  business_sectors,
 } from '@/data/form-options';
 import {FormSection} from '@/components/form-section';
 import {FormField} from '@/components/form-field';
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {Input} from '@/components/ui/input';
 
 interface EmploymentResidencyProps {
   formik: FormikProps<FormValues>;
@@ -106,6 +108,32 @@ export const EmploymentResidency = ({
                   {salary_ranges.map(range => (
                     <SelectItem key={range.value} value={range.value}>
                       {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        )}
+
+        {formik.values.employmentStatus === 'employed' && (
+          <FormField
+            id='employmentSector'
+            label='Employment Sector'
+            formik={formik}
+            render={() => (
+              <Select
+                value={formik.values.employmentSector}
+                onValueChange={value =>
+                  formik.setFieldValue('employmentSector', value)
+                }>
+                <SelectTrigger>
+                  <SelectValue placeholder='Select an employment sector' />
+                </SelectTrigger>
+                <SelectContent>
+                  {business_sectors.map(sector => (
+                    <SelectItem key={sector.value} value={sector.value}>
+                      {sector.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

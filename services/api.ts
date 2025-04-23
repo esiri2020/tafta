@@ -43,6 +43,8 @@ export const apiService = createApi({
     'CohortCourses',
     'Reports',
     'Notifications',
+    'ProfileChanges',
+    'Assessments',
     'UNAUTHORIZED',
     'NOT ALLOWED',
     'UNKNOWN_ERROR',
@@ -431,22 +433,18 @@ export const apiService = createApi({
     }),
     // Notification endpoints
     getNotifications: builder.query({
-      query: ({page = 0, limit = 10, isRead}) =>
-        `notifications?page=${page}&limit=${limit}${
-          isRead !== undefined ? `&isRead=${isRead}` : ''
-        }`,
+      query: ({page, limit}) => `notifications?page=${page}&limit=${limit}`,
       providesTags: result =>
         result
           ? [
-              ...result.notifications.map(({id}: {id: string}) => ({
-                type: 'Notifications' as const,
+              ...result.notifications?.map(({id}: {id: string}) => ({
+                type: 'Notifications',
                 id,
               })),
-              {type: 'Notifications' as const, id: 'PARTIAL-LIST'},
+              {type: 'Notifications', id: 'PARTIAL-LIST'},
             ]
-          : [{type: 'Notifications' as const, id: 'PARTIAL-LIST'}],
+          : [{type: 'Notifications', id: 'PARTIAL-LIST'}],
     }),
-
     sendNotification: builder.mutation({
       query: body => {
         console.log('RTK Query sending notification:', body);
@@ -505,6 +503,42 @@ export const apiService = createApi({
           id,
         })) || [],
     }),
+
+    // Assessment endpoints
+    getUserAssessment: builder.query({
+      query: userId => `assessment/${userId}`,
+      providesTags: (result, error, arg) =>
+        result ? [{type: 'Assessments', id: result.id}] : ['Assessments'],
+    }),
+
+    createAssessment: builder.mutation({
+      query: ({body}) => ({
+        url: 'assessment',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, error, arg) =>
+        result ? [{type: 'Assessments', id: result.id}] : ['Assessments'],
+    }),
+
+    updateAssessment: builder.mutation({
+      query: ({id, body}) => ({
+        url: `assessment/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (result, error, arg) =>
+        result ? [{type: 'Assessments', id: arg.id}] : ['Assessments'],
+    }),
+
+    // New endpoint for assessment metrics
+    getAssessmentMetrics: builder.query({
+      query: ({cohortId}) =>
+        cohortId
+          ? `assessment/metrics?cohortId=${cohortId}`
+          : `assessment/metrics`,
+      providesTags: ['Assessments'],
+    }),
   }),
 });
 
@@ -545,4 +579,8 @@ export const {
   useSendCohortNotificationMutation,
   useMarkNotificationsAsReadMutation,
   useDeleteNotificationsMutation,
+  useGetUserAssessmentQuery,
+  useCreateAssessmentMutation,
+  useUpdateAssessmentMutation,
+  useGetAssessmentMetricsQuery,
 } = apiService;

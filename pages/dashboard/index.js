@@ -69,6 +69,7 @@ import {
   Announcement as AnnouncementIcon,
   Mail as MailIcon,
   MailOpen as MailOpenIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import {format} from 'date-fns';
 import {NotificationPanel} from '../../components/dashboard/notifications/notification-panel';
@@ -80,6 +81,7 @@ const tabs = [
   {label: 'Book a Seat', value: 'book-a-seat'},
   {label: 'Notifications', value: 'notifications'},
   {label: 'Personal Information', value: 'personal-information'},
+  {label: 'Assessment', value: 'assessment'},
 ];
 
 export const Profile = () => (
@@ -366,7 +368,7 @@ const Account = () => {
                 </div>
               </Grid>
               <Grid item sx={{m: -1}}>
-                <NextLink href={`/dashboard/${applicant.id}/edit`} passHref>
+                {/* <NextLink href={`/dashboard/${applicant.id}/edit`} passHref>
                   <Button
                     component='a'
                     endIcon={<PencilAltIcon fontSize='small' />}
@@ -374,7 +376,7 @@ const Account = () => {
                     variant='outlined'>
                     Edit Personal Information
                   </Button>
-                </NextLink>
+                </NextLink> */}
                 <Button
                   onClick={() => setCurrentTab('notifications')}
                   startIcon={
@@ -389,6 +391,11 @@ const Account = () => {
                   variant='outlined'>
                   Notifications
                 </Button>
+                <NextLink href='/dashboard/assessment' passHref>
+                  <Button component='a' sx={{m: 1}} variant='outlined'>
+                    Complete Assessment
+                  </Button>
+                </NextLink>
                 <NextLink
                   href={`https://portal.terraacademyforarts.com/users/sign_in`}
                   passHref>
@@ -448,6 +455,18 @@ const Account = () => {
                 <ApplicantDataManagement id={id} />
               </Grid>
             </Grid>
+          )}
+          {currentTab === 'assessment' && (
+            <Box sx={{mt: 2, textAlign: 'center'}}>
+              <Typography variant='h6' sx={{mb: 2}}>
+                Complete your TAFTA training assessment
+              </Typography>
+              <NextLink href='/dashboard/assessment' passHref>
+                <Button component='a' variant='contained' sx={{px: 4, py: 1}}>
+                  Go to Assessment Form
+                </Button>
+              </NextLink>
+            </Box>
           )}
         </Container>
       </Box>

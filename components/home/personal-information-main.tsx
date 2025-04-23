@@ -65,6 +65,7 @@ const PersonalInformation = ({
   const [date, setDate] = useState<Date | undefined>(undefined);
   const {editApplicant} = state;
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check if applicant is enterprise type
   const isEnterpriseType = applicant?.profile?.type === 'ENTERPRISE';
@@ -90,6 +91,7 @@ const PersonalInformation = ({
     referrer_fullName: applicant?.profile?.referrer?.fullName || '',
     referrer_phoneNumber: applicant?.profile?.referrer?.phoneNumber || '',
     employmentStatus: applicant?.profile?.employmentStatus || '',
+    employmentSector: applicant?.profile?.employmentSector || '',
     residencyStatus: applicant?.profile?.residencyStatus || '',
     selfEmployedType: applicant?.profile?.selfEmployedType || '',
     registrationMode: applicant?.profile?.registrationMode || 'online',
@@ -132,14 +134,25 @@ const PersonalInformation = ({
     validationSchema,
     validate: validateForm,
     onSubmit: async (values, helpers) => {
-      const success = await handleSubmit(values);
-      if (success) {
-        helpers.setStatus({success: true});
-      } else {
+      setIsSubmitting(true);
+
+      try {
+        // Submit the form
+        const success = await handleSubmit(values);
+        if (success) {
+          helpers.setStatus({success: true});
+        } else {
+          helpers.setStatus({success: false});
+          helpers.setErrors({submit: 'Failed to update profile'});
+        }
+      } catch (error) {
+        console.error('Error in form submission:', error);
         helpers.setStatus({success: false});
-        helpers.setErrors({submit: 'Failed to update profile'});
+        helpers.setErrors({submit: 'An unexpected error occurred'});
+      } finally {
+        helpers.setSubmitting(false);
+        setIsSubmitting(false);
       }
-      helpers.setSubmitting(false);
     },
   });
 
@@ -197,18 +210,26 @@ const PersonalInformation = ({
                 type='button'
                 variant='outline'
                 onClick={handleBack}
-                disabled={activeStep === 1}>
+                disabled={activeStep === 1 || isSubmitting}>
                 Back
               </Button>
 
               <div className='flex space-x-2'>
                 {isStepOptional(activeStep) && (
-                  <Button type='button' variant='ghost' onClick={handleSkip}>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    onClick={handleSkip}
+                    disabled={isSubmitting}>
                     Skip
                   </Button>
                 )}
-                <Button type='submit' disabled={formik.isSubmitting}>
-                  {formik.isSubmitting ? 'Saving...' : 'Continue'}
+                <Button
+                  type='submit'
+                  disabled={formik.isSubmitting || isSubmitting}>
+                  {formik.isSubmitting || isSubmitting
+                    ? 'Saving...'
+                    : 'Continue'}
                 </Button>
               </div>
             </div>

@@ -56,6 +56,7 @@ model User {
   userCohort        UserCohort[]
   sentNotifications     Notification[]    @relation("SentNotifications")
   receivedNotifications Notification[]    @relation("ReceivedNotifications")
+  assessment       Assessment?
 }
 
 model Profile {
@@ -79,6 +80,7 @@ model Profile {
   stateOfOrigin        String?
   lGADetails           String?
   LGADetails           String?
+  employmentSector     String?
   businessName         String?
   businessSupportNeeds String[]
   businessType         BusinessType?
@@ -415,4 +417,44 @@ enum NotificationType {
   ANNOUNCEMENT
   REMINDER
   APPROVAL
+}
+
+model Assessment {
+  id                          String    @id @default(cuid())
+  userId                      String    @unique
+  courseOfStudy               String?
+  enrollmentStatus            String?
+  hadJobBeforeAdmission       Boolean?
+  employmentStatus            String?
+  employmentType              String?
+  workTimeType                String?  // Full-Time, Part-Time, etc.
+  employedInCreativeSector    Boolean?
+  creativeJobNature           String?
+  nonCreativeJobInfo          String?
+  yearsOfExperienceCreative   String?
+  satisfactionLevel           String?
+  skillRating                 String?
+  monthlyIncome               String?
+  hasReliableIncome           Boolean?
+  earningMeetsNeeds           Boolean?
+  workIsDecentAndGood         Boolean?
+  jobGivesPurpose             Boolean?
+  feelRespectedAtWork         Boolean?
+  lmsPlatformRating           String?
+  taftaPreparationRating      String?
+  preparationFeedback         String?  // Open-ended
+  qualityOfInteractionRating  String?
+  trainingMaterialsRating     String?
+  topicSequencingRating       String?
+  facilitatorsResponseRating  String?
+  wouldRecommendTafta         Boolean?
+  improvementSuggestions      String?  // Open-ended
+  mostStrikingFeature         String?  // Open-ended
+  turnOffs                    String?  // Open-ended
+  practicalClassChallenges    String?  // Open-ended
+  onlineClassChallenges       String?  // Open-ended
+  completionMotivation        String?  // Open-ended
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+  user                        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

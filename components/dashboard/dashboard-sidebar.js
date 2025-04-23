@@ -181,6 +181,17 @@ const getAdminSelection = userId => [
         ],
       },
       {
+        title: 'Assessment',
+        path: '/admin-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Assessment Overview',
+            path: '/admin-dashboard/assessment/overview',
+          },
+        ],
+      },
+      {
         title: 'Cohorts',
         path: '/admin-dashboard/cohorts',
         icon: <LanIcon fontSize='small' />,
@@ -295,6 +306,17 @@ const getSuperAdminSections = userId => [
           {
             title: 'Applicants Overview',
             path: '/admin-dashboard/applicants/overview',
+          },
+        ],
+      },
+      {
+        title: 'Assessment',
+        path: '/admin-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Assessment Overview',
+            path: '/admin-dashboard/assessment/overview',
           },
         ],
       },
