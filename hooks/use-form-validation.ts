@@ -35,6 +35,7 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
 
     // Required fields
     employmentStatus: Yup.string().required('Employment Status is required'),
+    employmentSector: Yup.string().required('Employment Sector is required'),
     residencyStatus: Yup.string().required('Residency Status is required'),
 
     // Simple conditional validation
@@ -61,6 +62,10 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
       !values.selfEmployedType
     ) {
       errors.selfEmployedType = 'Self-Employed Type is required';
+    }
+
+    if (values.employmentStatus === 'employed' && !values.employmentSector) {
+      errors.employmentSector = 'Employment Sector is required';
     }
 
     // Validate referrer if source is by_referral

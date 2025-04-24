@@ -57,6 +57,7 @@ export const useFormSubmission = ({
         companyPhoneNumber,
         additionalPhoneNumber,
         companyEmail,
+        employmentSector,
       } = values;
 
       // Check if this is an individual or enterprise applicant
@@ -102,6 +103,7 @@ export const useFormSubmission = ({
         disability,
         educationLevel,
         employmentStatus,
+        employmentSector,
         residencyStatus,
         selfEmployedType,
         ageRange,

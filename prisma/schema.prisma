@@ -36,84 +36,84 @@ model Session {
 }
 
 model User {
-  id                String            @id @default(cuid())
-  email             String            @unique
-  emailVerified     DateTime?
-  image             String?
-  firstName         String?
-  lastName          String?
-  createdAt         DateTime          @default(now())
-  role              Role              @default(APPLICANT)
-  password          String
-  thinkific_user_id String?
-  middleName        String?
-  type              RegistrationType?
-  accounts          Account[]
-  profile           Profile?
-  reports           Report[]
-  seatBooking       SeatBooking[]
-  sessions          Session[]
-  userCohort        UserCohort[]
-  sentNotifications     Notification[]    @relation("SentNotifications")
+  id                    String            @id @default(cuid())
+  email                 String            @unique
+  emailVerified         DateTime?
+  image                 String?
+  firstName             String?
+  lastName              String?
+  createdAt             DateTime          @default(now())
+  role                  Role              @default(APPLICANT)
+  password              String
+  thinkific_user_id     String?
+  middleName            String?
+  type                  RegistrationType?
+  accounts              Account[]
+  assessment            Assessment?
   receivedNotifications Notification[]    @relation("ReceivedNotifications")
-  assessment       Assessment?
+  sentNotifications     Notification[]    @relation("SentNotifications")
+  profile               Profile?
+  reports               Report[]
+  seatBooking           SeatBooking[]
+  sessions              Session[]
+  userCohort            UserCohort[]
 }
 
 model Profile {
-  id                   String                    @id @default(cuid())
-  userId               String                    @unique
-  taftaCenter          String?
-  homeAddress          String?
-  zipCode              String?
-  phoneNumber          String?
-  gender               Gender?
-  ageRange             String?
-  stateOfResidence     String?
-  dob                  DateTime?
-  communityArea        CommunityArea?
-  disability           String?
-  educationLevel       EducationLevel?
-  source               String?
-  employmentStatus     String?
-  residencyStatus      String?
-  selfEmployedType     String?
-  stateOfOrigin        String?
-  lGADetails           String?
-  LGADetails           String?
-  employmentSector     String?
-  businessName         String?
-  businessSupportNeeds String[]
-  businessType         BusinessType?
-  businessSize         BusinessSize?
-  businessSector       String?
-  businessPartners     String?
-  companyPhoneNumber   String?  
+  id                    String                    @id @default(cuid())
+  userId                String                    @unique
+  taftaCenter           String?
+  homeAddress           String?
+  zipCode               String?
+  phoneNumber           String?
+  gender                Gender?
+  ageRange              String?
+  stateOfResidence      String?
+  dob                   DateTime?
+  communityArea         CommunityArea?
+  disability            String?
+  educationLevel        EducationLevel?
+  source                String?
+  employmentStatus      String?
+  residencyStatus       String?
+  selfEmployedType      String?
+  stateOfOrigin         String?
+  lGADetails            String?
+  LGADetails            String?
+  businessName          String?
+  businessSupport       String[]
+  businessSupportNeeds  String[]
+  businessType          BusinessType?
+  currentSalary         Float?
+  jobReadiness          String[]
+  registrationMode      String?
+  registrationPath      RegistrationType          @default(INDIVIDUAL)
+  registrationType      BusinessRegistrationType?
+  revenueRange          String?
+  salaryExpectation     Float?
+  talpOther             String?
+  talpParticipation     Boolean?
+  talpType              String?
+  type                  RegistrationType          @default(INDIVIDUAL)
+  internshipProgram     InternshipProgramOption?
+  projectType           ProjectTypeOption?
+  cohortId              String?
+  selectedCourse        String?
+  selectedCourseId      String?
+  selectedCourseName    String?
   additionalPhoneNumber String?
-  companyEmail         String?
-  countryOfBusiness    String?
-  businessState        String?
-  businessLGA          String?
-  currentSalary        Float?
-  registrationPath     RegistrationType          @default(INDIVIDUAL)
-  registrationType     BusinessRegistrationType?
-  revenueRange         String?
-  salaryExpectation    Float?
-  salaryRange          String?
-  type                 RegistrationType          @default(INDIVIDUAL)
-  internshipProgram    InternshipProgramOption?
-  projectType          ProjectTypeOption?
-  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  referrer             Referrer?
-  talpParticipation    Boolean?
-  talpType             String?
-  talpOther            String?
-  jobReadiness         String[]
-  businessSupport      String[]
-  registrationMode     String?
-  selectedCourse       String?
-  cohortId             String?
-  selectedCourseName   String?
-  selectedCourseId     String?
+  businessLGA           String?
+  businessPartners      String?
+  businessSector        String?
+  businessSize          BusinessSize?
+  businessState         String?
+  companyEmail          String?
+  companyPhoneNumber    String?
+  countryOfBusiness     String?
+  salaryRange           String?
+  employmentSector      String?
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrer              Referrer?
 }
 
 model Enrollment {
@@ -147,10 +147,10 @@ model Cohort {
   color         String
   name          String
   cohortCourses CohortCourse[]
+  notifications Notification[]
   reports       Report[]
   userCohort    UserCohort[]
   centers       Location[]     @relation("CohortToLocation")
-  notifications Notification[]
 }
 
 model UserCohort {
@@ -253,6 +253,63 @@ model spatial_ref_sys {
   auth_srid Int?
   srtext    String? @db.VarChar(2048)
   proj4text String? @db.VarChar(2048)
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+  title           String
+  message         String
+  createdAt       DateTime         @default(now())
+  isRead          Boolean          @default(false)
+  readAt          DateTime?
+  senderId        String
+  recipientId     String
+  type            NotificationType @default(GENERAL)
+  cohortId        String?
+  relatedEntityId String?
+  cohort          Cohort?          @relation(fields: [cohortId], references: [id])
+  recipient       User             @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender          User             @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Assessment {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  courseOfStudy              String?
+  enrollmentStatus           String?
+  hadJobBeforeAdmission      Boolean?
+  employmentStatus           String?
+  employmentType             String?
+  workTimeType               String?
+  employedInCreativeSector   Boolean?
+  creativeJobNature          String?
+  nonCreativeJobInfo         String?
+  yearsOfExperienceCreative  String?
+  satisfactionLevel          String?
+  skillRating                String?
+  monthlyIncome              String?
+  hasReliableIncome          Boolean?
+  earningMeetsNeeds          Boolean?
+  workIsDecentAndGood        Boolean?
+  jobGivesPurpose            Boolean?
+  feelRespectedAtWork        Boolean?
+  lmsPlatformRating          String?
+  taftaPreparationRating     String?
+  preparationFeedback        String?
+  qualityOfInteractionRating String?
+  trainingMaterialsRating    String?
+  topicSequencingRating      String?
+  facilitatorsResponseRating String?
+  wouldRecommendTafta        Boolean?
+  improvementSuggestions     String?
+  mostStrikingFeature        String?
+  turnOffs                   String?
+  practicalClassChallenges   String?
+  onlineClassChallenges      String?
+  completionMotivation       String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 view EnrollmentCompletionGraph {
@@ -393,23 +450,6 @@ enum BusinessSize {
   LARGE
 }
 
-model Notification {
-  id              String     @id @default(cuid())
-  title           String
-  message         String
-  createdAt       DateTime   @default(now())
-  isRead          Boolean    @default(false)
-  readAt          DateTime?
-  senderId        String
-  recipientId     String
-  type            NotificationType @default(GENERAL)
-  cohortId        String?
-  relatedEntityId String?
-  sender          User       @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient       User       @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
-  cohort          Cohort?    @relation(fields: [cohortId], references: [id])
-}
-
 enum NotificationType {
   GENERAL
   ENROLLMENT
@@ -417,44 +457,4 @@ enum NotificationType {
   ANNOUNCEMENT
   REMINDER
   APPROVAL
-}
-
-model Assessment {
-  id                          String    @id @default(cuid())
-  userId                      String    @unique
-  courseOfStudy               String?
-  enrollmentStatus            String?
-  hadJobBeforeAdmission       Boolean?
-  employmentStatus            String?
-  employmentType              String?
-  workTimeType                String?  // Full-Time, Part-Time, etc.
-  employedInCreativeSector    Boolean?
-  creativeJobNature           String?
-  nonCreativeJobInfo          String?
-  yearsOfExperienceCreative   String?
-  satisfactionLevel           String?
-  skillRating                 String?
-  monthlyIncome               String?
-  hasReliableIncome           Boolean?
-  earningMeetsNeeds           Boolean?
-  workIsDecentAndGood         Boolean?
-  jobGivesPurpose             Boolean?
-  feelRespectedAtWork         Boolean?
-  lmsPlatformRating           String?
-  taftaPreparationRating      String?
-  preparationFeedback         String?  // Open-ended
-  qualityOfInteractionRating  String?
-  trainingMaterialsRating     String?
-  topicSequencingRating       String?
-  facilitatorsResponseRating  String?
-  wouldRecommendTafta         Boolean?
-  improvementSuggestions      String?  // Open-ended
-  mostStrikingFeature         String?  // Open-ended
-  turnOffs                    String?  // Open-ended
-  practicalClassChallenges    String?  // Open-ended
-  onlineClassChallenges       String?  // Open-ended
-  completionMotivation        String?  // Open-ended
-  createdAt                   DateTime  @default(now())
-  updatedAt                   DateTime  @updatedAt
-  user                        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
