@@ -538,6 +538,7 @@ export const PersonalInformation = ({
           referrer_fullName: '',
           referrer_phoneNumber: '',
           employmentStatus: '',
+          employmentSector: '',
           residencyStatus: '',
           selfEmployedType: '',
           projectType: '',
@@ -561,6 +562,7 @@ export const PersonalInformation = ({
       referrer_fullName: Yup.string().max(64).required('Mobilizer is required'),
       referrer_phoneNumber: Yup.string().max(16),
       employmentStatus: Yup.string().required('Employment Status is required'),
+      employmentSector: Yup.string().required('Employment Sector is required'),
       residencyStatus: Yup.string().required('Residency Status is required'),
       selfEmployedType: Yup.string().when('employmentStatus', {
         is: 'self-employed',
