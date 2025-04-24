@@ -227,11 +227,7 @@ export default async function handler(
       })
       .reverse();
 
-    const locations = [
-      'Kaduna',
-      'Lagos',
-      'Ogun',
-    ];
+    const locations = ['Kaduna', 'Lagos', 'Ogun'];
 
     const locationCounts = await Promise.all(
       locations.map(async location => {
@@ -618,6 +614,70 @@ export default async function handler(
       };
     });
 
+    // Generate location trends data
+    const generateLocationTrends = async () => {
+      // Get the top locations with enrollments (based on the filtered location data)
+      const topLocations = location.slice(0, 4).map(loc => loc.location);
+
+      // Define the months we want to include (last 6 months)
+      const months = [];
+      const now = new Date();
+
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+          name: monthDate.toLocaleString('default', {month: 'short'}),
+          startDate: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1),
+          endDate: new Date(
+            monthDate.getFullYear(),
+            monthDate.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999,
+          ),
+        });
+      }
+
+      // For each month, get the enrollment count for each location
+      const locationTrendsData = [];
+
+      for (const month of months) {
+        const monthData = {month: month.name};
+
+        for (const locationName of topLocations) {
+          // Count enrollments for this location in this month
+          const enrollmentCount = await prisma.enrollment.count({
+            where: {
+              created_at: {
+                gte: month.startDate,
+                lte: month.endDate,
+              },
+              userCohort: {
+                cohortId: cohortId || undefined,
+                user: {
+                  profile: {
+                    stateOfResidence: locationName,
+                  },
+                },
+              },
+            },
+          });
+
+          // Add the count to the month data
+          monthData[locationName] = enrollmentCount;
+        }
+
+        locationTrendsData.push(monthData);
+      }
+
+      return locationTrendsData;
+    };
+
+    // Execute the function and get the location trends data
+    const location_trends = await generateLocationTrends();
+
     // END of your data fetching code
 
     // Return the data
@@ -699,6 +759,7 @@ export default async function handler(
           count: item.count.toString(),
         })),
       },
+      location_trends,
     });
   } catch (err: any) {
     console.error(err);

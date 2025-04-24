@@ -32,6 +32,7 @@ import {
 import {Skeleton} from '@/components/ui/skeleton';
 import {Button} from '@/components/ui/button';
 import {Progress} from '@/components/ui/progress';
+import LocationTrendsChart from '../../../components/dashboard/LocationTrendsChart';
 
 const OverviewPage = () => {
   const [skip, setSkip] = useState(false);
@@ -40,6 +41,8 @@ const OverviewPage = () => {
     {cohortId: cohort?.id},
     {skip},
   );
+
+  console.log(data);
 
   useEffect(() => {
     setSkip(false);
@@ -202,13 +205,15 @@ const OverviewPage = () => {
     value: Number.parseInt(item.count),
   }));
 
-  const locationData = data.location
-    .sort((a, b) => Number.parseInt(b.count) - Number.parseInt(a.count))
-    .slice(0, 10)
-    .map(item => ({
-      name: item.location,
-      value: Number.parseInt(item.count),
-    }));
+const locationData = data?.location
+  ? [...data.location]
+      .sort((a, b) => Number.parseInt(b.count) - Number.parseInt(a.count))
+      .slice(0, 10)
+      .map(item => ({
+        name: item.location,
+        value: Number.parseInt(item.count),
+      }))
+  : [];
 
   // Prepare enrollment completion graph data if available
   const enrollmentCompletionData = data.enrollment_completion_graph
@@ -1075,7 +1080,7 @@ const OverviewPage = () => {
               </Card>
             </div>
 
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Enrollment Trends by Location</CardTitle>
                 <CardDescription>
@@ -1165,7 +1170,8 @@ const OverviewPage = () => {
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
-            </Card>
+            </Card> */}
+            <LocationTrendsChart data={data} colors={colors} />
           </TabsContent>
 
           <TabsContent value='courses' className='space-y-4'>
