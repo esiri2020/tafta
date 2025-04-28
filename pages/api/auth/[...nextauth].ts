@@ -1,35 +1,35 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import CredentialsProvider from "next-auth/providers/credentials";
+import NextAuth from 'next-auth';
+import {PrismaAdapter} from '@next-auth/prisma-adapter';
+import CredentialsProvider from 'next-auth/providers/credentials';
 // import GoogleProvider from "next-auth/providers/google"
 // import FacebookProvider from "next-auth/providers/facebook"
 // import GithubProvider from "next-auth/providers/github"
 // import TwitterProvider from "next-auth/providers/twitter"
 // import Auth0Provider from "next-auth/providers/auth0"
 // import AppleProvider from "next-auth/providers/apple"
-import EmailProvider from "next-auth/providers/email";
+import EmailProvider from 'next-auth/providers/email';
 // import prisma from "../../../lib/prismadb"
-import { compare } from "bcryptjs";
-import { createTransport } from "nodemailer";
-import prisma from "../../../lib/prismadb";
-import { html, text } from "../../../utils";
-import { Theme } from "next-auth";
+import {compare} from 'bcryptjs';
+import {createTransport} from 'nodemailer';
+import prisma from '../../../lib/prismadb';
+import {html, text} from '../../../utils';
+// import {Theme} from 'next-auth';
 // import sendVerificationRequest from '../../../lib/sendVerificationRequest';
 
 // For more information on each option (and a full list of options) go to
 // https://next-auth.js.org/configuration/options
-const theme: Theme = {
-  colorScheme: "light",
-  logo: "",
-  brandColor: "#FF7A00",
-  buttonText: "#FFF",
+const theme = {
+  colorScheme: 'light',
+  logo: '',
+  brandColor: '#FF7A00',
+  buttonText: '#FFF',
 };
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   // https://next-auth.js.org/configuration/providers/oauth
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
     maxAge: 12 * 60 * 60,
   },
   jwt: {
@@ -37,10 +37,10 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text", placeholder: "user@email.com" },
-        password: { label: "Password", type: "password" },
+        email: {label: 'Email', type: 'text', placeholder: 'user@email.com'},
+        password: {label: 'Password', type: 'password'},
       },
       // @ts-ignore
       async authorize(credentials) {
@@ -50,8 +50,8 @@ export const authOptions: NextAuthOptions = {
             // throw new Error('No email address or password');
           }
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() },
-            include: { profile: true },
+            where: {email: credentials.email.toLowerCase()},
+            include: {profile: true},
           });
           if (!user) {
             return null;
@@ -59,7 +59,7 @@ export const authOptions: NextAuthOptions = {
           }
           const checkPassword = await compare(
             credentials.password,
-            user.password
+            user.password,
           );
           //Correct password - send response
           if (checkPassword) {
@@ -75,30 +75,30 @@ export const authOptions: NextAuthOptions = {
     EmailProvider({
       server: {
         host: process.env.HOST,
-        port: parseInt(process.env.PORT ? process.env.PORT : "2525"),
+        port: parseInt(process.env.PORT ? process.env.PORT : '2525'),
         auth: {
-          user: process.env.USER,
-          pass: process.env.PASS,
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
         },
-        tls: { rejectUnauthorized: false },
+        tls: {rejectUnauthorized: false},
       },
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({
         identifier: email,
         url,
-        provider: { server, from },
+        provider: {server, from},
       }) {
         const _url = new URL(url);
-        const { host } = _url;
+        const {host} = _url;
         const type =
-          _url.searchParams.get("callbackUrl")?.split("/").pop() || "";
+          _url.searchParams.get('callbackUrl')?.split('/').pop() || '';
         const transport = createTransport(server);
         await transport.sendMail({
           to: email,
           from,
           subject: `Sign in to ${host}`,
-          text: text({ url, host }),
-          html: html({ url, host, theme, type }),
+          text: text({url, host}),
+          html: html({url, host, type}),
         });
       },
     }),
@@ -138,16 +138,19 @@ export const authOptions: NextAuthOptions = {
     */
   ],
   theme: {
-    colorScheme: "light",
+    colorScheme: 'light',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({token, user}: {token: any; user: any}) {
       if (user) {
+        console.log(user);
         if (user.email !== null) {
           token.userData = {
             userId: user.id,
             firstName: user.firstName,
             lastName: user.lastName,
+            middleName: user.middleName,
+            type: user.type,
             email: user.email,
             role: user.role,
             profile: user.profile ? true : false,
@@ -156,17 +159,25 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token, user }) {
-      // Send properties to the client, like an access_token and user id from a provider.
+    async session({
+      session,
+      token,
+      user,
+    }: {
+      session: any;
+      token: any;
+      user: any;
+    }) {
       if (token) {
-        return { userData: token.userData, ...session };
+        session.userData = token.userData;
+        return session;
       }
       return session;
     },
   },
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
 };
 
-export default NextAuth(authOptions);
+export default (NextAuth as any)(authOptions);

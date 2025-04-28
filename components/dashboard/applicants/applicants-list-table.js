@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import NextLink from "next/link";
-import PropTypes from "prop-types";
+import {useEffect, useState} from 'react';
+import NextLink from 'next/link';
+import PropTypes from 'prop-types';
 import {
   Avatar,
   Box,
@@ -15,19 +15,21 @@ import {
   TablePagination,
   TableRow,
   Typography,
-} from "@mui/material";
-import { ArrowRight as ArrowRightIcon } from "../../../icons/arrow-right";
-import { PencilAlt as PencilAltIcon } from "../../../icons/pencil-alt";
-import { getInitials } from "../../../utils/get-initials";
-import { Scrollbar } from "../../scrollbar";
+} from '@mui/material';
+import {ArrowRight as ArrowRightIcon} from '../../../icons/arrow-right';
+import {PencilAlt as PencilAltIcon} from '../../../icons/pencil-alt';
+import {getInitials} from '../../../utils/get-initials';
+import {Scrollbar} from '../../scrollbar';
 import {
   useDeleteApplicantsMutation,
   useApproveApplicantsMutation,
   useAutoEnrollmentMutation,
-} from "../../../services/api";
-import toast from "react-hot-toast";
+} from '../../../services/api';
+import toast from 'react-hot-toast';
+import {NotificationDialog} from '../notifications/notification-dialog';
+import {Notifications as NotificationsIcon} from '@mui/icons-material';
 
-export const ApplicantsListTable = (props) => {
+export const ApplicantsListTable = props => {
   const {
     applicants,
     applicantsCount,
@@ -41,8 +43,11 @@ export const ApplicantsListTable = (props) => {
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [deleteApplicants, result] = useDeleteApplicantsMutation();
   const [approveApplicants, approve_result] = useApproveApplicantsMutation();
-  const [autoEnrollment, { isLoading, isError, error }] =
+  const [autoEnrollment, {isLoading, isError, error}] =
     useAutoEnrollmentMutation();
+
+  // New state for notification dialog
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
 
   // Reset selected applicants when applicants change
   useEffect(
@@ -52,29 +57,29 @@ export const ApplicantsListTable = (props) => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [applicants]
+    [applicants],
   );
 
-  const handleSelectAllApplicants = (event) => {
+  const handleSelectAllApplicants = event => {
     setSelectedApplicants(
-      event.target.checked ? applicants.map((applicant) => applicant.id) : []
+      event.target.checked ? applicants.map(applicant => applicant.id) : [],
     );
   };
 
   const handleSelectOneApplicant = (event, applicantId) => {
     if (!selectedApplicants.includes(applicantId)) {
-      setSelectedApplicants((prevSelected) => [...prevSelected, applicantId]);
+      setSelectedApplicants(prevSelected => [...prevSelected, applicantId]);
     } else {
-      setSelectedApplicants((prevSelected) =>
-        prevSelected.filter((id) => id !== applicantId)
+      setSelectedApplicants(prevSelected =>
+        prevSelected.filter(id => id !== applicantId),
       );
     }
   };
 
-  const applicantIds = applicants?.map((item) => item.id);
+  const applicantIds = applicants?.map(item => item.id);
 
   const handleAutoEnrollment = async () => {
-    if (window.confirm("Enroll the selected applicants?")) {
+    if (window.confirm('Enroll the selected applicants?')) {
       toast
         .promise(
           autoEnrollment({
@@ -83,17 +88,17 @@ export const ApplicantsListTable = (props) => {
           {
             loading: <b>Enrolling...</b>,
             success: <b>Enrolled!</b>,
-            error: (err) => {
+            error: err => {
               console.error(err);
               if (err.status === 401) return <b>Invalid Credentials.</b>;
               return <b>An error occurred.</b>;
             },
-          }
+          },
         )
-        .then((response) => {
-          console.log("Success");
+        .then(response => {
+          console.log('Success');
         })
-        .catch((err) => console.error(err));
+        .catch(err => console.error(err));
     }
   };
 
@@ -103,93 +108,107 @@ export const ApplicantsListTable = (props) => {
     selectedApplicants.length < applicants.length;
   const selectedAllApplicants = selectedApplicants.length === applicants.length;
 
+  // Handle opening notification dialog
+  const handleOpenNotificationDialog = () => {
+    setNotificationDialogOpen(true);
+  };
+
+  // Handle closing notification dialog
+  const handleCloseNotificationDialog = () => {
+    setNotificationDialogOpen(false);
+  };
+
   return (
     <div {...other}>
+      {/* Notification Dialog */}
+      <NotificationDialog
+        open={notificationDialogOpen}
+        onClose={handleCloseNotificationDialog}
+        selectedApplicantIds={selectedApplicants}
+        title='Send Notification to Applicants'
+      />
+
       <Box
         sx={{
-          backgroundColor: (theme) =>
-            theme.palette.mode === "dark" ? "neutral.800" : "neutral.100",
-          display: enableBulkActions ? "block" : "none",
+          backgroundColor: theme =>
+            theme.palette.mode === 'dark' ? 'neutral.800' : 'neutral.100',
+          display: enableBulkActions ? 'block' : 'none',
           px: 2,
           py: 0.5,
-        }}
-      >
+        }}>
         <Checkbox
           checked={selectedAllApplicants}
           indeterminate={selectedSomeApplicants}
           onChange={handleSelectAllApplicants}
         />
         <Button
-          size="small"
-          sx={{ ml: 2 }}
+          size='small'
+          sx={{ml: 2}}
           onClick={() => {
-            if (window.confirm("Delete these applicants?")) {
+            if (window.confirm('Delete these applicants?')) {
               toast
-                .promise(
-                  deleteApplicants({ ids: selectedApplicants }).unwrap(),
-                  {
-                    loading: <b>Deleting...</b>,
-                    success: <b>Deleted!</b>,
-                    error: (err) => {
-                      console.error(err);
-                      if (err.status === 401)
-                        return <b>Invalid Credentials.</b>;
-                      return <b>An error occurred.</b>;
-                    },
-                  }
-                )
-                .then((response) => {
-                  console.log("Success");
+                .promise(deleteApplicants({ids: selectedApplicants}).unwrap(), {
+                  loading: <b>Deleting...</b>,
+                  success: <b>Deleted!</b>,
+                  error: err => {
+                    console.error(err);
+                    if (err.status === 401) return <b>Invalid Credentials.</b>;
+                    return <b>An error occurred.</b>;
+                  },
                 })
-                .catch((err) => console.error(err));
+                .then(response => {
+                  console.log('Success');
+                })
+                .catch(err => console.error(err));
             }
-          }}
-        >
+          }}>
           Delete
         </Button>
 
         <Button
-          sx={{ m: 1 }}
-          variant="contained"
+          sx={{m: 1}}
+          variant='contained'
           onClick={() => {
-            if (window.confirm("Approve these applicants?")) {
+            if (window.confirm('Approve these applicants?')) {
               toast
                 .promise(
-                  approveApplicants({ ids: selectedApplicants }).unwrap(),
+                  approveApplicants({ids: selectedApplicants}).unwrap(),
                   {
                     loading: <b>Approving...</b>,
                     success: <b>Approved!</b>,
-                    error: (err) => {
+                    error: err => {
                       console.error(err);
                       if (err.status === 401)
                         return <b>Invalid Credentials.</b>;
                       return <b>An error occurred.</b>;
                     },
-                  }
+                  },
                 )
-                .then((response) => {
-                  console.log("Success");
+                .then(response => {
+                  console.log('Success');
                 })
-                .catch((err) => console.error(err));
+                .catch(err => console.error(err));
             }
-          }}
-        >
+          }}>
           Approve and Enroll
         </Button>
-        {/* <Button
-          size="small"
-          sx={{ ml: 2 }}
-        >
-          Edit
-        </Button> */}
+
+        {/* Add Notification Button */}
+        <Button
+          sx={{m: 1}}
+          variant='outlined'
+          color='primary'
+          startIcon={<NotificationsIcon />}
+          onClick={handleOpenNotificationDialog}>
+          Send Notification
+        </Button>
       </Box>
       <Scrollbar>
-        <Table sx={{ minWidth: 700 }}>
+        <Table sx={{minWidth: 700}}>
           <TableHead
-            sx={{ visibility: enableBulkActions ? "collapse" : "visible" }}
-          >
+            sx={{visibility: enableBulkActions ? 'collapse' : 'visible'}}>
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell padding='checkbox'>
                 <Checkbox
                   checked={selectedAllApplicants}
                   indeterminate={selectedSomeApplicants}
@@ -200,25 +219,24 @@ export const ApplicantsListTable = (props) => {
               <TableCell>Course</TableCell>
               <TableCell>Application Status</TableCell>
               <TableCell>Enrollment Status</TableCell>
-              <TableCell align="right">Options</TableCell>
+              <TableCell align='right'>Options</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {applicants.map((applicant) => {
+            {applicants.map(applicant => {
               const isApplicantSelected = selectedApplicants.includes(
-                applicant.id
+                applicant.id,
               );
 
               return (
                 <TableRow
                   hover
                   key={applicant.id}
-                  selected={isApplicantSelected}
-                >
-                  <TableCell padding="checkbox">
+                  selected={isApplicantSelected}>
+                  <TableCell padding='checkbox'>
                     <Checkbox
                       checked={isApplicantSelected}
-                      onChange={(event) =>
+                      onChange={event =>
                         handleSelectOneApplicant(event, applicant.id)
                       }
                       value={isApplicantSelected}
@@ -227,31 +245,28 @@ export const ApplicantsListTable = (props) => {
                   <TableCell>
                     <Box
                       sx={{
-                        alignItems: "center",
-                        display: "flex",
-                      }}
-                    >
+                        alignItems: 'center',
+                        display: 'flex',
+                      }}>
                       <Avatar
                         src={applicant.avatar}
                         sx={{
                           height: 42,
                           width: 42,
-                        }}
-                      >
+                        }}>
                         {getInitials(
-                          `${applicant.firstName} ${applicant.lastName}`
+                          `${applicant.firstName} ${applicant.lastName}`,
                         )}
                       </Avatar>
-                      <Box sx={{ ml: 1 }}>
+                      <Box sx={{ml: 1}}>
                         <NextLink
                           href={`/admin-dashboard/applicants/${applicant.id}`}
-                          passHref
-                        >
-                          <Link color="inherit" variant="subtitle2">
+                          passHref>
+                          <Link color='inherit' variant='subtitle2'>
                             {`${applicant.firstName} ${applicant.lastName}`}
                           </Link>
                         </NextLink>
-                        <Typography color="textSecondary" variant="body2">
+                        <Typography color='textSecondary' variant='body2'>
                           {applicant.email}
                         </Typography>
                       </Box>
@@ -260,44 +275,41 @@ export const ApplicantsListTable = (props) => {
                   <TableCell>
                     {applicant.userCohort[0]?.enrollments?.length > 0
                       ? applicant.userCohort[0]?.enrollments
-                          ?.map((e) => e.course_name)
-                          .join(", ")
-                      : "No Enrollments"}
+                          ?.map(e => e.course_name)
+                          .join(', ')
+                      : 'No Enrollments'}
                   </TableCell>
                   <TableCell>
                     {applicant.profile ? (
                       applicant.userCohort[0]?.enrollments[0]?.enrolled ? (
                         <Box
-                          as="span"
-                          bgcolor={"secondary.main"}
+                          as='span'
+                          bgcolor={'secondary.main'}
                           sx={{
                             borderRadius: 1,
                             padding: 1,
-                          }}
-                        >
+                          }}>
                           Approved
                         </Box>
                       ) : (
                         <Box
-                          as="span"
-                          bgcolor={"warning.main"}
+                          as='span'
+                          bgcolor={'warning.main'}
                           sx={{
                             borderRadius: 1,
                             padding: 1,
-                          }}
-                        >
+                          }}>
                           Completed
                         </Box>
                       )
                     ) : (
                       <Box
-                        as="span"
-                        bgcolor={"action.disabled"}
+                        as='span'
+                        bgcolor={'action.disabled'}
                         sx={{
                           borderRadius: 1,
                           padding: 1,
-                        }}
-                      >
+                        }}>
                         Pending
                       </Box>
                     )}
@@ -306,55 +318,50 @@ export const ApplicantsListTable = (props) => {
                     {applicant.userCohort[0]?.enrollments.length > 0 ? (
                       applicant.userCohort[0]?.enrollments[0].enrolled ? (
                         <Box
-                          as="span"
-                          bgcolor={"secondary.main"}
+                          as='span'
+                          bgcolor={'secondary.main'}
                           sx={{
                             borderRadius: 1,
                             padding: 1,
-                          }}
-                        >
+                          }}>
                           Enrolled
                         </Box>
                       ) : (
                         <Box
-                          as="span"
-                          bgcolor={"warning.main"}
+                          as='span'
+                          bgcolor={'warning.main'}
                           sx={{
                             borderRadius: 1,
                             padding: 1,
-                          }}
-                        >
+                          }}>
                           Pending
                         </Box>
                       )
                     ) : (
                       <Box
-                        as="span"
-                        bgcolor={"action.disabled"}
+                        as='span'
+                        bgcolor={'action.disabled'}
                         sx={{
                           borderRadius: 1,
                           padding: 1,
-                        }}
-                      >
+                        }}>
                         None
                       </Box>
                     )}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align='right'>
                     <NextLink
                       href={`/admin-dashboard/applicants/${applicant.id}/edit`}
-                      passHref
-                    >
-                      <IconButton component="a">
-                        <PencilAltIcon fontSize="small" />
+                      passHref>
+                      <IconButton component='a'>
+                        <PencilAltIcon fontSize='small' />
                       </IconButton>
                     </NextLink>
                     <NextLink
                       href={`/admin-dashboard/applicants/${applicant.id}`}
-                      passHref
-                    >
-                      <IconButton component="a">
-                        <ArrowRightIcon fontSize="small" />
+                      passHref>
+                      <IconButton component='a'>
+                        <ArrowRightIcon fontSize='small' />
                       </IconButton>
                     </NextLink>
                   </TableCell>
@@ -365,7 +372,7 @@ export const ApplicantsListTable = (props) => {
         </Table>
       </Scrollbar>
       <TablePagination
-        component="div"
+        component='div'
         count={applicantsCount}
         onPageChange={onPageChange}
         onRowsPerPageChange={onLimitChange}
@@ -375,10 +382,9 @@ export const ApplicantsListTable = (props) => {
       />
       <div>
         <Button
-          sx={{ m: 1 }}
-          variant="contained"
-          onClick={(event) => handleAutoEnrollment(event, applicants)}
-        >
+          sx={{m: 1}}
+          variant='contained'
+          onClick={event => handleAutoEnrollment(event, applicants)}>
           Enroll Eligible Applicants
         </Button>
       </div>
