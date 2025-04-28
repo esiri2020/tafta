@@ -4,6 +4,8 @@ import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+type ChildrenType = React.ReactNode | string | number | boolean | null | undefined | Record<string, unknown>
+
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
@@ -49,6 +51,7 @@ function SheetContent({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
+  children: ChildrenType
 }) {
   return (
     <SheetPortal>
@@ -69,7 +72,7 @@ function SheetContent({
         )}
         {...props}
       >
-        {children}
+        {children as React.ReactNode}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
@@ -93,7 +96,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-4", className)}
       {...props}
     />
   )

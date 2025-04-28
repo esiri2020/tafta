@@ -3,6 +3,8 @@ import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
 
+type ChildrenType = React.ReactNode | string | number | boolean | null | undefined | Record<string, unknown>
+
 function Popover({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
@@ -19,8 +21,11 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  children,
   ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+}: React.ComponentProps<typeof PopoverPrimitive.Content> & {
+  children: ChildrenType
+}) {
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
@@ -32,7 +37,9 @@ function PopoverContent({
           className
         )}
         {...props}
-      />
+      >
+        {children as React.ReactNode}
+      </PopoverPrimitive.Content>
     </PopoverPrimitive.Portal>
   )
 }

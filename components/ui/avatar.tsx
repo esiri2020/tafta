@@ -3,6 +3,8 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar"
 
 import { cn } from "@/lib/utils"
 
+type ChildrenType = React.ReactNode | string | number | boolean | null | undefined | Record<string, unknown>
+
 function Avatar({
   className,
   ...props
@@ -34,8 +36,11 @@ function AvatarImage({
 
 function AvatarFallback({
   className,
+  children,
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Fallback> & {
+  children: ChildrenType
+}) {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
@@ -44,7 +49,9 @@ function AvatarFallback({
         className
       )}
       {...props}
-    />
+    >
+      {children as React.ReactNode}
+    </AvatarPrimitive.Fallback>
   )
 }
 

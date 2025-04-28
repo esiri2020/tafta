@@ -4,6 +4,8 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+type ChildrenType = React.ReactNode | string | number | boolean | null | undefined | Record<string, unknown>
+
 function DropdownMenu({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
@@ -61,10 +63,12 @@ function DropdownMenuItem({
   className,
   inset,
   variant = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   inset?: boolean
   variant?: "default" | "destructive"
+  children: ChildrenType
 }) {
   return (
     <DropdownMenuPrimitive.Item
@@ -76,7 +80,9 @@ function DropdownMenuItem({
         className
       )}
       {...props}
-    />
+    >
+      {children as React.ReactNode}
+    </DropdownMenuPrimitive.Item>
   )
 }
 
@@ -85,7 +91,9 @@ function DropdownMenuCheckboxItem({
   children,
   checked,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem> & {
+  children: ChildrenType
+}) {
   return (
     <DropdownMenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
@@ -101,7 +109,7 @@ function DropdownMenuCheckboxItem({
           <CheckIcon className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
-      {children}
+      {children as React.ReactNode}
     </DropdownMenuPrimitive.CheckboxItem>
   )
 }
@@ -121,7 +129,9 @@ function DropdownMenuRadioItem({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem> & {
+  children: ChildrenType
+}) {
   return (
     <DropdownMenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
@@ -136,7 +146,7 @@ function DropdownMenuRadioItem({
           <CircleIcon className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
-      {children}
+      {children as React.ReactNode}
     </DropdownMenuPrimitive.RadioItem>
   )
 }
@@ -203,6 +213,7 @@ function DropdownMenuSubTrigger({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
   inset?: boolean
+  children: ChildrenType
 }) {
   return (
     <DropdownMenuPrimitive.SubTrigger
@@ -214,7 +225,7 @@ function DropdownMenuSubTrigger({
       )}
       {...props}
     >
-      {children}
+      {children as React.ReactNode}
       <ChevronRightIcon className="ml-auto size-4" />
     </DropdownMenuPrimitive.SubTrigger>
   )
