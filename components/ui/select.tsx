@@ -4,6 +4,8 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+type ChildrenType = React.ReactNode | string | number | boolean | null | undefined | Record<string, unknown>
+
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
@@ -29,6 +31,7 @@ function SelectTrigger({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
+  children: ChildrenType
 }) {
   return (
     <SelectPrimitive.Trigger
@@ -40,7 +43,7 @@ function SelectTrigger({
       )}
       {...props}
     >
-      {children}
+      {children as React.ReactNode}
       <SelectPrimitive.Icon asChild>
         <ChevronDownIcon className="size-4 opacity-50" />
       </SelectPrimitive.Icon>
@@ -53,7 +56,9 @@ function SelectContent({
   children,
   position = "popper",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: React.ComponentProps<typeof SelectPrimitive.Content> & {
+  children: ChildrenType
+}) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -69,13 +74,14 @@ function SelectContent({
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
+          data-slot="select-viewport"
           className={cn(
             "p-1",
             position === "popper" &&
               "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
           )}
         >
-          {children}
+          {children as React.ReactNode}
         </SelectPrimitive.Viewport>
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
@@ -100,7 +106,9 @@ function SelectItem({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+}: React.ComponentProps<typeof SelectPrimitive.Item> & {
+  children: ChildrenType
+}) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -115,7 +123,7 @@ function SelectItem({
           <CheckIcon className="size-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText>{children as React.ReactNode}</SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   )
 }

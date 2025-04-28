@@ -2,6 +2,11 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {getToken} from 'next-auth/jwt';
 import prisma from '../../lib/prismadb';
 
+interface MonthData {
+  month: string;
+  [key: string]: string | number; // Allow string indexing with string or number values
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -644,7 +649,9 @@ export default async function handler(
       const locationTrendsData = [];
 
       for (const month of months) {
-        const monthData = {month: month.name};
+        const monthData: MonthData = {
+          month: month.name,
+        };
 
         for (const locationName of topLocations) {
           // Count enrollments for this location in this month
