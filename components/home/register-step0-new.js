@@ -179,20 +179,21 @@ export const RegisterStepNew = ({handlers, ...other}) => {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
-              p: 4,
+              p: { xs: 2, md: 4 },
             }}>
             <Typography
               variant='h5'
               align='center'
               sx={{
-                marginBottom: '30px',
+                marginBottom: { xs: '20px', md: '30px' },
+                fontSize: { xs: '1.5rem', md: '2rem' }
               }}>
               Register for TAFTA Cohort (
               {registrationType === 'ENTERPRISE' ? 'Enterprise' : 'Individual'})
             </Typography>
 
             <form noValidate onSubmit={formik.handleSubmit} {...other}>
-              <Grid container spacing={3}>
+              <Grid container spacing={{ xs: 2, md: 3 }}>
                 {registrationType === 'ENTERPRISE' && (
                   <Grid item xs={12}>
                     <TextField

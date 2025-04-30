@@ -880,17 +880,24 @@ export const PersonalInformation = ({
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
+            p: { xs: 2, md: 4 },
           }}>
           <Typography
             variant='h5'
             align='left'
             sx={{
-              marginBottom: '50px',
+              marginBottom: { xs: '20px', md: '50px' },
+              fontSize: { xs: '1.5rem', md: '2rem' }
             }}>
             Personal Information
           </Typography>
-          <form onSubmit={formik.handleSubmit} {...other}>
-            <Grid container spacing={3}>
+          <form onSubmit={formik.handleSubmit}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
+              <Grid item xs={12}>
+                <Typography variant='h6' sx={{ mb: { xs: 1, md: 2 }, mt: { xs: 1, md: 2 } }}>
+                  Basic Information
+                </Typography>
+              </Grid>
               <Grid item md={6} xs={12}>
                 <TextField
                   error={Boolean(
