@@ -287,8 +287,22 @@ function RegisterNew() {
         </Box>
 
         <Box sx={{display: 'flex', justifyContent: 'center'}}>
-          <Paper elevation={3} sx={{width: '1300px', m: '50px', p: '20px'}}>
-            <Stepper activeStep={activeStep}>
+          <Paper elevation={3} sx={{
+            width: { xs: '95%', md: '90%', lg: '1300px' },
+            m: { xs: '10px', md: '20px', lg: '50px' },
+            p: { xs: '10px', md: '20px' },
+            overflow: 'hidden'
+          }}>
+            <Stepper 
+              activeStep={activeStep}
+              sx={{
+                width: '100%',
+                overflowX: { xs: 'auto', md: 'visible' },
+                '& .MuiStepLabel-label': {
+                  fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }
+                }
+              }}
+            >
               {steps.map((label, index) => {
                 const stepProps: {completed?: boolean} = {};
                 const labelProps: {

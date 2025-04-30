@@ -228,7 +228,7 @@ function completeRegistration() {
             justifyContent: 'center',
             alignItems: 'center',
             backgroundImage: `url(${Image.src})`,
-            height: '292px',
+            height: { xs: '200px', md: '292px' },
             width: '100%',
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
@@ -239,14 +239,20 @@ function completeRegistration() {
             color='#fff'
             align='center'
             sx={{
-              marginBottom: '50px',
+              marginBottom: { xs: '20px', md: '50px' },
+              fontSize: { xs: '2rem', md: '3rem' },
+              px: 2
             }}>
             Registration Form
           </Typography>
         </Box>
 
         <Box sx={{display: 'flex', justifyContent: 'center'}}>
-          <Paper elevation={3} sx={{width: '1300px', m: '50px', p: '20px'}}>
+          <Paper elevation={3} sx={{
+            width: { xs: '95%', md: '1300px' },
+            m: { xs: '20px', md: '50px' },
+            p: { xs: '10px', md: '20px' }
+          }}>
             <Box>
               {activeStep >= steps.length - 1 ? (
                 <React.Fragment>
