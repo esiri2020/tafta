@@ -16,7 +16,7 @@ interface RegistrationTalpProps {
 export const RegistrationTalp = ({formik}: RegistrationTalpProps) => {
   return (
     <FormSection title='Registration & TALP'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6'>
         <div className='space-y-2'>
           <Label>Registration Mode</Label>
           <RadioGroup
@@ -24,7 +24,7 @@ export const RegistrationTalp = ({formik}: RegistrationTalpProps) => {
             onValueChange={value =>
               formik.setFieldValue('registrationMode', value)
             }
-            className='flex space-x-4'>
+            className='flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4'>
             <div className='flex items-center space-x-2'>
               <RadioGroupItem value='online' id='mode-online' />
               <Label htmlFor='mode-online'>Online</Label>
@@ -48,7 +48,7 @@ export const RegistrationTalp = ({formik}: RegistrationTalpProps) => {
               }
               formik.setFieldValue('talpParticipation', boolValue);
             }}
-            className='flex space-x-4'>
+            className='flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4'>
             <div className='flex items-center space-x-2'>
               <RadioGroupItem value='true' id='talp-yes' />
               <Label htmlFor='talp-yes'>Yes</Label>

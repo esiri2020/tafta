@@ -122,7 +122,10 @@ export const HomeHero = props => {
             ))}
           </Grid>
           <Box>
-            <Typography align='center' variant='h3'>
+            <Typography align='center' variant='h3' sx={{ 
+              fontSize: { xs: '1.75rem', md: '2.5rem' },
+              mb: { xs: 2, md: 4 }
+            }}>
               Registration Guide
             </Typography>
           </Box>
@@ -135,32 +138,26 @@ export const HomeHero = props => {
             sx={{
               justifyContent: 'center',
               display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: { xs: 2, md: 3 }
             }}>
             <Grid
               item
               xs={12}
               md={3}
               sx={{
-                px: 2,
+                px: { xs: 1, md: 2 },
               }}>
-              {/* <Typography
-              align="left"
-              variant="h5"
-              color="primary"
-              backgroundColor="#000"
-              padding="10px"
-            >
-              Welcome, Your Journey Starts Here!
-            </Typography> */}
               <Box
                 sx={{
                   backgroundColor: '#f4f4f4',
-                  p: 3,
+                  p: { xs: 2, md: 3 },
                   height: '100%',
+                  borderRadius: 1
                 }}>
-                <Typography variant='h6'>STEP 1</Typography>
-                <Typography variant='subtitle1'>Registration</Typography>
-                <Typography color='textSecondary'>
+                <Typography variant='h6' sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}>STEP 1</Typography>
+                <Typography variant='subtitle1' sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>Registration</Typography>
+                <Typography color='textSecondary' sx={{ fontSize: { xs: '0.9rem', md: '1rem' } }}>
                   Registration is super easy, kindly follow the following steps.
                   {'\n'}
                   Make sure you meet our eligibility requirements, else you will
@@ -170,7 +167,10 @@ export const HomeHero = props => {
                 <Typography
                   color='textSecondary'
                   variant='paragraph'
-                  sx={{py: 3}}>
+                  sx={{
+                    py: { xs: 2, md: 3 },
+                    fontSize: { xs: '0.9rem', md: '1rem' }
+                  }}>
                   Available on this portal are Free programs that you can apply
                   for depending on your Creative and Business need or referral
                   by a Creative Development Service Provider.
@@ -189,21 +189,22 @@ export const HomeHero = props => {
               xs={12}
               md={5}
               sx={{
-                px: 2,
+                px: { xs: 1, md: 2 },
               }}>
               <Box
                 sx={{
                   backgroundColor: '#f4f4f4',
-                  p: 3,
+                  p: { xs: 2, md: 3 },
                   height: '100%',
+                  borderRadius: 1
                 }}>
-                <Typography variant='h6'>STEP 2</Typography>
-                <Typography variant='subtitle1'>Application</Typography>
-                <Typography color='textSecondary'>
+                <Typography variant='h6' sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}>STEP 2</Typography>
+                <Typography variant='subtitle1' sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>Application</Typography>
+                <Typography color='textSecondary' sx={{ fontSize: { xs: '0.9rem', md: '1rem' } }}>
                   The application takes about 1-2 minutes.
                   <br />
                   <strong>How to register:</strong>
-                  <ol>
+                  <ol style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
                     <li>Register by selecting a cohort from the list above</li>
                     <li>
                       Put in your account credentials and submit the application
@@ -238,16 +239,17 @@ export const HomeHero = props => {
               xs={12}
               md={4}
               sx={{
-                px: 2,
+                px: { xs: 1, md: 2 },
               }}>
               <Box
                 sx={{
                   backgroundColor: '#f4f4f4',
-                  p: 3,
+                  p: { xs: 2, md: 3 },
                   height: '100%',
+                  borderRadius: 1
                 }}>
-                <Typography variant='h6'>IMPORTANT TO NOTE</Typography>
-                <Typography color='textSecondary'>
+                <Typography variant='h6' sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}>IMPORTANT TO NOTE</Typography>
+                <Typography color='textSecondary' sx={{ fontSize: { xs: '0.9rem', md: '1rem' } }}>
                   User Already Exists? No Problem!! <br />
                   <br />
                   If you've registered for previous cohorts, you can access your
