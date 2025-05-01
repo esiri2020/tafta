@@ -140,17 +140,17 @@ model Enrollment {
 }
 
 model Cohort {
-  id            String         @id @default(cuid())
-  start_date    DateTime
-  end_date      DateTime
-  active        Boolean        @default(true)
-  color         String
-  name          String
-  cohortCourses CohortCourse[]
-  notifications Notification[]
-  reports       Report[]
-  userCohort    UserCohort[]
-  centers       Location[]     @relation("CohortToLocation")
+  id               String             @id @default(cuid())
+  start_date       DateTime
+  end_date         DateTime
+  active           Boolean            @default(true)
+  color            String
+  name             String
+  cohortCourses    CohortCourse[]
+  notifications    Notification[]
+  reports          Report[]
+  userCohort       UserCohort[]
+  CohortToLocation CohortToLocation[]
 }
 
 model UserCohort {
@@ -179,25 +179,25 @@ model Course {
 }
 
 model CohortCourse {
-  id           String     @id @default(cuid())
-  cohortId     String
-  courseId     String
-  course_limit Int?
-  course_id    BigInt
-  cohort       Cohort     @relation(fields: [cohortId], references: [id], onDelete: Cascade)
-  course       Course     @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  location     Location[] @relation("CohortCourseToLocation")
+  id                     String                   @id @default(cuid())
+  cohortId               String
+  courseId               String
+  course_limit           Int?
+  course_id              BigInt
+  cohort                 Cohort                   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  course                 Course                   @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  CohortCourseToLocation CohortCourseToLocation[]
 }
 
 model Location {
-  id            String         @id @default(cuid())
-  location      String
-  seats         Int?
-  name          String
-  seatBooking   SeatBooking[]
-  userCohorts   UserCohort[]
-  cohortCourses CohortCourse[] @relation("CohortCourseToLocation")
-  cohorts       Cohort[]       @relation("CohortToLocation")
+  id                     String                   @id @default(cuid())
+  location               String
+  seats                  Int?
+  name                   String
+  seatBooking            SeatBooking[]
+  userCohorts            UserCohort[]
+  CohortCourseToLocation CohortCourseToLocation[]
+  CohortToLocation       CohortToLocation[]
 }
 
 model SeatBooking {
@@ -256,20 +256,22 @@ model spatial_ref_sys {
 }
 
 model Notification {
-  id              String           @id @default(cuid())
+  id              String             @id @default(cuid())
   title           String
   message         String
-  createdAt       DateTime         @default(now())
-  isRead          Boolean          @default(false)
+  createdAt       DateTime           @default(now())
+  isRead          Boolean            @default(false)
   readAt          DateTime?
   senderId        String
   recipientId     String
-  type            NotificationType @default(GENERAL)
+  type            NotificationType   @default(GENERAL)
   cohortId        String?
   relatedEntityId String?
-  cohort          Cohort?          @relation(fields: [cohortId], references: [id])
-  recipient       User             @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
-  sender          User             @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
+  status          NotificationStatus @default(DRAFT)
+  tags            String[]           @default([])
+  cohort          Cohort?            @relation(fields: [cohortId], references: [id])
+  recipient       User               @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender          User               @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 model Assessment {
@@ -310,6 +312,28 @@ model Assessment {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
   user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CohortCourseToLocation {
+  A            String
+  B            String
+  CohortCourse CohortCourse @relation(fields: [A], references: [id], onDelete: Cascade)
+  Location     Location     @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@id([A, B])
+  @@index([B], map: "_CohortCourseToLocation_B_index")
+  @@map("_CohortCourseToLocation")
+}
+
+model CohortToLocation {
+  A        String
+  B        String
+  Cohort   Cohort   @relation(fields: [A], references: [id], onDelete: Cascade)
+  Location Location @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@id([A, B])
+  @@index([B], map: "_CohortToLocation_B_index")
+  @@map("_CohortToLocation")
 }
 
 view EnrollmentCompletionGraph {
@@ -457,4 +481,12 @@ enum NotificationType {
   ANNOUNCEMENT
   REMINDER
   APPROVAL
+}
+
+enum NotificationStatus {
+  DRAFT
+  SENT
+  DELIVERED
+  FAILED
+  ARCHIVED
 }

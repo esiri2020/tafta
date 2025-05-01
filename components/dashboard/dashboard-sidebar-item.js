@@ -5,19 +5,18 @@ import { Box, Button, Collapse, ListItem } from '@mui/material';
 import { ChevronDown as ChevronDownIcon } from '../../icons/chevron-down';
 import { ChevronRight as ChevronRightIcon } from '../../icons/chevron-right';
 
-export const DashboardSidebarItem = (props) => {
-  const {
-    active,
-    children,
-    chip,
-    depth,
-    icon,
-    info,
-    open: openProp,
-    path,
-    title,
-    ...other
-  } = props;
+export const DashboardSidebarItem = ({
+  active = false,
+  children,
+  chip,
+  depth,
+  icon,
+  info,
+  open: openProp = false,
+  path,
+  title,
+  ...other
+}) => {
   const [open, setOpen] = useState(!!openProp);
 
   const handleToggle = () => {
@@ -144,9 +143,4 @@ DashboardSidebarItem.propTypes = {
   open: PropTypes.bool,
   path: PropTypes.string,
   title: PropTypes.string.isRequired
-};
-
-DashboardSidebarItem.defaultProps = {
-  active: false,
-  open: false
 };

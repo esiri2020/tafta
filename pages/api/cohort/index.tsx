@@ -86,7 +86,11 @@ export default async function handler(
       },
       include: {
         cohortCourses: true,
-        centers: true
+        CohortToLocation: {
+          include: {
+            Location: true
+          }
+        }
       },
       take,
       skip

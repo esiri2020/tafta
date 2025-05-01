@@ -27,6 +27,7 @@ import {useGetCohortsQuery} from '../../services/api';
 import {selectCohort, setCohort} from '../../services/cohortSlice';
 import {useAppDispatch, useAppSelector} from '../../hooks/rtkHook';
 import {useSession} from 'next-auth/react';
+import {Notifications as NotificationsIcon} from '../../icons/notifications';
 
 const getSupportSections = userId => [
   {
@@ -206,6 +207,21 @@ const getAdminSelection = userId => [
           },
         ],
       },
+      {
+        title: 'Notifications',
+        path: '/admin-dashboard/notifications',
+        icon: <NotificationsIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Notification Overview',
+            path: '/admin-dashboard/notifications',
+          },
+          {
+            title: 'Create Notification',
+            path: '/admin-dashboard/notifications/create',
+          },
+        ],
+      },
     ],
   },
 
@@ -332,6 +348,25 @@ const getSuperAdminSections = userId => [
           {
             title: 'Create Cohorts',
             path: '/admin-dashboard/cohorts/create',
+          },
+        ],
+      },
+      {
+        title: 'Notifications',
+        path: '/admin-dashboard/notifications',
+        icon: <NotificationsIcon fontSize='small' />,
+        children: [
+          {
+            title: 'General Notifications',
+            path: '/admin-dashboard/notifications',
+          },
+          {
+            title: 'Cohort Alerts',
+            path: '/admin-dashboard/notifications/alerts',
+          },
+          {
+            title: 'Create Notification',
+            path: '/admin-dashboard/notifications/create',
           },
         ],
       },

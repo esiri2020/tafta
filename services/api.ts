@@ -433,7 +433,27 @@ export const apiService = createApi({
     }),
     // Notification endpoints
     getNotifications: builder.query({
-      query: ({page, limit}) => `notifications?page=${page}&limit=${limit}`,
+      query: ({page, limit, search, status, type, tag}) => {
+        let queryString = `notifications?page=${page}&limit=${limit}`;
+        
+        if (search) {
+          queryString += `&search=${search}`;
+        }
+        
+        if (status) {
+          queryString += `&status=${status}`;
+        }
+        
+        if (type) {
+          queryString += `&type=${type}`;
+        }
+        
+        if (tag) {
+          queryString += `&tag=${tag}`;
+        }
+        
+        return queryString;
+      },
       providesTags: result =>
         result
           ? [
@@ -539,6 +559,33 @@ export const apiService = createApi({
           : `assessment/metrics`,
       providesTags: ['Assessments'],
     }),
+
+    archiveNotification: builder.mutation<Notification, string>({
+      query: (id) => ({
+        url: `/api/notifications/${id}/archive`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Notifications'],
+    }),
+
+    // Add these endpoints to the existing API service
+    getCohortAlerts: builder.query({
+      query: ({ page = 1, limit = 10, cohortId }) => ({
+        url: '/api/notifications/cohort-alerts',
+        method: 'GET',
+        params: { page, limit, cohortId },
+      }),
+      providesTags: ['Notifications'],
+    }),
+
+    triggerCohortAlert: builder.mutation({
+      query: (data) => ({
+        url: '/api/notifications/cohort-alerts',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Notifications'],
+    }),
   }),
 });
 
@@ -583,4 +630,7 @@ export const {
   useCreateAssessmentMutation,
   useUpdateAssessmentMutation,
   useGetAssessmentMetricsQuery,
+  useArchiveNotificationMutation,
+  useGetCohortAlertsQuery,
+  useTriggerCohortAlertMutation,
 } = apiService;

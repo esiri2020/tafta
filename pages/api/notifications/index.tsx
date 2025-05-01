@@ -1,6 +1,7 @@
 import {getToken} from 'next-auth/jwt';
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../../lib/prismadb';
+import {NotificationStatus, NotificationType} from '@prisma/client';
 
 // Debug the prisma client to see what's happening
 console.log('Prisma client in notifications API:', {
@@ -13,72 +14,103 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  // Ensure prisma is available
-  if (!prisma) {
-    console.error('Prisma client is not available');
-    return res.status(500).send({
-      error: 'Database connection error',
-    });
-  }
-
   const token = await getToken({req});
   if (!token) {
     return res.status(401).send({
-      error:
-        'You must be signed in to view the protected content on this page.',
+      error: 'You must be signed in to view the protected content on this page.',
     });
   }
 
-  // Get all notifications for current user
+  // Check if user is staff (super admin, admin, or support)
+  const userRole = token?.userData?.role as string;
+  if (!userRole || !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)) {
+    return res.status(403).send({
+      error: 'Unauthorized. Only staff members can access notifications.',
+    });
+  }
+
   if (req.method === 'GET') {
-    const {page, limit, isRead} = req.query;
-    const take = parseInt(typeof limit === 'string' && limit ? limit : '10');
-    const skip = take * parseInt(typeof page === 'string' ? page : '0');
-
     try {
-      const isReadFilter =
-        isRead === 'true' ? true : isRead === 'false' ? false : undefined;
+      const {page = '1', limit = '10', isRead, search, status, type, tag} = req.query;
+      const pageNumber = Math.max(1, parseInt(page as string, 10));
+      const limitNumber = Math.max(1, parseInt(limit as string, 10));
+      const skip = (pageNumber - 1) * limitNumber;
 
-      const whereClause: any = {
-        recipientId: token.sub,
-      };
+      // Build where clause based on filters
+      const whereClause: any = {};
 
-      if (isReadFilter !== undefined) {
-        whereClause.isRead = isReadFilter;
+      // For non-super admins, only show notifications they created or are assigned to
+      if (userRole !== 'SUPERADMIN') {
+        whereClause.OR = [
+          {senderId: token?.userData?.userId},
+          {recipientId: token?.userData?.userId}
+        ];
       }
 
-      const [count, notifications] = await Promise.all([
+      if (isRead !== undefined) {
+        whereClause.isRead = isRead === 'true';
+      }
+
+      if (status) {
+        whereClause.status = status;
+      }
+
+      if (type) {
+        whereClause.type = type;
+      }
+
+      if (tag) {
+        whereClause.tags = {
+          has: tag
+        };
+      }
+
+      if (search) {
+        whereClause.OR = [
+          { title: { contains: search, mode: 'insensitive' } },
+          { message: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+
+      // Get total count and notifications
+      const [total, notifications] = await Promise.all([
         prisma.notification.count({where: whereClause}),
         prisma.notification.findMany({
           where: whereClause,
           include: {
-            sender: {
+            recipient: {
               select: {
-                id: true,
                 firstName: true,
                 lastName: true,
                 email: true,
-                role: true,
-              },
+                role: true
+              }
             },
-            cohort: {
+            sender: {
               select: {
-                id: true,
-                name: true,
-              },
-            },
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true
+              }
+            }
           },
           orderBy: {
-            createdAt: 'desc',
+            createdAt: 'desc'
           },
-          take,
-          skip,
-        }),
+          take: limitNumber,
+          skip
+        })
       ]);
 
-      return res.status(200).json({notifications, count});
+      return res.status(200).json({
+        notifications,
+        total,
+        page: pageNumber,
+        totalPages: Math.ceil(total / limitNumber)
+      });
     } catch (err: any) {
-      console.error(err.message);
+      console.error('Error fetching notifications:', err);
       return res.status(400).send(err.message);
     }
   }
