@@ -1,161 +1,85 @@
-import { getToken } from 'next-auth/jwt';
-import type { NextApiRequest, NextApiResponse } from 'next';
-import prisma from '../../../lib/prismadb';
-import { NotificationStatus, NotificationType } from '@prisma/client';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
+import { prisma } from '@/lib/prisma';
+import { NotificationType, NotificationStatus, User } from '@prisma/client';
+import type { Session } from 'next-auth';
+
+interface CustomSession extends Session {
+  userData?: {
+    userId: string;
+    role: string;
+  };
+}
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse
 ) {
-  const token = await getToken({ req });
-  if (!token) {
-    return res.status(401).send({
-      error: 'You must be signed in to view the protected content on this page.',
-    });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Check if user is staff (super admin, admin, or support)
-  const userRole = token?.userData?.role as string;
-  const userId = token?.userData?.userId;
-  if (!userRole || !userId || !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)) {
-    return res.status(403).send({
-      error: 'Unauthorized. Only staff members can manage cohort alerts.',
-    });
-  }
+  try {
+    const session = await getServerSession(req, res, authOptions) as CustomSession;
 
-  if (req.method === 'GET') {
-    try {
-      const { page = '1', limit = '10', cohortId } = req.query;
-      const pageNumber = parseInt(page as string, 10);
-      const limitNumber = parseInt(limit as string, 10);
-      const skip = (pageNumber - 1) * limitNumber;
-
-      // Build where clause based on filters
-      const whereClause: any = {
-        type: NotificationType.REMINDER,
-        tags: {
-          has: 'COHORT_COMPLETION'
-        }
-      };
-
-      if (cohortId) {
-        whereClause.cohortId = cohortId;
-      }
-
-      // Get total count and alerts
-      const [total, alerts] = await Promise.all([
-        prisma.notification.count({ where: whereClause }),
-        prisma.notification.findMany({
-          where: whereClause,
-          include: {
-            cohort: {
-              select: {
-                name: true,
-              }
-            },
-            sender: {
-              select: {
-                firstName: true,
-                lastName: true,
-                role: true
-              }
-            }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: limitNumber,
-          skip
-        })
-      ]);
-
-      return res.status(200).json({
-        alerts,
-        total,
-        page: pageNumber,
-        totalPages: Math.ceil(total / limitNumber)
-      });
-    } catch (err: any) {
-      console.error('Error fetching cohort alerts:', err);
-      return res.status(400).send(err.message);
+    if (!session?.userData) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
-  }
 
-  if (req.method === 'POST') {
-    try {
-      const { cohortId, message, type } = req.body;
+    const { role, userId } = session.userData;
+    if (!['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(role)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
 
-      // Validate required fields
-      if (!cohortId || !message || !type) {
-        return res.status(400).send({
-          error: 'Missing required fields: cohortId, message, and type are required.',
-        });
-      }
+    const { cohortId, message, type } = req.body;
 
-      // Get cohort details
-      const cohort = await prisma.cohort.findUnique({
-        where: { id: cohortId },
-        include: {
-          userCohort: {
-            include: {
-              enrollments: {
-                select: {
-                  percentage_completed: true
-                }
-              }
-            }
-          }
-        }
-      });
+    if (!cohortId || !message || !type) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
 
-      if (!cohort) {
-        return res.status(404).send({
-          error: 'Cohort not found.',
-        });
-      }
+    // Validate cohort exists
+    const cohort = await prisma.cohort.findUnique({
+      where: { id: cohortId },
+    });
 
-      // Calculate total completion
-      const totalCompletion = cohort.userCohort.reduce((sum, uc) => {
-        return sum + uc.enrollments.reduce((total, enrollment) => {
-          return total + (enrollment.percentage_completed || 0);
-        }, 0);
-      }, 0);
+    if (!cohort) {
+      return res.status(404).json({ message: 'Cohort not found' });
+    }
 
-      // Create alert notification
-      const alert = await prisma.notification.create({
-        data: {
-          title: `Cohort Completion Alert: ${cohort.name}`,
-          message,
-          type: NotificationType.REMINDER,
-          status: NotificationStatus.SENT,
-          tags: ['COHORT_COMPLETION', type],
-          cohortId,
-          senderId: userId,
-          recipientId: userId, // Send to self for now, can be modified to send to specific staff members
+    // Get all staff members to send the alert to
+    const staffMembers = await prisma.user.findMany({
+      where: {
+        role: {
+          in: ['SUPERADMIN', 'ADMIN', 'SUPPORT'],
         },
-        include: {
-          cohort: {
-            select: {
-              name: true,
-            }
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    // Create notifications for each staff member
+    const notifications = await Promise.all(
+      staffMembers.map((staff: Pick<User, 'id'>) =>
+        prisma.notification.create({
+          data: {
+            title: `Cohort Alert: ${cohort.name}`,
+            message,
+            type: type as NotificationType,
+            status: NotificationStatus.DRAFT,
+            tags: ['COHORT_COMPLETION'],
+            senderId: userId,
+            recipientId: staff.id,
+            cohortId: cohort.id,
           },
-          sender: {
-            select: {
-              firstName: true,
-              lastName: true,
-              role: true
-            }
-          }
-        }
-      });
+        })
+      )
+    );
 
-      return res.status(201).json(alert);
-    } catch (err: any) {
-      console.error('Error creating cohort alert:', err);
-      return res.status(400).send(err.message);
-    }
+    return res.status(201).json(notifications);
+  } catch (error) {
+    console.error('Error creating cohort alert:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  // Method not allowed
-  return res.status(405).json({ error: 'Method not allowed' });
 } 

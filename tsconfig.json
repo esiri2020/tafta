@@ -25,8 +25,9 @@
     "process.d.ts",
     "next-env.d.ts",
     "next-auth.d.ts",
+    "types/**/*.d.ts",
     "**/*.ts",
     "**/*.tsx"
-, "components/dashboard/enrollments/enrollments-list-filters.js"  ],
+  ],
   "exclude": ["node_modules"]
 }

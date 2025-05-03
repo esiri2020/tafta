@@ -9,7 +9,8 @@
     "build": "prisma generate && next build",
     "export": "next export",
     "start": "next start -p 8000",
-    "seed": "node prisma/seed.mjs"
+    "seed": "node prisma/seed.mjs",
+    "simulate-completion": "ts-node scripts/simulate-completion-data.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

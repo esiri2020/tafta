@@ -179,10 +179,10 @@ export const EnrollmentsCompletedGraph = props => {
             position: 'relative',
           }}>
           <Chart
+            type="area"
             options={option}
             series={[
               {
-                type: 'area',
                 data: _data?.map(x => x.count),
                 name: 'Certifications',
               },

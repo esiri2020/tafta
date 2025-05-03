@@ -16,7 +16,7 @@ import {Mail as MailIcon, MailOpen as MailOpenIcon} from '@mui/icons-material';
 import {
   useGetNotificationsQuery,
   useMarkNotificationsAsReadMutation,
-} from '../../services/api';
+} from '../../../services/api';
 
 export const NotificationsPopover = props => {
   const {anchorEl, onClose, open, ...other} = props;
@@ -151,4 +151,4 @@ NotificationsPopover.propTypes = {
   anchorEl: PropTypes.any,
   onClose: PropTypes.func,
   open: PropTypes.bool,
-};
+}; 

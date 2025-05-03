@@ -1,20 +1,16 @@
-import NextAuth from 'next-auth';
-import {PrismaAdapter} from '@next-auth/prisma-adapter';
+import NextAuth from 'next-auth/next';
+import type { AuthOptions } from 'next-auth/core/types';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
-// import GoogleProvider from "next-auth/providers/google"
-// import FacebookProvider from "next-auth/providers/facebook"
-// import GithubProvider from "next-auth/providers/github"
-// import TwitterProvider from "next-auth/providers/twitter"
-// import Auth0Provider from "next-auth/providers/auth0"
-// import AppleProvider from "next-auth/providers/apple"
 import EmailProvider from 'next-auth/providers/email';
-// import prisma from "../../../lib/prismadb"
-import {compare} from 'bcryptjs';
-import {createTransport} from 'nodemailer';
+import { compare } from 'bcryptjs';
+import { createTransport } from 'nodemailer';
 import prisma from '../../../lib/prismadb';
-import {html, text} from '../../../utils';
+import { html, text } from '../../../utils';
 // import {Theme} from 'next-auth';
 // import sendVerificationRequest from '../../../lib/sendVerificationRequest';
+import type { Session } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 
 // For more information on each option (and a full list of options) go to
 // https://next-auth.js.org/configuration/options
@@ -25,7 +21,7 @@ const theme = {
   buttonText: '#FFF',
 };
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   // https://next-auth.js.org/configuration/providers/oauth
   adapter: PrismaAdapter(prisma),
   session: {
@@ -39,29 +35,25 @@ export const authOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: {label: 'Email', type: 'text', placeholder: 'user@email.com'},
-        password: {label: 'Password', type: 'password'},
+        email: { label: 'Email', type: 'text', placeholder: 'user@email.com' },
+        password: { label: 'Password', type: 'password' },
       },
-      // @ts-ignore
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
             return null;
-            // throw new Error('No email address or password');
           }
           const user = await prisma.user.findUnique({
-            where: {email: credentials.email.toLowerCase()},
-            include: {profile: true},
+            where: { email: credentials.email.toLowerCase() },
+            include: { profile: true },
           });
           if (!user) {
             return null;
-            // throw new Error('No user found with the email');
           }
           const checkPassword = await compare(
             credentials.password,
             user.password,
           );
-          //Correct password - send response
           if (checkPassword) {
             return user;
           }
@@ -80,16 +72,16 @@ export const authOptions = {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
-        tls: {rejectUnauthorized: false},
+        tls: { rejectUnauthorized: false },
       },
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({
         identifier: email,
         url,
-        provider: {server, from},
+        provider: { server, from },
       }) {
         const _url = new URL(url);
-        const {host} = _url;
+        const { host } = _url;
         const type =
           _url.searchParams.get('callbackUrl')?.split('/').pop() || '';
         const transport = createTransport(server);
@@ -97,8 +89,8 @@ export const authOptions = {
           to: email,
           from,
           subject: `Sign in to ${host}`,
-          text: text({url, host}),
-          html: html({url, host, type}),
+          text: text({ url, host }),
+          html: html({ url, host, type }),
         });
       },
     }),
@@ -141,9 +133,8 @@ export const authOptions = {
     colorScheme: 'light',
   },
   callbacks: {
-    async jwt({token, user}: {token: any; user: any}) {
+    async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
-        console.log(user);
         if (user.email !== null) {
           token.userData = {
             userId: user.id,
@@ -159,15 +150,7 @@ export const authOptions = {
       }
       return token;
     },
-    async session({
-      session,
-      token,
-      user,
-    }: {
-      session: any;
-      token: any;
-      user: any;
-    }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (token) {
         session.userData = token.userData;
         return session;
@@ -180,4 +163,4 @@ export const authOptions = {
   },
 };
 
-export default (NextAuth as any)(authOptions);
+export default NextAuth(authOptions);

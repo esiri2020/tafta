@@ -5,6 +5,11 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import {env} from 'process';
 import {DashboardData} from '../types';
+import {RootState} from '../store';
+import {getSession} from 'next-auth/react';
+import type {Session} from 'next-auth';
+
+// No need to extend Session type as it's already defined in next-auth.d.ts
 
 interface ResultData {
   id: string;
@@ -32,7 +37,16 @@ const url: string = env['API'] ? env['API'] : 'http://localhost:3000/api/';
 
 export const apiService = createApi({
   reducerPath: 'apiService',
-  baseQuery: fetchBaseQuery({baseUrl: url}),
+  baseQuery: fetchBaseQuery({
+    baseUrl: url,
+    prepareHeaders: async (headers) => {
+      const session = await getSession();
+      if (session?.userData?.userId) {
+        headers.set('authorization', `Bearer ${session.userData.userId}`);
+      }
+      return headers;
+    },
+  }),
   tagTypes: [
     'Applicants',
     'Enrollments',
@@ -48,6 +62,7 @@ export const apiService = createApi({
     'UNAUTHORIZED',
     'NOT ALLOWED',
     'UNKNOWN_ERROR',
+    'Dashboard',
   ],
   endpoints: builder => ({
     login: builder.mutation({
@@ -586,6 +601,28 @@ export const apiService = createApi({
       }),
       invalidatesTags: ['Notifications'],
     }),
+
+    getLocationBreakdown: builder.query<{
+      states: Array<{
+        state: string;
+        courses: Array<{
+          course: string;
+          female: number;
+          male: number;
+          total: number;
+        }>;
+        total: number;
+      }>;
+      totalCompletion: number;
+      cohortName: string;
+      date: string;
+    }, { cohortId?: string }>({
+      query: ({ cohortId }) => ({
+        url: '/dashboard/location-breakdown',
+        params: { cohortId },
+      }),
+      providesTags: ['Dashboard'],
+    }),
   }),
 });
 
@@ -633,4 +670,5 @@ export const {
   useArchiveNotificationMutation,
   useGetCohortAlertsQuery,
   useTriggerCohortAlertMutation,
+  useGetLocationBreakdownQuery,
 } = apiService;

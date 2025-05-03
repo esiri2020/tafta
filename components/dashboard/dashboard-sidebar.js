@@ -216,10 +216,6 @@ const getAdminSelection = userId => [
             title: 'Notification Overview',
             path: '/admin-dashboard/notifications',
           },
-          {
-            title: 'Create Notification',
-            path: '/admin-dashboard/notifications/create',
-          },
         ],
       },
     ],

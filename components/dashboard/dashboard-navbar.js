@@ -19,7 +19,7 @@ import {UserCircle as UserCircleIcon} from '../../icons/user-circle';
 import {Users as UsersIcon} from '../../icons/users';
 import {AccountPopover} from '../account-popover';
 import {NotificationBadge} from './notifications/notification-badge';
-import {NotificationsPopover} from './notifications-popover';
+import {NotificationsPopover} from './notifications/notifications-popover';
 import {useGetNotificationsQuery} from '../../services/api';
 // import { ContactsPopover } from '../contacts-popover';
 // import { ContentSearchDialog } from './content-search-dialog';
@@ -192,7 +192,7 @@ const AccountButton = () => {
   // To get the user from the authContext, you can use
   // `const { user } = useAuth();`
   const user = {
-    avatar: '',
+    avatar: '/static/images/avatars/avatar_1.png',
     name: 'Anika Visser',
   };
 

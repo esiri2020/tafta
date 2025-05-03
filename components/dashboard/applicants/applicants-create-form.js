@@ -113,9 +113,8 @@ const employment_sectors = [
 ];
 
 const businessTypes = [
-  {label: 'Informal', value: 'INFORMAL'},
   {label: 'Startup', value: 'STARTUP'},
-  {label: 'Formal (Existing)', value: 'FORMAL_EXISTING'},
+  {label: 'Existing', value: 'EXISTING'},
 ];
 
 const businessSizes = [
@@ -134,6 +133,22 @@ export const ApplicantCreateForm = ({...other}) => {
   const [createApplicant, result] = useCreateApplicantMutation();
   const router = useRouter();
   const [tabValue, setTabValue] = useState(0);
+  const [cohorts, setCohorts] = useState([]);
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    // Fetch active cohorts
+    fetch('/api/cohorts/active')
+      .then(res => res.json())
+      .then(data => setCohorts(data))
+      .catch(err => console.error('Error fetching cohorts:', err));
+
+    // Fetch courses
+    fetch('/api/courses')
+      .then(res => res.json())
+      .then(data => setCourses(data))
+      .catch(err => console.error('Error fetching courses:', err));
+  }, []);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -159,7 +174,7 @@ export const ApplicantCreateForm = ({...other}) => {
       employmentSector: '',
       // Business information for enterprise
       businessName: '',
-      businessType: '',
+      businessType: undefined,
       businessSize: '',
       businessSector: '',
       businessPartners: '',
@@ -169,6 +184,11 @@ export const ApplicantCreateForm = ({...other}) => {
       revenueRange: '',
       businessSupportNeeds: [],
       registrationType: '',
+      // Course and cohort information
+      cohortId: '',
+      selectedCourse: '',
+      selectedCourseName: '',
+      selectedCourseId: '',
       submit: null,
     },
     validationSchema: Yup.object({
@@ -207,9 +227,9 @@ export const ApplicantCreateForm = ({...other}) => {
       }),
       businessType: Yup.string().when('type', {
         is: 'ENTERPRISE',
-        then: Yup.string().required(
-          'Business type is required for enterprises',
-        ),
+        then: Yup.string()
+          .oneOf(['STARTUP', 'EXISTING'], 'Invalid business type')
+          .required('Business type is required for enterprises'),
       }),
       businessSize: Yup.string().when('type', {
         is: 'ENTERPRISE',
@@ -227,15 +247,36 @@ export const ApplicantCreateForm = ({...other}) => {
         is: 'ENTERPRISE',
         then: Yup.string().email('Must be a valid email').max(255),
       }),
+      // Course and cohort validation
+      cohortId: Yup.string().required('Cohort is required'),
+      selectedCourse: Yup.string().required('Course is required'),
     }),
     onSubmit: async (values, helpers) => {
       try {
         const {email, firstName, lastName, password, submit, ...profile} =
           values;
 
+        // Clean up profile data before submission
+        const cleanedProfile = {
+          ...profile,
+          // Only include business fields if type is ENTERPRISE
+          ...(profile.type === 'ENTERPRISE' ? {
+            businessName: profile.businessName || undefined,
+            businessType: profile.businessType || undefined,
+            businessSize: profile.businessSize || undefined,
+            businessSector: profile.businessSector || undefined,
+            businessPartners: profile.businessPartners || undefined,
+            companyPhoneNumber: profile.companyPhoneNumber || undefined,
+            additionalPhoneNumber: profile.additionalPhoneNumber || undefined,
+            companyEmail: profile.companyEmail || undefined,
+            revenueRange: profile.revenueRange || undefined,
+            businessSupportNeeds: profile.businessSupportNeeds || [],
+          } : {})
+        };
+
         // NOTE: Make API request
         await createApplicant({
-          body: {firstName, lastName, email, password, profile},
+          body: {firstName, lastName, email, password, profile: cleanedProfile},
         }).unwrap();
         helpers.setStatus({success: true});
         helpers.setSubmitting(false);
@@ -391,6 +432,64 @@ export const ApplicantCreateForm = ({...other}) => {
               </TextField>
             </Grid>
 
+            {/* Course and Cohort Selection */}
+            <Grid item xs={12}>
+              <Typography variant='h6' sx={{mb: 2, mt: 2}}>
+                Course and Cohort Selection
+              </Typography>
+            </Grid>
+
+            <Grid item md={6} xs={12}>
+              <TextField
+                error={Boolean(
+                  formik.touched.cohortId && formik.errors.cohortId,
+                )}
+                fullWidth
+                select
+                helperText={formik.touched.cohortId && formik.errors.cohortId}
+                label='Cohort'
+                name='cohortId'
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                required
+                value={formik.values.cohortId}>
+                {cohorts.map((cohort) => (
+                  <MenuItem key={cohort.id} value={cohort.id}>
+                    {cohort.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
+            <Grid item md={6} xs={12}>
+              <TextField
+                error={Boolean(
+                  formik.touched.selectedCourse && formik.errors.selectedCourse,
+                )}
+                fullWidth
+                select
+                helperText={
+                  formik.touched.selectedCourse && formik.errors.selectedCourse
+                }
+                label='Course'
+                name='selectedCourse'
+                onBlur={formik.handleBlur}
+                onChange={(e) => {
+                  const course = courses.find(c => c.id === e.target.value);
+                  formik.setFieldValue('selectedCourse', course.name);
+                  formik.setFieldValue('selectedCourseId', course.id);
+                  formik.setFieldValue('selectedCourseName', course.name);
+                }}
+                required
+                value={formik.values.selectedCourse}>
+                {courses.map((course) => (
+                  <MenuItem key={course.id} value={course.id}>
+                    {course.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
             {/* Location Information */}
             <Grid item xs={12}>
               <Typography variant='h6' sx={{mb: 2, mt: 2}}>
@@ -416,15 +515,14 @@ export const ApplicantCreateForm = ({...other}) => {
                 value={formik.values.stateOfResidence}
               />
             </Grid>
+
             <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(
                   formik.touched.LGADetails && formik.errors.LGADetails,
                 )}
                 fullWidth
-                helperText={
-                  formik.touched.LGADetails && formik.errors.LGADetails
-                }
+                helperText={formik.touched.LGADetails && formik.errors.LGADetails}
                 label='LGA Details'
                 name='LGADetails'
                 onBlur={formik.handleBlur}
@@ -432,13 +530,13 @@ export const ApplicantCreateForm = ({...other}) => {
                 value={formik.values.LGADetails}
               />
             </Grid>
-            <Grid item md={12} xs={12}>
+
+            <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(
                   formik.touched.homeAddress && formik.errors.homeAddress,
                 )}
                 fullWidth
-                multiline
                 helperText={
                   formik.touched.homeAddress && formik.errors.homeAddress
                 }
@@ -450,10 +548,10 @@ export const ApplicantCreateForm = ({...other}) => {
               />
             </Grid>
 
-            {/* Personal Details Section - only for Individual or show for both */}
+            {/* Additional Information */}
             <Grid item xs={12}>
               <Typography variant='h6' sx={{mb: 2, mt: 2}}>
-                Personal Details
+                Additional Information
               </Typography>
             </Grid>
 
@@ -461,20 +559,21 @@ export const ApplicantCreateForm = ({...other}) => {
               <TextField
                 error={Boolean(formik.touched.gender && formik.errors.gender)}
                 fullWidth
+                select
                 helperText={formik.touched.gender && formik.errors.gender}
                 label='Gender'
                 name='gender'
-                select
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 value={formik.values.gender}>
-                {genderList.map((gender, index) => (
-                  <MenuItem key={index} value={gender}>
+                {genderList.map((gender) => (
+                  <MenuItem key={gender} value={gender}>
                     {gender}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
+
             <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(
@@ -488,17 +587,19 @@ export const ApplicantCreateForm = ({...other}) => {
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 value={formik.values.ageRange}>
-                {ranges.map((range, index) => (
-                  <MenuItem key={index} value={`${range[0]} - ${range[1]}`}>
-                    {`${range[0]} - ${range[1]}`}
+                {ranges.map((range) => (
+                  <MenuItem key={range.join('-')} value={range.join('-')}>
+                    {range.join('-')}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
+
             <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(
-                  formik.touched.educationLevel && formik.errors.educationLevel,
+                  formik.touched.educationLevel &&
+                    formik.errors.educationLevel,
                 )}
                 fullWidth
                 select
@@ -510,13 +611,14 @@ export const ApplicantCreateForm = ({...other}) => {
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 value={formik.values.educationLevel}>
-                {levels_of_education.map((level, index) => (
-                  <MenuItem key={index} value={level.value}>
+                {levels_of_education.map((level) => (
+                  <MenuItem key={level.value} value={level.value}>
                     {level.label}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
+
             <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(
@@ -532,13 +634,14 @@ export const ApplicantCreateForm = ({...other}) => {
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 value={formik.values.communityArea}>
-                {communityAreas.map((area, index) => (
-                  <MenuItem key={index} value={area}>
-                    {area.replace('_', ' ')}
+                {communityAreas.map((area) => (
+                  <MenuItem key={area} value={area}>
+                    {area}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
+
             <Grid item md={6} xs={12}>
               <TextField
                 error={Boolean(
@@ -556,49 +659,48 @@ export const ApplicantCreateForm = ({...other}) => {
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 value={formik.values.employmentStatus}>
-                {employment_status.map((status, index) => (
-                  <MenuItem key={index} value={status.value}>
+                {employment_status.map((status) => (
+                  <MenuItem key={status.value} value={status.value}>
                     {status.label}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
-            {formik.values.employmentStatus &&
-              (formik.values.employmentStatus === 'employed' ||
-                formik.values.employmentStatus === 'self-employed') && (
-                <Grid item md={6} xs={12}>
-                  <TextField
-                    error={Boolean(
-                      formik.touched.employmentSector &&
-                        formik.errors.employmentSector,
-                    )}
-                    fullWidth
-                    select
-                    helperText={
-                      formik.touched.employmentSector &&
-                      formik.errors.employmentSector
-                    }
-                    label='Employment Sector'
-                    name='employmentSector'
-                    onBlur={formik.handleBlur}
-                    onChange={formik.handleChange}
-                    required
-                    value={formik.values.employmentSector}>
-                    {employment_sectors.map((sector, index) => (
-                      <MenuItem key={index} value={sector}>
-                        {sector}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-              )}
 
-            {/* Business Information Section - only for Enterprise */}
+            {formik.values.employmentStatus === 'employed' && (
+              <Grid item md={6} xs={12}>
+                <TextField
+                  error={Boolean(
+                    formik.touched.employmentSector &&
+                      formik.errors.employmentSector,
+                  )}
+                  fullWidth
+                  select
+                  helperText={
+                    formik.touched.employmentSector &&
+                    formik.errors.employmentSector
+                  }
+                  label='Employment Sector'
+                  name='employmentSector'
+                  onBlur={formik.handleBlur}
+                  onChange={formik.handleChange}
+                  required
+                  value={formik.values.employmentSector}>
+                  {employment_sectors.map((sector) => (
+                    <MenuItem key={sector} value={sector}>
+                      {sector}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
+
+            {/* Enterprise Information */}
             {formik.values.type === 'ENTERPRISE' && (
               <>
                 <Grid item xs={12}>
                   <Typography variant='h6' sx={{mb: 2, mt: 2}}>
-                    Business Information
+                    Enterprise Information
                   </Typography>
                 </Grid>
 
@@ -619,6 +721,7 @@ export const ApplicantCreateForm = ({...other}) => {
                     value={formik.values.businessName}
                   />
                 </Grid>
+
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
@@ -635,13 +738,14 @@ export const ApplicantCreateForm = ({...other}) => {
                     onChange={formik.handleChange}
                     required
                     value={formik.values.businessType}>
-                    {businessTypes.map((type, index) => (
-                      <MenuItem key={index} value={type.value}>
+                    {businessTypes.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
                         {type.label}
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
+
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
@@ -658,13 +762,14 @@ export const ApplicantCreateForm = ({...other}) => {
                     onChange={formik.handleChange}
                     required
                     value={formik.values.businessSize}>
-                    {businessSizes.map((size, index) => (
-                      <MenuItem key={index} value={size.value}>
+                    {businessSizes.map((size) => (
+                      <MenuItem key={size.value} value={size.value}>
                         {size.label}
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
+
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
@@ -672,7 +777,6 @@ export const ApplicantCreateForm = ({...other}) => {
                         formik.errors.businessSector,
                     )}
                     fullWidth
-                    select
                     helperText={
                       formik.touched.businessSector &&
                       formik.errors.businessSector
@@ -682,66 +786,10 @@ export const ApplicantCreateForm = ({...other}) => {
                     onBlur={formik.handleBlur}
                     onChange={formik.handleChange}
                     required
-                    value={formik.values.businessSector}>
-                    {employment_sectors.map((sector, index) => (
-                      <MenuItem key={index} value={sector}>
-                        {sector}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item md={6} xs={12}>
-                  <TextField
-                    error={Boolean(
-                      formik.touched.companyPhoneNumber &&
-                        formik.errors.companyPhoneNumber,
-                    )}
-                    fullWidth
-                    helperText={
-                      formik.touched.companyPhoneNumber &&
-                      formik.errors.companyPhoneNumber
-                    }
-                    label='Company Phone Number'
-                    name='companyPhoneNumber'
-                    onBlur={formik.handleBlur}
-                    onChange={formik.handleChange}
-                    value={formik.values.companyPhoneNumber}
+                    value={formik.values.businessSector}
                   />
                 </Grid>
-                <Grid item md={6} xs={12}>
-                  <TextField
-                    error={Boolean(
-                      formik.touched.additionalPhoneNumber &&
-                        formik.errors.additionalPhoneNumber,
-                    )}
-                    fullWidth
-                    helperText={
-                      formik.touched.additionalPhoneNumber &&
-                      formik.errors.additionalPhoneNumber
-                    }
-                    label='Additional Phone Number'
-                    name='additionalPhoneNumber'
-                    onBlur={formik.handleBlur}
-                    onChange={formik.handleChange}
-                    value={formik.values.additionalPhoneNumber}
-                  />
-                </Grid>
-                <Grid item md={6} xs={12}>
-                  <TextField
-                    error={Boolean(
-                      formik.touched.companyEmail && formik.errors.companyEmail,
-                    )}
-                    fullWidth
-                    helperText={
-                      formik.touched.companyEmail && formik.errors.companyEmail
-                    }
-                    label='Company Email'
-                    name='companyEmail'
-                    onBlur={formik.handleBlur}
-                    onChange={formik.handleChange}
-                    value={formik.values.companyEmail}
-                  />
-                </Grid>
+
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
@@ -760,6 +808,62 @@ export const ApplicantCreateForm = ({...other}) => {
                     value={formik.values.businessPartners}
                   />
                 </Grid>
+
+                <Grid item md={6} xs={12}>
+                  <TextField
+                    error={Boolean(
+                      formik.touched.companyPhoneNumber &&
+                        formik.errors.companyPhoneNumber,
+                    )}
+                    fullWidth
+                    helperText={
+                      formik.touched.companyPhoneNumber &&
+                      formik.errors.companyPhoneNumber
+                    }
+                    label='Company Phone Number'
+                    name='companyPhoneNumber'
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    value={formik.values.companyPhoneNumber}
+                  />
+                </Grid>
+
+                <Grid item md={6} xs={12}>
+                  <TextField
+                    error={Boolean(
+                      formik.touched.additionalPhoneNumber &&
+                        formik.errors.additionalPhoneNumber,
+                    )}
+                    fullWidth
+                    helperText={
+                      formik.touched.additionalPhoneNumber &&
+                      formik.errors.additionalPhoneNumber
+                    }
+                    label='Additional Phone Number'
+                    name='additionalPhoneNumber'
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    value={formik.values.additionalPhoneNumber}
+                  />
+                </Grid>
+
+                <Grid item md={6} xs={12}>
+                  <TextField
+                    error={Boolean(
+                      formik.touched.companyEmail && formik.errors.companyEmail,
+                    )}
+                    fullWidth
+                    helperText={
+                      formik.touched.companyEmail && formik.errors.companyEmail
+                    }
+                    label='Company Email'
+                    name='companyEmail'
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    value={formik.values.companyEmail}
+                  />
+                </Grid>
+
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
@@ -776,6 +880,7 @@ export const ApplicantCreateForm = ({...other}) => {
                     value={formik.values.revenueRange}
                   />
                 </Grid>
+
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
@@ -793,8 +898,8 @@ export const ApplicantCreateForm = ({...other}) => {
                     onBlur={formik.handleBlur}
                     onChange={formik.handleChange}
                     value={formik.values.registrationType}>
-                    {businessRegistrationTypes.map((type, index) => (
-                      <MenuItem key={index} value={type.value}>
+                    {businessRegistrationTypes.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
                         {type.label}
                       </MenuItem>
                     ))}

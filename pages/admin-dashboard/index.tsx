@@ -13,9 +13,10 @@ import {CertifiedEnrollees} from '../../components/dashboard/certified-enrollees
 import {EnrollmentStatus} from '../../components/dashboard/enrollment-status';
 import {DashboardLayout} from '../../components/dashboard/dashboard-layout';
 import {SplashScreen} from '../../components/splash-screen';
-import {useGetDashboardDataQuery} from '../../services/api';
+import {useGetDashboardDataQuery, useGetLocationBreakdownQuery} from '../../services/api';
 import {selectCohort} from '../../services/cohortSlice';
 import {useAppSelector} from '../../hooks/rtkHook';
+import {LocationBreakdown} from '../../components/dashboard/location-breakdown';
 
 const IndexPage = () => {
   const [skip, setSkip] = useState(false);
@@ -24,12 +25,16 @@ const IndexPage = () => {
     {cohortId: cohort?.id},
     {skip},
   );
+  const {data: locationData, isLoading: locationLoading} = useGetLocationBreakdownQuery(
+    {cohortId: cohort?.id},
+    {skip},
+  );
 
   useEffect(() => {
     setSkip(false);
   }, [cohort]);
 
-  if (isLoading) {
+  if (isLoading || locationLoading) {
     return <SplashScreen />;
   }
   if (error) return <div>An error occured.</div>;
@@ -98,6 +103,18 @@ const IndexPage = () => {
                   data?.certified_enrollees,
                 ]}
               />
+            </Grid>
+            <Grid item xs={12}>
+              {locationData && (
+                <Box sx={{ mt: 4 }}>
+                  <LocationBreakdown 
+                    data={locationData.states} 
+                    cohortName={locationData.cohortName}
+                    date={locationData.date}
+                    totalCompletion={locationData.totalCompletion}
+                  />
+                </Box>
+              )}
             </Grid>
             {/* <Grid
             item

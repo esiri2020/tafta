@@ -126,32 +126,20 @@ export const useFormSubmission = ({
       if (isEnterpriseType) {
         // For enterprise applicants, include all business fields
         profile.businessSupportNeeds = businessSupportNeeds;
-        // Ensure businessType is a valid enum value or null
-        profile.businessType = businessType && ['INFORMAL', 'STARTUP', 'FORMAL_EXISTING'].includes(businessType)
-          ? businessType
-          : null;
+        profile.businessType = businessType || 'INFORMAL'; // Default to INFORMAL if empty
         profile.businessSector = businessSector;
         profile.salaryRange = salaryRange;
         profile.revenueRange = revenueRange;
-        // Ensure businessSize is a valid enum value or null
-        profile.businessSize = businessSize && ['MICRO', 'SMALL', 'MEDIUM', 'LARGE'].includes(businessSize)
-          ? businessSize
-          : null;
+        profile.businessSize = businessSize || 'MICRO'; // Default to MICRO if empty
         profile.businessPartners = businessPartners;
         profile.companyPhoneNumber = companyPhoneNumber;
         profile.additionalPhoneNumber = additionalPhoneNumber;
         profile.companyEmail = companyEmail;
       } else {
-        // For individual applicants, explicitly set business fields to null
-        profile.businessType = null;
-        profile.businessSize = null;
-        profile.businessSector = null;
-        profile.businessPartners = null;
-        profile.companyPhoneNumber = null;
-        profile.additionalPhoneNumber = null;
-        profile.companyEmail = null;
-        profile.revenueRange = null;
-        profile.businessSupportNeeds = [];
+        // For individual applicants, set valid default values for required enum fields
+        profile.businessType = 'INFORMAL'; // Default value for individuals
+        profile.businessSize = 'MICRO'; // Default value for individuals
+        // Omit other business fields that aren't required by the schema
       }
 
       // Add referrer if source is by_referral
