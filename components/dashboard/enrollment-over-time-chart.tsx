@@ -13,6 +13,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Legend,
 } from 'recharts';
 
 const colors = {
@@ -23,21 +24,34 @@ const colors = {
   warning: '#f59e0b',
   danger: '#ef4444',
   info: '#3b82f6',
+  gender: {
+    male: '#0ea5e9',
+    female: '#d946ef',
+  },
 };
 
-const formatNumber = num => {
-  return Number.parseInt(num).toLocaleString();
+const formatNumber = (num: number): string => {
+  return Number(num).toLocaleString();
 };
 
-export const EnrollmentsCompletionGraph = ({ data }) => {
+interface EnrollmentOverTimeChartProps {
+  data: {
+    date: Date | null;
+    male_count: number;
+    female_count: number;
+  }[];
+}
+
+export const EnrollmentOverTimeChart: React.FC<EnrollmentOverTimeChartProps> = ({ data }) => {
   if (!data) return null;
 
   const chartData = data.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', {
+    date: item.date ? new Date(item.date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-    }),
-    count: Number.parseInt(item.count),
+    }) : '',
+    male: Number(item.male_count),
+    female: Number(item.female_count),
   }));
 
   return (
@@ -58,9 +72,13 @@ export const EnrollmentsCompletionGraph = ({ data }) => {
               }}
             >
               <defs>
-                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.success} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={colors.success} stopOpacity={0}/>
+                <linearGradient id="colorMale" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={colors.gender.male} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={colors.gender.male} stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorFemale" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={colors.gender.female} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={colors.gender.female} stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" />
@@ -77,7 +95,7 @@ export const EnrollmentsCompletionGraph = ({ data }) => {
                 tickFormatter={formatNumber}
               />
               <Tooltip 
-                formatter={value => formatNumber(value)}
+                formatter={value => formatNumber(value as number)}
                 contentStyle={{
                   backgroundColor: 'white',
                   border: '1px solid #e2e8f0',
@@ -85,13 +103,23 @@ export const EnrollmentsCompletionGraph = ({ data }) => {
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 }}
               />
+              <Legend />
               <Area
                 type="monotone"
-                dataKey="count"
-                name="Completions"
-                stroke={colors.success}
+                dataKey="male"
+                name="Male"
+                stroke={colors.gender.male}
                 fillOpacity={1}
-                fill="url(#colorCount)"
+                fill="url(#colorMale)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="female"
+                name="Female"
+                stroke={colors.gender.female}
+                fillOpacity={1}
+                fill="url(#colorFemale)"
                 strokeWidth={2}
               />
             </AreaChart>
@@ -100,4 +128,4 @@ export const EnrollmentsCompletionGraph = ({ data }) => {
       </CardContent>
     </Card>
   );
-};
+}; 

@@ -1,121 +1,109 @@
-import { Doughnut } from 'react-chartjs-2';
-import { Box, Card, CardContent, CardHeader, Divider, Typography, useTheme } from '@mui/material';
-import LaptopMacIcon from '@mui/icons-material/LaptopMac';
-import PhoneIcon from '@mui/icons-material/Phone';
-import TabletIcon from '@mui/icons-material/Tablet';
+import React from 'react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
-export const EnrollmentStatus = (props) => {
-  const theme = useTheme();
-  const {data: _data} = props
-  const data = {
-    datasets: [
-      {
-        data: _data,
-        backgroundColor: ['#e53935', '#FB8C00', '#3F51B5'],
-        borderWidth: 8,
-        borderColor: '#FFFFFF',
-        hoverBorderColor: '#FFFFFF'
-      }
-    ],
-    labels: ['Inactive', 'Active', 'Certified']
-  };
+const colors = {
+  primary: '#0ea5e9',
+  secondary: '#f97316',
+  tertiary: '#8b5cf6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#3b82f6',
+  status: {
+    active: '#10b981',
+    inactive: '#f97316',
+    certified: '#3b82f6',
+  },
+};
 
-  const options = {
-    animation: false,
-    cutoutPercentage: 80,
-    layout: { padding: 0 },
-    legend: {
-      display: false
-    },
-    maintainAspectRatio: false,
-    responsive: true,
-    tooltips: {
-      backgroundColor: theme.palette.background.paper,
-      bodyFontColor: theme.palette.text.secondary,
-      borderColor: theme.palette.divider,
-      borderWidth: 1,
-      enabled: true,
-      footerFontColor: theme.palette.text.secondary,
-      intersect: false,
-      mode: 'index',
-      titleFontColor: theme.palette.text.primary
-    }
-  };
+const formatNumber = num => {
+  return Number.parseInt(num).toLocaleString();
+};
 
-  const devices = [
-    {
-      title: 'Inactive',
-      value: parseInt((_data[0]/_data.reduce((a,b) => a+b))*100),
-      // icon: TabletIcon,
-      color: '#E53935'
-    },
-    {
-      title: 'Active',
-      value: parseInt((_data[1]/_data.reduce((a,b) => a+b))*100),
-      // icon: PhoneIcon,
-      color: '#FB8C00'
-    },
-    {
-      title: 'Certified',
-      value: parseInt((_data[2]/_data.reduce((a,b) => a+b))*100),
-      // icon: LaptopMacIcon,
-      color: '#3F51B5'
-    },
+export const EnrollmentStatus = ({ data }) => {
+  if (!data) return null;
+
+  const statusData = [
+    { name: 'Active', value: Number.parseInt(data.active_enrollees) },
+    { name: 'Inactive', value: Number.parseInt(data.inactive_enrollments) },
+    { name: 'Certified', value: Number.parseInt(data.certified_enrollees) },
   ];
 
   return (
-    <Card {...props}>
-      <CardHeader title="Enrollment Status" />
-      <Divider />
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Enrollment Status</CardTitle>
+      </CardHeader>
       <CardContent>
-        <Box
-          sx={{
-            height: 300,
-            position: 'relative'
-          }}
-        >
-          <Doughnut
-            data={data}
-            options={options}
-          />
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            pt: 2
-          }}
-        >
-          {devices.map(({
-            color,
-            // icon: Icon,
-            title,
-            value
-          }) => (
-            <Box
-              key={title}
-              sx={{
-                p: 1,
-                textAlign: 'center'
+        <div className="w-full h-[300px] min-h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={statusData}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 5,
               }}
             >
-              {/* <Icon color="action" /> */}
-              <Typography
-                color="textPrimary"
-                variant="body1"
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey="name"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={formatNumber}
+              />
+              <Tooltip 
+                formatter={value => formatNumber(value)}
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              />
+              <Legend />
+              <Bar 
+                dataKey="value" 
+                name="Enrollees"
+                radius={[4, 4, 0, 0]}
+                barSize={40}
               >
-                {title}
-              </Typography>
-              <Typography
-                style={{ color }}
-                variant="h4"
-              >
-                {value}
-                %
-              </Typography>
-            </Box>
-          ))}
-        </Box>
+                {statusData.map((entry, index) => {
+                  const statusKey = entry.name.toLowerCase();
+                  return (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={colors.status[statusKey]}
+                    />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

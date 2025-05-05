@@ -19,7 +19,7 @@ import {UserCircle as UserCircleIcon} from '../../icons/user-circle';
 import {Users as UsersIcon} from '../../icons/users';
 import {AccountPopover} from '../account-popover';
 import {NotificationBadge} from './notifications/notification-badge';
-import {NotificationsPopover} from './notifications/notifications-popover';
+import NotificationsPopover from './notifications/notifications-popover';
 import {useGetNotificationsQuery} from '../../services/api';
 // import { ContactsPopover } from '../contacts-popover';
 // import { ContentSearchDialog } from './content-search-dialog';
@@ -144,7 +144,6 @@ const DashboardNavbarRoot = styled(AppBar)(({theme}) => ({
 
 const NotificationsButton = () => {
   const [openPopover, setOpenPopover] = useState(false);
-  const anchorRef = useRef(null);
   const {data: notificationsData} = useGetNotificationsQuery({
     page: 0,
     limit: 10,
@@ -167,7 +166,7 @@ const NotificationsButton = () => {
   return (
     <>
       <Tooltip title='Notifications'>
-        <IconButton onClick={handleOpenPopover} ref={anchorRef} sx={{ml: 1}}>
+        <IconButton onClick={handleOpenPopover} sx={{ml: 1}}>
           {unreadCount > 0 ? (
             <Badge badgeContent={unreadCount} color='error'>
               <BellIcon fontSize='small' />
@@ -178,9 +177,8 @@ const NotificationsButton = () => {
         </IconButton>
       </Tooltip>
       <NotificationsPopover
-        anchorEl={anchorRef.current}
-        onClose={handleClosePopover}
         open={openPopover}
+        onClose={handleClosePopover}
       />
     </>
   );

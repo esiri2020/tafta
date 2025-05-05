@@ -1,25 +1,25 @@
 import React, {useEffect} from 'react';
-import PropTypes from 'prop-types';
 import {
-  Box,
-  Button,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   Popover,
-  Typography,
-  Badge,
-} from '@mui/material';
-import {Mail as MailIcon, MailOpen as MailOpenIcon} from '@mui/icons-material';
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {ScrollArea} from '@/components/ui/scroll-area';
+import {Badge} from '@/components/ui/badge';
+import {Mail, MailOpen} from 'lucide-react';
 import {
   useGetNotificationsQuery,
   useMarkNotificationsAsReadMutation,
 } from '../../../services/api';
 
-export const NotificationsPopover = props => {
-  const {anchorEl, onClose, open, ...other} = props;
+const NotificationsPopover = ({anchorEl, onClose, open}) => {
   const {data, isLoading, refetch} = useGetNotificationsQuery({
     page: 0,
     limit: 5,
@@ -55,100 +55,89 @@ export const NotificationsPopover = props => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <Popover
-      anchorEl={anchorEl}
-      anchorOrigin={{
-        horizontal: 'center',
-        vertical: 'bottom',
-      }}
-      onClose={onClose}
-      open={open}
-      PaperProps={{sx: {width: 320}}}
-      transitionDuration={0}
-      {...other}>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          p: 2,
-        }}>
-        <Typography variant='h6'>
-          Notifications
-          {unreadCount > 0 && (
-            <Badge badgeContent={unreadCount} color='error' sx={{ml: 1}} />
-          )}
-        </Typography>
-        {unreadCount > 0 && (
-          <Button color='primary' size='small' onClick={handleMarkAllAsRead}>
-            Mark all as read
-          </Button>
-        )}
-      </Box>
-      <Divider />
-      {isLoading ? (
-        <Box sx={{p: 2, textAlign: 'center'}}>
-          <Typography variant='body2'>Loading notifications...</Typography>
-        </Box>
-      ) : notifications.length === 0 ? (
-        <Box sx={{p: 2, textAlign: 'center'}}>
-          <Typography variant='body2'>No notifications</Typography>
-        </Box>
-      ) : (
-        <List disablePadding>
-          {notifications.map(notification => (
-            <ListItem
-              divider
-              key={notification.id}
-              onClick={() =>
-                !notification.isRead && handleMarkAsRead(notification.id)
-              }
-              sx={{
-                backgroundColor: notification.isRead
-                  ? 'transparent'
-                  : 'action.hover',
-                cursor: !notification.isRead ? 'pointer' : 'default',
-              }}>
-              <ListItemIcon>
-                {notification.isRead ? (
-                  <MailIcon color='disabled' />
-                ) : (
-                  <MailOpenIcon color='primary' />
-                )}
-              </ListItemIcon>
-              <ListItemText
-                primary={notification.title}
-                secondary={
-                  <>
-                    <Typography variant='body2' component='span'>
-                      {notification.message}
-                    </Typography>
-                    <Typography variant='caption' display='block' sx={{mt: 1}}>
-                      {new Date(notification.createdAt).toLocaleString()}
-                    </Typography>
-                  </>
-                }
-              />
-            </ListItem>
-          ))}
-        </List>
-      )}
-      <Box sx={{p: 1}}>
-        <Button
-          color='primary'
-          fullWidth
-          variant='text'
-          component='a'
-          href='/dashboard?tab=notifications'>
-          See all notifications
-        </Button>
-      </Box>
+    <Popover open={open} onOpenChange={onClose}>
+      <PopoverContent className="w-80 p-0" align="end">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Notifications
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {unreadCount}
+                </Badge>
+              )}
+            </CardTitle>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+              >
+                Mark all as read
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              {isLoading ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Loading notifications...
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No notifications
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {notifications.map(notification => (
+                    <div
+                      key={notification.id}
+                      className={`flex items-start space-x-4 rounded-lg p-2 ${
+                        !notification.isRead ? 'bg-muted' : ''
+                      }`}
+                      onClick={() =>
+                        !notification.isRead && handleMarkAsRead(notification.id)
+                      }
+                    >
+                      <div className="mt-1">
+                        {notification.isRead ? (
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <MailOpen className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {notification.title}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="mt-4">
+              <Button
+                variant="ghost"
+                className="w-full"
+                asChild
+              >
+                <a href="/dashboard?tab=notifications">
+                  See all notifications
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </PopoverContent>
     </Popover>
   );
 };
 
-NotificationsPopover.propTypes = {
-  anchorEl: PropTypes.any,
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
-}; 
+export default NotificationsPopover; 

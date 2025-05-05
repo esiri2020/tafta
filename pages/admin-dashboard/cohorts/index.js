@@ -5,22 +5,32 @@ import Head from 'next/head';
 import { Box, Button, Card, Container, Grid, Typography } from '@mui/material';
 import { CohortListFilters } from '../../../components/dashboard/cohort/cohort-list-filters';
 import { CohortListTable } from '../../../components/dashboard/cohort/cohort-list-table';
+import { CohortDashboard } from '../../../components/dashboard/cohort/cohort-dashboard';
 import { Plus as PlusIcon } from '../../../icons/plus';
-import { useGetCohortsQuery } from '../../../services/api'
+import { useGetCohortsQuery, useGetDashboardDataQuery } from '../../../services/api';
 import NextLink from 'next/link';
-
 
 function Cohorts() {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [course, setCourse] = useState([])
-    const [status, setStatus] = useState('')
+    const [course, setCourse] = useState([]);
+    const [status, setStatus] = useState('');
+    const [selectedCohort, setSelectedCohort] = useState(null);
     
-    const { data, error, isLoading } = useGetCohortsQuery({page, limit: rowsPerPage, filter: status})
+    const { data: cohortsData, error: cohortsError, isLoading: cohortsLoading } = useGetCohortsQuery({
+      page,
+      limit: rowsPerPage,
+      filter: status
+    });
+
+    const { data: dashboardData, error: dashboardError, isLoading: dashboardLoading } = useGetDashboardDataQuery(
+      { cohortId: selectedCohort?.id },
+      { skip: !selectedCohort }
+    );
   
     const handleFiltersChange = (filters) => {
-      setCourse(filters.course)
-      setStatus(filters.status)
+      setCourse(filters.course);
+      setStatus(filters.status);
     };
   
     const handlePageChange = (event, newPage) => {
@@ -30,21 +40,22 @@ function Cohorts() {
     const handleRowsPerPageChange = (event) => {
       setRowsPerPage(parseInt(event.target.value, 10));
     };
+
+    const handleCohortSelect = (cohort) => {
+      setSelectedCohort(cohort);
+    };
   
-    if(isLoading) return ( <SplashScreen/> )
-    if(error){
-      return null
-    }
-    if(!data) return (<div>No Data!</div>);
-    const { cohorts, count } = data
-    if(cohorts === undefined) return (<div>No Data!</div>);
+    if (cohortsLoading || dashboardLoading) return <SplashScreen />;
+    if (cohortsError || dashboardError) return null;
+    if (!cohortsData) return <div>No Data!</div>;
+    
+    const { cohorts, count } = cohortsData;
+    if (cohorts === undefined) return <div>No Data!</div>;
   
     return (
       <>
         <Head>
-          <title>
-            Cohort List
-          </title>
+          <title>Cohort List</title>
         </Head>
         <Box
           component="main"
@@ -81,11 +92,19 @@ function Cohorts() {
                 </Grid>
               </Grid>
             </Box>
+
+            {selectedCohort && dashboardData && (
+              <Box sx={{ mb: 4 }}>
+                <CohortDashboard data={dashboardData} />
+              </Box>
+            )}
+
             <Card>
               <CohortListFilters onChange={handleFiltersChange} />
               <CohortListTable
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}
+                onCohortSelect={handleCohortSelect}
                 page={page}
                 cohorts={cohorts}
                 cohortCount={count}

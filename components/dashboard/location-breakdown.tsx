@@ -1,80 +1,115 @@
+import React from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
-interface CourseStats {
-  course: string;
-  female: number;
-  male: number;
-  total: number;
-}
+const colors = {
+  gender: {
+    male: '#0ea5e9',
+    female: '#d946ef',
+  },
+};
 
-interface LocationData {
-  state: string;
-  courses: CourseStats[];
-  total: number;
-}
+const formatNumber = (num: number): string => {
+  return Number(num).toLocaleString();
+};
 
 interface LocationBreakdownProps {
-  data: LocationData[];
-  cohortName: string;
-  date: string;
-  totalCompletion: number;
+  data: {
+    location: string;
+    courses: {
+      course_name: string;
+      male_enrollments: number;
+      female_enrollments: number;
+    }[];
+  }[];
 }
 
-export function LocationBreakdown({ data, cohortName, date, totalCompletion }: LocationBreakdownProps) {
+export const LocationBreakdown: React.FC<LocationBreakdownProps> = ({ data }) => {
+  if (!data) return null;
+
+  const chartData = data.flatMap(location =>
+    location.courses.map(course => ({
+      name: `${location.location} - ${course.course_name}`,
+      male: Number(course.male_enrollments),
+      female: Number(course.female_enrollments),
+    }))
+  );
+
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Certified Enrollees by Location</CardTitle>
-        <CardDescription>
-          {cohortName} - {date}
-        </CardDescription>
+        <CardTitle>Location & Course Distribution</CardTitle>
       </CardHeader>
       <CardContent>
-        {data.map((location) => (
-          <div key={location.state} className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">
-              {location.state.toUpperCase()} - Total: {location.total}
-            </h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Course</TableHead>
-                  <TableHead className="text-right">Female</TableHead>
-                  <TableHead className="text-right">Male</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {location.courses.map((course) => (
-                  <TableRow key={course.course}>
-                    <TableCell className="font-medium">{course.course}</TableCell>
-                    <TableCell className="text-right">{course.female}</TableCell>
-                    <TableCell className="text-right">{course.male}</TableCell>
-                    <TableCell className="text-right">{course.total}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ))}
-        <div className="mt-4 text-right text-lg font-semibold">
-          Total LMS Completed: {totalCompletion}
+        <div className="w-full h-[400px] min-h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey="name"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                angle={-45}
+                textAnchor="end"
+                height={100}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={formatNumber}
+              />
+              <Tooltip 
+                formatter={value => formatNumber(value as number)}
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              />
+              <Legend />
+              <Bar 
+                dataKey="male" 
+                name="Male"
+                fill={colors.gender.male}
+                radius={[4, 4, 0, 0]}
+                barSize={20}
+              />
+              <Bar 
+                dataKey="female" 
+                name="Female"
+                fill={colors.gender.female}
+                radius={[4, 4, 0, 0]}
+                barSize={20}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
   );
-} 
+}; 

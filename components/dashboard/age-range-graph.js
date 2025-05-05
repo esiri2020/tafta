@@ -1,128 +1,92 @@
+import React from 'react';
 import {
-  Box,
-  Button,
   Card,
   CardContent,
   CardHeader,
-  Divider,
-  useTheme,
-} from "@mui/material";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import ArrowRightIcon from "@mui/icons-material/ArrowRight";
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
-import { Chart } from "../chart";
+const colors = {
+  primary: '#0ea5e9',
+  secondary: '#f97316',
+  tertiary: '#8b5cf6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#3b82f6',
+};
 
-export const AgeGroupGraph = (props) => {
-  const theme = useTheme();
-  const { data: _data } = props;
+const formatNumber = num => {
+  return Number.parseInt(num).toLocaleString();
+};
 
-  if (!_data) return null;
+export const AgeRangeGraph = ({ data }) => {
+  if (!data) return null;
 
-  const data = {
-    datasets: [
-      {
-        backgroundColor: "#3F51B5",
-        barPercentage: 0.5,
-        barThickness: 12,
-        borderRadius: 4,
-        categoryPercentage: 0.5,
-        data: _data?.map((x) => x.count),
-        label: "Completed",
-        maxBarThickness: 10,
-      },
-    ],
-    labels: _data?.map((x) => x.ageRange),
-  };
-
-  const option = {
-    series: [
-      {
-        name: "Course Completions",
-        data: _data?.map((x) => x.count),
-      },
-    ],
-    chart: {
-      id: "area-datetime",
-      type: "area",
-      height: 400,
-      zoom: {
-        autoScaleYaxis: true,
-      },
-    },
-
-    dataLabels: {
-      enabled: false,
-    },
-    markers: {
-      size: 0,
-      style: "hollow",
-    },
-    xaxis: {
-      type: "category", // Use "category" instead of "datetime" for age range
-      categories: _data.map((x) => x.ageRange), // Use ageRange for x-axis categories
-    },
-    yaxis: {
-      title: {
-        text: "Count", // Add y-axis title
-      },
-    },
-    tooltip: {
-      x: {
-        formatter: function (value) {
-          return `Age Range: ${value}`; // Format the tooltip to display age range
-        },
-      },
-      y: {
-        formatter: function (value) {
-          return `Count: ${value}`; // Format the tooltip to display count
-        },
-      },
-    },
-    fill: {
-      type: "gradient",
-      gradient: {
-        shadeIntensity: 1,
-        opacityFrom: 0.7,
-        opacityTo: 0.9,
-        stops: [0, 100],
-      },
-    },
-  };
+  const chartData = data.map(item => ({
+    name: item.ageRange,
+    value: Number.parseInt(item.count),
+  }));
 
   return (
-    <Card {...props}>
-      <CardHeader title="Age Range Of All Student" />
-      <Divider />
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Age Distribution</CardTitle>
+      </CardHeader>
       <CardContent>
-        <Box
-          sx={{
-            height: 400,
-            position: "relative",
-          }}
-        >
-          <Chart
-            options={option}
-            series={data.datasets} // Use the datasets from 'data' object
-            height={"100%"}
-          />
-        </Box>
+        <div className="w-full h-[300px] min-h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey="name"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={formatNumber}
+              />
+              <Tooltip 
+                formatter={value => formatNumber(value)}
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              />
+              <Bar 
+                dataKey="value" 
+                name="Applicants" 
+                fill={colors.primary}
+                radius={[4, 4, 0, 0]}
+                barSize={40}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
-      <Divider />
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "flex-end",
-          p: 2,
-        }}
-      >
-        <Button
-          color="primary"
-          endIcon={<ArrowRightIcon fontSize="small" />}
-          size="small"
-        >
-          Overview
-        </Button>
-      </Box>
     </Card>
   );
 };

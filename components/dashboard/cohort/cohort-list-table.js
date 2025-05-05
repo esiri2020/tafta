@@ -36,6 +36,7 @@ export const CohortListTable = (props) => {
   const {
     onPageChange,
     onRowsPerPageChange,
+    onCohortSelect,
     page,
     cohorts,
     cohortCount,
@@ -46,6 +47,10 @@ export const CohortListTable = (props) => {
 
   const handleOpenCohort = (cohortId) => {
     setOpenCohort((prevValue) => (prevValue === cohortId ? null : cohortId));
+  };
+
+  const handleCohortClick = (cohort) => {
+    onCohortSelect(cohort);
   };
 
   const handleUpdateCohort = () => {
@@ -93,6 +98,8 @@ export const CohortListTable = (props) => {
                   <TableRow
                     hover
                     key={cohort.id}
+                    onClick={() => handleCohortClick(cohort)}
+                    sx={{ cursor: 'pointer' }}
                   >
                     <TableCell
                       padding="checkbox"
@@ -112,7 +119,10 @@ export const CohortListTable = (props) => {
                       }}
                       width="25%"
                     >
-                      <IconButton onClick={() => handleOpenCohort(cohort.id)}>
+                      <IconButton onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCohort(cohort.id);
+                      }}>
                         {open
                           ? <ChevronDownIcon fontSize="small" />
                           : <ChevronRightIcon fontSize="small" />}
@@ -127,7 +137,6 @@ export const CohortListTable = (props) => {
                       >
                         <Box
                           sx={{
-                            cursor: 'pointer',
                             ml: 2
                           }}
                         >
@@ -138,7 +147,7 @@ export const CohortListTable = (props) => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                    {formatInTimeZone(cohort.start_date, 'dd MMM yyyy')}
+                      {formatInTimeZone(cohort.start_date, 'dd MMM yyyy')}
                     </TableCell>
                     <TableCell>
                       {cohort.end_date ? formatInTimeZone(cohort.end_date, 'dd MMM yyyy') : ''}
@@ -154,28 +163,28 @@ export const CohortListTable = (props) => {
                   </TableRow>
                   {open && (
                     <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      sx={{
-                        p: 0,
-                        position: 'relative',
-                        '&:after': {
-                          position: 'absolute',
-                          content: '" "',
-                          top: 0,
-                          left: 0,
-                          backgroundColor: 'primary.main',
-                          width: 3,
-                          height: 'calc(100% + 1px)'
-                        }
-                      }}
-                    >
-                      <CohortEditForm
-                        cohort={cohort}
-                        cancel={handleCancelEdit}
+                      <TableCell
+                        colSpan={7}
+                        sx={{
+                          p: 0,
+                          position: 'relative',
+                          '&:after': {
+                            position: 'absolute',
+                            content: '" "',
+                            top: 0,
+                            left: 0,
+                            backgroundColor: 'primary.main',
+                            width: 3,
+                            height: 'calc(100% + 1px)'
+                          }
+                        }}
+                      >
+                        <CohortEditForm
+                          cohort={cohort}
+                          cancel={handleCancelEdit}
                         />
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                    </TableRow>
                   )}
                 </Fragment>
               );
@@ -201,6 +210,7 @@ CohortListTable.propTypes = {
   cohortCount: PropTypes.number.isRequired,
   onPageChange: PropTypes.func.isRequired,
   onRowsPerPageChange: PropTypes.func,
+  onCohortSelect: PropTypes.func.isRequired,
   page: PropTypes.number.isRequired,
   rowsPerPage: PropTypes.number.isRequired
 };

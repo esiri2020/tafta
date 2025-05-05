@@ -253,38 +253,86 @@ export const ApplicantCreateForm = ({...other}) => {
     }),
     onSubmit: async (values, helpers) => {
       try {
-        const {email, firstName, lastName, password, submit, ...profile} =
-          values;
+        const {
+          email,
+          firstName,
+          lastName,
+          password,
+          submit,
+          dob,
+          ageRange,
+          type,
+          registrationMode,
+          educationLevel,
+          communityArea,
+          employmentStatus,
+          employmentSector,
+          cohortId,
+          selectedCourseId,
+          selectedCourseName,
+          businessName,
+          businessType,
+          businessSize,
+          businessSector,
+          businessPartners,
+          companyPhoneNumber,
+          additionalPhoneNumber,
+          companyEmail,
+          revenueRange,
+          businessSupportNeeds,
+          registrationType,
+          ...otherFields
+        } = values;
 
-        // Clean up profile data before submission
-        const cleanedProfile = {
-          ...profile,
-          // Only include business fields if type is ENTERPRISE
-          ...(profile.type === 'ENTERPRISE' ? {
-            businessName: profile.businessName || undefined,
-            businessType: profile.businessType || undefined,
-            businessSize: profile.businessSize || undefined,
-            businessSector: profile.businessSector || undefined,
-            businessPartners: profile.businessPartners || undefined,
-            companyPhoneNumber: profile.companyPhoneNumber || undefined,
-            additionalPhoneNumber: profile.additionalPhoneNumber || undefined,
-            companyEmail: profile.companyEmail || undefined,
-            revenueRange: profile.revenueRange || undefined,
-            businessSupportNeeds: profile.businessSupportNeeds || [],
-          } : {})
+        // Prepare profile data
+        const profile = {
+          dob: dob || undefined,
+          ageRange,
+          type,
+          registrationMode,
+          educationLevel,
+          communityArea,
+          employmentStatus,
+          employmentSector,
+          cohortId,
+          selectedCourseId,
+          selectedCourseName,
+          businessName,
+          businessType,
+          businessSize,
+          businessSector,
+          businessPartners,
+          companyPhoneNumber,
+          additionalPhoneNumber,
+          companyEmail,
+          revenueRange,
+          businessSupportNeeds,
+          registrationType,
+          ...otherFields,
         };
 
-        // NOTE: Make API request
-        await createApplicant({
-          body: {firstName, lastName, email, password, profile: cleanedProfile},
+        // Make API request
+        const response = await createApplicant({
+          body: {
+            firstName,
+            lastName,
+            email,
+            password,
+            type,
+            cohortId,
+            profile,
+          },
         }).unwrap();
-        helpers.setStatus({success: true});
-        helpers.setSubmitting(false);
-        toast.success('Applicant Created!');
-        router.replace({pathname: '/admin-dashboard/applicants/'});
+
+        if (response) {
+          helpers.setStatus({success: true});
+          helpers.setSubmitting(false);
+          toast.success('Applicant Created!');
+          router.replace({pathname: '/admin-dashboard/applicants/'});
+        }
       } catch (err) {
-        console.error(err);
-        toast.error('Something went wrong!');
+        console.error('Form submission error:', err);
+        toast.error(err.data?.message || 'Something went wrong!');
         helpers.setStatus({success: false});
         helpers.setErrors({submit: err.message});
         helpers.setSubmitting(false);
@@ -476,7 +524,7 @@ export const ApplicantCreateForm = ({...other}) => {
                 onBlur={formik.handleBlur}
                 onChange={(e) => {
                   const course = courses.find(c => c.id === e.target.value);
-                  formik.setFieldValue('selectedCourse', course.name);
+                  formik.setFieldValue('selectedCourse', e.target.value);
                   formik.setFieldValue('selectedCourseId', course.id);
                   formik.setFieldValue('selectedCourseName', course.name);
                 }}
