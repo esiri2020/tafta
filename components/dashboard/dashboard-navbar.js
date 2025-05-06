@@ -172,7 +172,7 @@ const NotificationsButton = () => {
             }}
           >
             <BellIcon fontSize="small" />
-          </Badge>
+            </Badge>
         </IconButton>
       </Tooltip>
       <NotificationsPopover

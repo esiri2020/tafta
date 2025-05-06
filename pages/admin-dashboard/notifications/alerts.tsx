@@ -23,7 +23,7 @@ import {
   MenuItem,
   Alert,
 } from '@mui/material';
-import {
+import { 
   ExpandMore as ExpandMoreIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
@@ -161,21 +161,21 @@ const StaffAlertsPage = () => {
             <Typography variant="h4">
               Staff Alerts
             </Typography>
-            <Button
-              variant="contained"
+                <Button
+                  variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setIsCreateDialogOpen(true)}
-            >
-              Create Alert
-            </Button>
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  Create Alert
+                </Button>
           </Box>
 
           <Card>
             <Box sx={{ p: 2 }}>
               {alerts.length > 0 ? (
                 alerts.map((alert) => (
-                  <Accordion
-                    key={alert.id}
+                    <Accordion
+                      key={alert.id}
                     expanded={expanded === alert.id}
                     onChange={handleChange(alert.id)}
                     sx={{
@@ -186,14 +186,14 @@ const StaffAlertsPage = () => {
                         display: 'none',
                       },
                     }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
-                      sx={{
-                        backgroundColor: 'action.hover',
-                      }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                            backgroundColor: 'action.hover',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                         <Avatar
                           src={alert.sender.image}
                           sx={{ mr: 2 }}
@@ -211,31 +211,31 @@ const StaffAlertsPage = () => {
                             </Typography>
                           </Box>
                         </Box>
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
                       <Typography variant="body1" sx={{ mb: 2 }}>
-                        {alert.message}
-                      </Typography>
+                            {alert.message}
+                          </Typography>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                         <Typography variant="subtitle2">
                           Sent by: {alert.sender.firstName} {alert.sender.lastName}
-                        </Typography>
-                      </Box>
-                    </AccordionDetails>
-                  </Accordion>
+                          </Typography>
+                        </Box>
+                      </AccordionDetails>
+                    </Accordion>
                 ))
               ) : (
                 <Typography color="text.secondary" sx={{ p: 2 }}>
                   No staff alerts
                 </Typography>
               )}
-            </Box>
+                </Box>
           </Card>
         </Box>
       </Box>
 
-      {/* Create Alert Dialog */}
+          {/* Create Alert Dialog */}
       <Dialog
         open={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
@@ -243,7 +243,7 @@ const StaffAlertsPage = () => {
         fullWidth
       >
         <DialogTitle>Create Staff Alert</DialogTitle>
-        <DialogContent>
+            <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -257,11 +257,11 @@ const StaffAlertsPage = () => {
               onChange={(e) => setNewAlert({ ...newAlert, title: e.target.value })}
               required
             />
-            <TextField
-              fullWidth
+                <TextField
+                  fullWidth
               label="Message"
-              multiline
-              rows={4}
+                  multiline
+                  rows={4}
               value={newAlert.message}
               onChange={(e) => setNewAlert({ ...newAlert, message: e.target.value })}
               required
@@ -278,19 +278,19 @@ const StaffAlertsPage = () => {
                 <MenuItem value="ALERT">Alert</MenuItem>
               </Select>
             </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleCreateAlert}
             disabled={!newAlert.title || !newAlert.message}
           >
-            Create Alert
-          </Button>
-        </DialogActions>
-      </Dialog>
+                Create Alert
+              </Button>
+            </DialogActions>
+          </Dialog>
     </>
   );
 };

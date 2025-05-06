@@ -29,7 +29,7 @@ export const useNotifications = () => {
         ...alert,
         isRead: alert.isRead ?? false,
       }));
-      setNotifications(alerts.filter(a => !a.isRead));
+      setNotifications(alerts.filter((a: StaffAlert) => !a.isRead));
       setUnreadCount(alerts.filter((n: StaffAlert) => !n.isRead).length);
       setError(null);
     } catch (err: any) {

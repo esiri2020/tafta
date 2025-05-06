@@ -207,19 +207,19 @@ const NotificationsPage = () => {
           </Typography>
 
           <Card>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
                     <TableCell width="50" />
                     <TableCell width="50">#</TableCell>
-                    <TableCell>Title</TableCell>
+                          <TableCell>Title</TableCell>
                     <TableCell align="center">Total Recipients</TableCell>
                     <TableCell>Latest Sent</TableCell>
                     <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
                   {groupedNotifications.map((group: GroupedNotification, index: number) => (
                     <Row
                       key={group.title}
@@ -227,18 +227,18 @@ const NotificationsPage = () => {
                       index={page * rowsPerPage + index}
                       onViewDetails={handleViewDetails}
                     />
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <TablePagination
-              component="div"
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    component="div"
               count={groupedNotifications.length}
-              page={page}
-              onPageChange={handleChangePage}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-            />
+                    page={page}
+                    onPageChange={handleChangePage}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                  />
           </Card>
         </Box>
       </Box>
