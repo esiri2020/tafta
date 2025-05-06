@@ -39,12 +39,11 @@ export default async function handler(
       // Build where clause based on filters
       const whereClause: any = {};
 
-      // For non-super admins, only show notifications they created or are assigned to
+      // For non-super admins, show all notifications but filter by status
       if (userRole !== 'SUPERADMIN') {
-        whereClause.OR = [
-          {senderId: token?.userData?.userId},
-          {recipientId: token?.userData?.userId}
-        ];
+        whereClause.status = {
+          not: 'ARCHIVED' // Only show non-archived notifications
+        };
       }
 
       if (isRead !== undefined) {

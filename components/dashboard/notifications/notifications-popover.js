@@ -13,16 +13,19 @@ import {
 import {Button} from '@/components/ui/button';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Badge} from '@/components/ui/badge';
-import {Mail, MailOpen} from 'lucide-react';
+import {Mail, MailOpen, Bell} from 'lucide-react';
 import {
   useGetNotificationsQuery,
   useMarkNotificationsAsReadMutation,
 } from '../../../services/api';
+import {useRouter} from 'next/router';
 
-const NotificationsPopover = ({anchorEl, onClose, open}) => {
+const NotificationsPopover = ({open, onClose}) => {
+  const router = useRouter();
   const {data, isLoading, refetch} = useGetNotificationsQuery({
     page: 0,
     limit: 5,
+    isRead: false, // Only fetch unread notifications for the popover
   });
 
   const [markAsRead] = useMarkNotificationsAsReadMutation();
@@ -33,6 +36,15 @@ const NotificationsPopover = ({anchorEl, onClose, open}) => {
     }
   }, [open, refetch]);
 
+  // Add polling for new notifications with shorter interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 10000); // Check for new notifications every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   const handleMarkAllAsRead = async () => {
     try {
       await markAsRead({markAllAsRead: true});
@@ -42,24 +54,30 @@ const NotificationsPopover = ({anchorEl, onClose, open}) => {
     }
   };
 
-  const handleMarkAsRead = async notificationId => {
+  const handleMarkAsRead = async (notificationId, relatedEntityId) => {
     try {
       await markAsRead({notificationIds: [notificationId]});
       refetch();
+      
+      // If there's a related entity, navigate to it
+      if (relatedEntityId) {
+        router.push(`/dashboard?entity=${relatedEntityId}`);
+      }
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }
   };
 
   const notifications = data?.notifications || [];
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.length;
 
   return (
     <Popover open={open} onOpenChange={onClose}>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-96 p-0" align="end" sideOffset={5}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Bell className="h-4 w-4 mr-2" />
               Notifications
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="ml-2">
@@ -72,32 +90,31 @@ const NotificationsPopover = ({anchorEl, onClose, open}) => {
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkAllAsRead}
+                className="text-xs"
               >
                 Mark all as read
               </Button>
             )}
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px]">
+          <CardContent className="p-0">
+            <ScrollArea className="h-[400px]">
               {isLoading ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   Loading notifications...
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  No notifications
+                  No new notifications
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="divide-y">
                   {notifications.map(notification => (
                     <div
                       key={notification.id}
-                      className={`flex items-start space-x-4 rounded-lg p-2 ${
-                        !notification.isRead ? 'bg-muted' : ''
+                      className={`flex items-start space-x-4 p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                        !notification.isRead ? 'bg-muted/30' : ''
                       }`}
-                      onClick={() =>
-                        !notification.isRead && handleMarkAsRead(notification.id)
-                      }
+                      onClick={() => handleMarkAsRead(notification.id, notification.relatedEntityId)}
                     >
                       <div className="mt-1">
                         {notification.isRead ? (
@@ -110,7 +127,7 @@ const NotificationsPopover = ({anchorEl, onClose, open}) => {
                         <p className="text-sm font-medium leading-none">
                           {notification.title}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {notification.message}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -122,15 +139,16 @@ const NotificationsPopover = ({anchorEl, onClose, open}) => {
                 </div>
               )}
             </ScrollArea>
-            <div className="mt-4">
+            <div className="p-4 border-t">
               <Button
                 variant="ghost"
                 className="w-full"
-                asChild
+                onClick={() => {
+                  onClose();
+                  router.push('/dashboard/notifications');
+                }}
               >
-                <a href="/dashboard?tab=notifications">
-                  See all notifications
-                </a>
+                View all notifications
               </Button>
             </div>
           </CardContent>

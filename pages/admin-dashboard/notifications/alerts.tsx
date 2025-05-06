@@ -5,16 +5,7 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Chip,
   Typography,
-  Alert,
   Button,
   Dialog,
   DialogTitle,
@@ -25,9 +16,21 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { format } from 'date-fns';
-import { Send as SendIcon } from '@mui/icons-material';
+import { 
+  Send as SendIcon,
+  ExpandMore as ExpandMoreIcon,
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+} from '@mui/icons-material';
 import { useGetNotificationsQuery, useGetCohortsQuery } from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { DashboardLayout } from '../../../components/dashboard/dashboard-layout';
@@ -53,17 +56,17 @@ interface StaffAlert {
 }
 
 const StaffAlertsPage = () => {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCohort, setSelectedCohort] = useState('');
   const [alertType, setAlertType] = useState('REMINDER');
   const [alertMessage, setAlertMessage] = useState('');
+  const [expandedAlert, setExpandedAlert] = useState<string | false>(false);
+  const [selectedAlert, setSelectedAlert] = useState<StaffAlert | null>(null);
 
   // Fetch alerts (notifications with COHORT_COMPLETION tag)
   const { data: alertsData, isLoading: isLoadingAlerts, error: alertsError } = useGetNotificationsQuery({
-    page,
-    limit: rowsPerPage,
+    page: 0,
+    limit: 100,
     tag: 'COHORT_COMPLETION',
     type: 'REMINDER',
   });
@@ -74,13 +77,12 @@ const StaffAlertsPage = () => {
     limit: 100,
   });
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
+  const handleAccordionChange = (alertId: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedAlert(isExpanded ? alertId : false);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  const handleViewFullMessage = (alert: StaffAlert) => {
+    setSelectedAlert(alert);
   };
 
   const handleCreateAlert = async () => {
@@ -90,6 +92,17 @@ const StaffAlertsPage = () => {
       setIsCreateDialogOpen(false);
     } catch (error) {
       toast.error('Failed to create alert');
+    }
+  };
+
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case 'REMINDER':
+        return <WarningIcon color="warning" />;
+      case 'ANNOUNCEMENT':
+        return <CheckCircleIcon color="success" />;
+      default:
+        return <CheckCircleIcon color="info" />;
     }
   };
 
@@ -130,65 +143,63 @@ const StaffAlertsPage = () => {
                   No alerts found
                 </Typography>
               ) : (
-                <>
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Cohort</TableCell>
-                          <TableCell>Title</TableCell>
-                          <TableCell>Message</TableCell>
-                          <TableCell>Type</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell>Created By</TableCell>
-                          <TableCell>Date</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {alertsData.notifications.map((alert: StaffAlert) => (
-                          <TableRow key={alert.id}>
-                            <TableCell>{alert.cohort.name}</TableCell>
-                            <TableCell>{alert.title}</TableCell>
-                            <TableCell>{alert.message}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={alert.type}
-                                color={alert.type === 'REMINDER' ? 'warning' : 'default'}
+                <Box sx={{ mt: 2 }}>
+                  {alertsData.notifications.map((alert: StaffAlert) => (
+                    <Accordion
+                      key={alert.id}
+                      expanded={expandedAlert === alert.id}
+                      onChange={handleAccordionChange(alert.id)}
+                      sx={{ mb: 2 }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'action.hover',
+                          },
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                          {getAlertIcon(alert.type)}
+                          <Box sx={{ ml: 2, flexGrow: 1 }}>
+                            <Typography variant="subtitle1">{alert.title}</Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              {alert.cohort.name} • {format(new Date(alert.createdAt), 'MMM d, yyyy HH:mm')}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={alert.status}
+                            color={alert.status === 'SENT' ? 'success' : 'default'}
+                            size="small"
+                            sx={{ mr: 2 }}
+                          />
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                            {alert.message}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" color="textSecondary">
+                            Sent by {alert.sender.firstName} {alert.sender.lastName} ({alert.sender.role})
+                          </Typography>
+                          <Box>
+                            <Tooltip title="View full message">
+                              <IconButton
                                 size="small"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={alert.status}
-                                color={alert.status === 'SENT' ? 'success' : 'default'}
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {alert.sender.firstName} {alert.sender.lastName}
-                              <br />
-                              <Typography variant="caption" color="textSecondary">
-                                {alert.sender.role}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(alert.createdAt), 'MMM d, yyyy HH:mm')}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-
-                  <TablePagination
-                    component="div"
-                    count={alertsData.total || 0}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                  />
-                </>
+                                onClick={() => handleViewFullMessage(alert)}
+                              >
+                                <VisibilityIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Box>
+                      </AccordionDetails>
+                    </Accordion>
+                  ))}
+                </Box>
               )}
             </CardContent>
           </Card>
@@ -242,6 +253,45 @@ const StaffAlertsPage = () => {
                 Create Alert
               </Button>
             </DialogActions>
+          </Dialog>
+
+          {/* View Full Message Dialog */}
+          <Dialog
+            open={!!selectedAlert}
+            onClose={() => setSelectedAlert(null)}
+            maxWidth="md"
+            fullWidth
+          >
+            {selectedAlert && (
+              <>
+                <DialogTitle>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {getAlertIcon(selectedAlert.type)}
+                    <Typography variant="h6" sx={{ ml: 1 }}>
+                      {selectedAlert.title}
+                    </Typography>
+                  </Box>
+                </DialogTitle>
+                <DialogContent>
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedAlert.message}
+                    </Typography>
+                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="textSecondary">
+                        Cohort: {selectedAlert.cohort.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Sent on: {format(new Date(selectedAlert.createdAt), 'MMM d, yyyy HH:mm')}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setSelectedAlert(null)}>Close</Button>
+                </DialogActions>
+              </>
+            )}
           </Dialog>
         </Box>
       </Box>

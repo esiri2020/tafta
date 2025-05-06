@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useRef, useState, useEffect} from 'react';
 import PropTypes from 'prop-types';
 import {useTranslation} from 'react-i18next';
 import {
@@ -144,41 +144,35 @@ const DashboardNavbarRoot = styled(AppBar)(({theme}) => ({
 
 const NotificationsButton = () => {
   const [openPopover, setOpenPopover] = useState(false);
-  const {data: notificationsData} = useGetNotificationsQuery({
+  const {data: notificationsData, refetch} = useGetNotificationsQuery({
     page: 0,
-    limit: 10,
+    limit: 5,
+    isRead: false, // Only fetch unread notifications
   });
 
-  const unreadCount = notificationsData?.notifications
-    ? notificationsData.notifications.filter(
-        notification => !notification.isRead,
-      ).length
-    : 0;
+  // Add polling for new notifications
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 10000); // Check for new notifications every 10 seconds
 
-  const handleOpenPopover = () => {
-    setOpenPopover(true);
-  };
+    return () => clearInterval(interval);
+  }, [refetch]);
 
-  const handleClosePopover = () => {
-    setOpenPopover(false);
-  };
+  const unreadCount = notificationsData?.notifications?.length || 0;
 
   return (
     <>
       <Tooltip title='Notifications'>
-        <IconButton onClick={handleOpenPopover} sx={{ml: 1}}>
-          {unreadCount > 0 ? (
-            <Badge badgeContent={unreadCount} color='error'>
-              <BellIcon fontSize='small' />
-            </Badge>
-          ) : (
+        <IconButton onClick={() => setOpenPopover(true)} sx={{ml: 1}}>
+          <Badge badgeContent={unreadCount} color='error' max={99}>
             <BellIcon fontSize='small' />
-          )}
+          </Badge>
         </IconButton>
       </Tooltip>
       <NotificationsPopover
         open={openPopover}
-        onClose={handleClosePopover}
+        onClose={() => setOpenPopover(false)}
       />
     </>
   );
