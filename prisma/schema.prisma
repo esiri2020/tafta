@@ -56,10 +56,10 @@ model User {
   reports               Report[]
   seatBooking           SeatBooking[]
   sessions              Session[]
+  sentStaffAlerts       StaffAlert[]      @relation("SentStaffAlerts")
+  staffAlertReads       StaffAlertRead[]
   userCohort            UserCohort[]
   staffAlerts           StaffAlert[]      @relation("StaffAlertRecipients")
-  staffAlertReads       StaffAlertRead[]
-  sentStaffAlerts       StaffAlert[]      @relation("SentStaffAlerts")
 }
 
 model Profile {
@@ -140,13 +140,6 @@ model Enrollment {
   userCohort           UserCohort @relation(fields: [userCohortId], references: [id], onDelete: Cascade)
 
   @@index([id, course_id])
-}
-
-enum CohortStatus {
-  ACTIVE
-  INACTIVE
-  COMPLETED
-  CANCELLED
 }
 
 model Cohort {
@@ -346,6 +339,30 @@ model CohortToLocation {
   @@map("_CohortToLocation")
 }
 
+model StaffAlert {
+  id              String           @id @default(cuid())
+  title           String
+  message         String
+  type            StaffAlertType
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  senderId        String
+  sender          User             @relation("SentStaffAlerts", fields: [senderId], references: [id])
+  staffAlertReads StaffAlertRead[]
+  recipients      User[]           @relation("StaffAlertRecipients")
+}
+
+model StaffAlertRead {
+  id         String     @id @default(cuid())
+  alertId    String
+  userId     String
+  readAt     DateTime   @default(now())
+  staffAlert StaffAlert @relation(fields: [alertId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([alertId, userId])
+}
+
 view EnrollmentCompletionGraph {
   id    BigInt    @unique
   date  DateTime? @db.Date
@@ -414,6 +431,13 @@ view raster_overviews {
   overview_factor Int?
 
   @@ignore
+}
+
+enum CohortStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 enum Role {
@@ -505,29 +529,4 @@ enum StaffAlertType {
   INFO
   WARNING
   ALERT
-}
-
-model StaffAlert {
-  id        String        @id @default(cuid())
-  title     String
-  message   String
-  type      StaffAlertType
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  senderId  String
-  sender    User          @relation("SentStaffAlerts", fields: [senderId], references: [id])
-
-  staffAlertReads StaffAlertRead[]
-  recipients      User[]           @relation("StaffAlertRecipients")
-}
-
-model StaffAlertRead {
-  id         String     @id @default(cuid())
-  alertId    String
-  userId     String
-  readAt     DateTime   @default(now())
-  staffAlert StaffAlert @relation(fields: [alertId], references: [id])
-  user       User       @relation(fields: [userId], references: [id])
-
-  @@unique([alertId, userId])
 }
