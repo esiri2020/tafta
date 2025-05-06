@@ -378,19 +378,19 @@ const initialValues = {
   applicantType: 'individual',
   courseId: '',
   cohortId: '',
-  firstName: '',
-  lastName: '',
+      firstName: '',
+      lastName: '',
   email: '',
-  phoneNumber: '',
+      phoneNumber: '',
   gender: '',
-  ageRange: '',
+      ageRange: '',
   stateOfResidence: '',
   lga: '',
   homeAddress: '',
-  communityArea: '',
+      communityArea: '',
   educationLevel: '',
-  employmentStatus: '',
-  employmentSector: '',
+      employmentStatus: '',
+      employmentSector: '',
   selfEmployedType: '',
   salaryRange: '',
   disabilityStatus: false,
@@ -399,13 +399,13 @@ const initialValues = {
   talpProgram: '',
   jobReadiness: [],
   businessType: '',
-  businessSize: '',
-  businessSector: '',
-  businessPartners: '',
-  companyPhoneNumber: '',
-  additionalPhoneNumber: '',
-  companyEmail: '',
-  revenueRange: '',
+      businessSize: '',
+      businessSector: '',
+      businessPartners: '',
+      companyPhoneNumber: '',
+      additionalPhoneNumber: '',
+      companyEmail: '',
+      revenueRange: '',
   businessSupport: [],
   assessment: {
     courseOfStudy: '',
@@ -459,7 +459,7 @@ const validationSchema = Yup.object().shape({
   communityArea: Yup.string().required('Community area is required'),
   educationLevel: Yup.string().required('Education level is required'),
   employmentStatus: Yup.string().required('Employment status is required'),
-  employmentSector: Yup.string().when('employmentStatus', {
+      employmentSector: Yup.string().when('employmentStatus', {
     is: (val) => val === 'employed',
     then: (schema) => schema.required('Employment sector is required')
   }),
@@ -812,112 +812,112 @@ export const ApplicantCreateForm = ({...other}) => {
                         </Typography>
                       </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.firstName && formik.errors.firstName)}
-                          fullWidth
+                fullWidth
                           helperText={formik.touched.firstName && formik.errors.firstName}
                           label="First Name"
                           name="firstName"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
-                          required
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                required
                           value={formik.values.firstName}
-                        />
-                      </Grid>
+              />
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.lastName && formik.errors.lastName)}
-                          fullWidth
+                fullWidth
                           helperText={formik.touched.lastName && formik.errors.lastName}
                           label="Last Name"
                           name="lastName"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
-                          required
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                required
                           value={formik.values.lastName}
-                        />
-                      </Grid>
+              />
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.email && formik.errors.email)}
-                          fullWidth
+                fullWidth
                           helperText={formik.touched.email && formik.errors.email}
                           label="Email Address"
                           name="email"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                           required
                           value={formik.values.email}
-                        />
-                      </Grid>
+              />
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.phoneNumber && formik.errors.phoneNumber)}
-                          fullWidth
+                fullWidth
                           helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
                           label="Phone Number"
                           name="phoneNumber"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
-                          required
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                required
                           value={formik.values.phoneNumber}
                         />
-                      </Grid>
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.gender && formik.errors.gender)}
-                          fullWidth
-                          select
+                fullWidth
+                select
                           helperText={formik.touched.gender && formik.errors.gender}
                           label="Gender"
                           name="gender"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
-                          required
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                required
                           value={formik.values.gender}
                         >
                           {genderList.map((gender) => (
                             <MenuItem key={gender} value={gender}>
                               {gender}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.ageRange && formik.errors.ageRange)}
-                          fullWidth
-                          select
+                fullWidth
+                select
                           helperText={formik.touched.ageRange && formik.errors.ageRange}
                           label="Age Range"
                           name="ageRange"
-                          onBlur={formik.handleBlur}
+                onBlur={formik.handleBlur}
                           onChange={formik.handleChange}
-                          required
+                required
                           value={formik.values.ageRange}
                         >
                           {ranges.map((range) => (
                             <MenuItem key={range.join('-')} value={range.join('-')}>
                               {range.join('-')}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
 
-                      {/* Location Information */}
-                      <Grid item xs={12}>
+            {/* Location Information */}
+            <Grid item xs={12}>
                         <Typography variant="h6" sx={{ mb: 2, mt: 2 }}>
-                          Location Information
-                        </Typography>
-                      </Grid>
+                Location Information
+              </Typography>
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
+            <Grid item md={6} xs={12}>
                         <Autocomplete
                           getOptionLabel={option => option || ''}
                           options={nigeria_states}
@@ -927,26 +927,26 @@ export const ApplicantCreateForm = ({...other}) => {
                             formik.setFieldValue('lga', ''); // Clear LGA when state changes
                           }}
                           renderInput={params => (
-                            <TextField
+              <TextField
                               {...params}
-                              error={Boolean(
-                                formik.touched.stateOfResidence &&
-                                  formik.errors.stateOfResidence,
-                              )}
-                              fullWidth
-                              helperText={
-                                formik.touched.stateOfResidence &&
-                                formik.errors.stateOfResidence
-                              }
+                error={Boolean(
+                  formik.touched.stateOfResidence &&
+                    formik.errors.stateOfResidence,
+                )}
+                fullWidth
+                helperText={
+                  formik.touched.stateOfResidence &&
+                  formik.errors.stateOfResidence
+                }
                               label="State of Residence"
                               name="stateOfResidence"
                               required
                             />
                           )}
-                        />
-                      </Grid>
+              />
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
+            <Grid item md={6} xs={12}>
                         <Autocomplete
                           getOptionLabel={option => option || ''}
                           options={availableLGAs}
@@ -956,12 +956,12 @@ export const ApplicantCreateForm = ({...other}) => {
                           }}
                           disabled={!formik.values.stateOfResidence}
                           renderInput={params => (
-                            <TextField
+              <TextField
                               {...params}
-                              error={Boolean(
+                error={Boolean(
                                 formik.touched.lga && formik.errors.lga,
-                              )}
-                              fullWidth
+                )}
+                fullWidth
                               helperText={
                                 formik.touched.lga && formik.errors.lga
                               }
@@ -970,22 +970,22 @@ export const ApplicantCreateForm = ({...other}) => {
                               required
                             />
                           )}
-                        />
-                      </Grid>
+              />
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.homeAddress && formik.errors.homeAddress)}
-                          fullWidth
+                fullWidth
                           helperText={formik.touched.homeAddress && formik.errors.homeAddress}
                           label="Home Address"
                           name="homeAddress"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                           required
-                          value={formik.values.homeAddress}
-                        />
-                      </Grid>
+                value={formik.values.homeAddress}
+              />
+            </Grid>
 
                       <Grid item md={6} xs={12}>
                         <TextField
@@ -1009,119 +1009,119 @@ export const ApplicantCreateForm = ({...other}) => {
                       </Grid>
 
                       {/* Education & Employment Information */}
-                      <Grid item xs={12}>
+            <Grid item xs={12}>
                         <Typography variant="h6" sx={{ mb: 2, mt: 2 }}>
                           Education & Employment Information
-                        </Typography>
-                      </Grid>
+              </Typography>
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.educationLevel && formik.errors.educationLevel)}
-                          fullWidth
-                          select
+                fullWidth
+                select
                           helperText={formik.touched.educationLevel && formik.errors.educationLevel}
                           label="Education Level"
                           name="educationLevel"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                           required
                           value={formik.values.educationLevel}
                         >
                           {levels_of_education.map((level) => (
                             <MenuItem key={level.value} value={level.value}>
                               {level.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
 
-                      <Grid item md={6} xs={12}>
-                        <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                           error={Boolean(formik.touched.employmentStatus && formik.errors.employmentStatus)}
-                          fullWidth
-                          select
+                fullWidth
+                select
                           helperText={formik.touched.employmentStatus && formik.errors.employmentStatus}
                           label="Employment Status"
                           name="employmentStatus"
-                          onBlur={formik.handleBlur}
-                          onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                           required
                           value={formik.values.employmentStatus}
                         >
                           {employment_status.map((status) => (
                             <MenuItem key={status.value} value={status.value}>
                               {status.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
 
                       {formik.values.employmentStatus === 'employed' && (
                         <>
-                          <Grid item md={6} xs={12}>
-                            <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                               error={Boolean(formik.touched.employmentSector && formik.errors.employmentSector)}
-                              fullWidth
-                              select
+                fullWidth
+                select
                               helperText={formik.touched.employmentSector && formik.errors.employmentSector}
                               label="Employment Sector"
                               name="employmentSector"
-                              onBlur={formik.handleBlur}
-                              onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                               required
                               value={formik.values.employmentSector}
                             >
                               {employment_sectors.map((sector) => (
                                 <MenuItem key={sector} value={sector}>
                                   {sector}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                          <Grid item md={6} xs={12}>
-                            <TextField
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item md={6} xs={12}>
+              <TextField
                               error={Boolean(formik.touched.salaryRange && formik.errors.salaryRange)}
-                              fullWidth
-                              select
+                fullWidth
+                select
                               helperText={formik.touched.salaryRange && formik.errors.salaryRange}
                               label="Salary Range"
                               name="salaryRange"
-                              onBlur={formik.handleBlur}
-                              onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                               value={formik.values.salaryRange}
                             >
                               {salary_ranges.map((range) => (
                                 <MenuItem key={range.value} value={range.value}>
                                   {range.label}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
                         </>
                       )}
 
                       {formik.values.employmentStatus === 'self-employed' && (
-                        <Grid item md={6} xs={12}>
-                          <TextField
+            <Grid item md={6} xs={12}>
+              <TextField
                             error={Boolean(formik.touched.selfEmployedType && formik.errors.selfEmployedType)}
-                            fullWidth
-                            select
+                fullWidth
+                select
                             helperText={formik.touched.selfEmployedType && formik.errors.selfEmployedType}
                             label="Self-Employed Type"
                             name="selfEmployedType"
-                            onBlur={formik.handleBlur}
-                            onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
                             required
                             value={formik.values.selfEmployedType}
                           >
                             {self_employment_types.map((type) => (
                               <MenuItem key={type.value} value={type.value}>
                                 {type.label}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        </Grid>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
                       )}
 
                       {/* Disability & Residency Information */}
@@ -1150,27 +1150,27 @@ export const ApplicantCreateForm = ({...other}) => {
                       </Grid>
 
                       {formik.values.disabilityStatus && (
-                        <Grid item md={6} xs={12}>
-                          <TextField
+              <Grid item md={6} xs={12}>
+                <TextField
                             error={Boolean(formik.touched.disabilityType && formik.errors.disabilityType)}
-                            fullWidth
-                            select
+                  fullWidth
+                  select
                             helperText={formik.touched.disabilityType && formik.errors.disabilityType}
                             label="Disability Type"
                             name="disabilityType"
-                            onBlur={formik.handleBlur}
-                            onChange={formik.handleChange}
-                            required
+                  onBlur={formik.handleBlur}
+                  onChange={formik.handleChange}
+                  required
                             value={formik.values.disabilityType}
                           >
                             {user_disabilities.map((disability) => (
                               <MenuItem key={disability.value} value={disability.value}>
                                 {disability.label}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        </Grid>
-                      )}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
 
                       <Grid item md={6} xs={12}>
                         <TextField
@@ -1194,11 +1194,11 @@ export const ApplicantCreateForm = ({...other}) => {
                       </Grid>
 
                       {/* TALP & Job Readiness Information */}
-                      <Grid item xs={12}>
+                <Grid item xs={12}>
                         <Typography variant="h6" sx={{ mb: 2, mt: 2 }}>
                           TALP & Job Readiness Information
-                        </Typography>
-                      </Grid>
+                  </Typography>
+                </Grid>
 
                       <Grid item md={6} xs={12}>
                         <FormControlLabel
@@ -1221,17 +1221,17 @@ export const ApplicantCreateForm = ({...other}) => {
 
                       {formik.values.talpParticipation && (
                         <>
-                          <Grid item md={6} xs={12}>
-                            <TextField
+                <Grid item md={6} xs={12}>
+                  <TextField
                               error={Boolean(formik.touched.talpProgram && formik.errors.talpProgram)}
-                              fullWidth
+                    fullWidth
                               select
                               helperText={formik.touched.talpProgram && formik.errors.talpProgram}
                               label="TALP Program"
                               name="talpProgram"
-                              onBlur={formik.handleBlur}
-                              onChange={formik.handleChange}
-                              required
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    required
                               value={formik.values.talpProgram}
                             >
                               {talp_types.map((type) => (
@@ -1496,20 +1496,20 @@ export const ApplicantCreateForm = ({...other}) => {
                 </Grid>
 
                 {formik.values.employmentStatus === 'employed' && (
-                  <Grid item md={6} xs={12}>
-                    <TextField
-                      error={Boolean(
+                <Grid item md={6} xs={12}>
+                  <TextField
+                    error={Boolean(
                         formik.touched.salaryRange && formik.errors.salaryRange,
-                      )}
-                      fullWidth
-                      select
-                      helperText={
+                    )}
+                    fullWidth
+                    select
+                    helperText={
                         formik.touched.salaryRange && formik.errors.salaryRange
-                      }
+                    }
                       label='Salary Range'
                       name='salaryRange'
-                      onBlur={formik.handleBlur}
-                      onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
                       value={formik.values.salaryRange}>
                       {salary_ranges.map((range) => (
                         <MenuItem key={range.value} value={range.value}>
@@ -1618,12 +1618,12 @@ export const ApplicantCreateForm = ({...other}) => {
                           }
                         >
                           {employmentTypes.map((type) => (
-                            <MenuItem key={type.value} value={type.value}>
-                              {type.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
 
                       <Grid item md={6} xs={12}>
                         <TextField

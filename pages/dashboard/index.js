@@ -72,7 +72,7 @@ import {
   History as HistoryIcon,
 } from '@mui/icons-material';
 import {format} from 'date-fns';
-import {NotificationPanel} from '../../components/dashboard/notifications/notification-panel';
+import NotificationPanel from '../../components/dashboard/notifications/notification-panel';
 
 const tabs = [
   {label: 'Welcome Message', value: 'general'},
@@ -290,10 +290,15 @@ const Account = () => {
     data: notificationsData,
     error: notificationsError,
     isLoading: notificationsLoading,
+    refetch: refetchNotifications,
   } = useGetNotificationsQuery({
     page: 0,
     limit: 10,
-  }); // Fetch notifications regardless of tab
+  });
+
+  const handleNotificationUpdate = () => {
+    refetchNotifications();
+  };
 
   console.log('notificationsData', notificationsData);
 
@@ -436,14 +441,11 @@ const Account = () => {
             />
           )}
           {currentTab === 'notifications' && (
-            <Box sx={{mt: 4}}>
-              <Card>
-                <CardHeader title='Notifications' />
-                <Divider />
-                <CardContent>
-                  <NotificationPanel notificationsData={notificationsData} />
-                </CardContent>
-              </Card>
+            <Box sx={{mt: 3}}>
+              <NotificationPanel 
+                notificationsData={notificationsData} 
+                onNotificationUpdate={handleNotificationUpdate}
+              />
             </Box>
           )}
           {currentTab === 'personal-information' && (

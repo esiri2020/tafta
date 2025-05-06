@@ -1,6 +1,7 @@
 import {getToken} from 'next-auth/jwt';
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../../lib/prismadb';
+import {NotificationStatus} from '@prisma/client';
 
 export default async function handler(
   req: NextApiRequest,
@@ -37,8 +38,8 @@ export default async function handler(
     }
 
     try {
-      // Get all applicants in the specified cohort
-      const cohortApplicants = await prisma.user.findMany({
+      // Get all applicants in the cohort
+      const applicants = await prisma.user.findMany({
         where: {
           role: 'APPLICANT',
           userCohort: {
@@ -52,23 +53,25 @@ export default async function handler(
         },
       });
 
-      if (cohortApplicants.length === 0) {
-        return res.status(404).send({
+      if (!applicants || applicants.length === 0) {
+        return res.status(400).send({
           error: 'No applicants found in the specified cohort.',
         });
       }
 
-      // Create notifications for all applicants in the cohort
-      const notificationData = cohortApplicants.map(applicant => ({
+      // Create notifications for each applicant
+      const notificationData = applicants.map(applicant => ({
         title,
         message,
         senderId: token.sub as string,
         recipientId: applicant.id,
-        type: type || 'ANNOUNCEMENT',
-        cohortId,
+        type: type || 'GENERAL',
+        cohortId: cohortId,
         relatedEntityId: relatedEntityId || null,
+        status: NotificationStatus.DELIVERED, // Set status to DELIVERED when creating
       }));
 
+      // Create notifications
       const notifications = await prisma.notification.createMany({
         data: notificationData,
       });
@@ -79,7 +82,7 @@ export default async function handler(
         message: `Successfully sent notifications to ${notifications.count} applicants in the cohort.`,
       });
     } catch (err: any) {
-      console.error(err.message);
+      console.error('Error creating cohort notifications:', err);
       return res.status(400).send(err.message);
     }
   }

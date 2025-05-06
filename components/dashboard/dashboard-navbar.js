@@ -18,7 +18,6 @@ import {Search as SearchIcon} from '../../icons/search';
 import {UserCircle as UserCircleIcon} from '../../icons/user-circle';
 import {Users as UsersIcon} from '../../icons/users';
 import {AccountPopover} from '../account-popover';
-import {NotificationBadge} from './notifications/notification-badge';
 import NotificationsPopover from './notifications/notifications-popover';
 import {useGetNotificationsQuery} from '../../services/api';
 // import { ContactsPopover } from '../contacts-popover';
@@ -163,16 +162,37 @@ const NotificationsButton = () => {
 
   return (
     <>
-      <Tooltip title='Notifications'>
-        <IconButton onClick={() => setOpenPopover(true)} sx={{ml: 1}}>
-          <Badge badgeContent={unreadCount} color='error' max={99}>
-            <BellIcon fontSize='small' />
+      <Tooltip title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'No new notifications'}>
+        <IconButton 
+          onClick={() => setOpenPopover(true)} 
+          sx={{
+            ml: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+        >
+          <Badge 
+            badgeContent={unreadCount} 
+            color="error" 
+            max={99}
+            sx={{
+              '& .MuiBadge-badge': {
+                right: -3,
+                top: 3,
+                border: '2px solid #fff',
+                padding: '0 4px',
+              },
+            }}
+          >
+            <BellIcon fontSize="small" />
           </Badge>
         </IconButton>
       </Tooltip>
       <NotificationsPopover
         open={openPopover}
         onClose={() => setOpenPopover(false)}
+        notifications={notificationsData?.notifications || []}
       />
     </>
   );
@@ -255,7 +275,7 @@ export const DashboardNavbar = props => {
                 lg: 'none',
               },
             }}>
-            <MenuIcon fontSize='small' />
+            <MenuIcon fontSize="small" />
           </IconButton>
           <Box sx={{flexGrow: 1}} />
           {/* <LanguageButton /> */}

@@ -174,7 +174,7 @@ export const NotificationSendForm = ({
         // Send without unwrap to avoid RTK query error handling issues
         const response = await sendNotification(payload);
         console.log('Filtered notification response:', response);
-      } else {
+      } else if (recipientIds?.length > 0) {
         // Send to explicitly selected recipients
         console.log('Sending to selected recipients:', recipientIds);
 
