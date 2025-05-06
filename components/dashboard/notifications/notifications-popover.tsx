@@ -10,22 +10,22 @@ import {
   Divider,
   IconButton,
   Badge,
-  Tooltip,
+  Button,
 } from '@mui/material';
 import {
-  Notifications as NotificationsIcon,
   Warning as WarningIcon,
   Message as MessageIcon,
   ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { format, parseISO } from 'date-fns';
+import { useGetNotificationsQuery, useMarkNotificationsAsReadMutation } from '../../../services/api';
 
-interface Notification {
+interface StaffAlert {
   id: string;
   title: string;
   message: string;
-  type: 'ALERT' | 'NOTIFICATION';
+  type: 'INFO' | 'WARNING' | 'ALERT';
   sender: {
     firstName: string;
     lastName: string;
@@ -35,32 +35,52 @@ interface Notification {
 }
 
 interface NotificationsPopoverProps {
+  notifications: StaffAlert[];
   open: boolean;
   onClose: () => void;
-  notifications: Notification[];
+  onMarkAsRead: (notificationIds: string[]) => void;
 }
 
 export const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({
   notifications,
   open,
   onClose,
+  onMarkAsRead,
 }) => {
   const router = useRouter();
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleNotificationClick = (notification: Notification) => {
-    onClose();
-    if (notification.type === 'ALERT') {
-      router.push('/admin-dashboard/notifications/alerts');
+  // Group alerts by title and sender
+  const groupedAlerts = notifications.reduce((groups, alert) => {
+    const key = `${alert.title}-${alert.sender.firstName}-${alert.sender.lastName}-${alert.createdAt}`;
+    if (!groups[key]) {
+      groups[key] = {
+        ...alert,
+        count: 1,
+        ids: [alert.id],
+      };
     } else {
-      router.push('/admin-dashboard/notifications');
+      groups[key].count++;
+      groups[key].ids.push(alert.id);
     }
+    return groups;
+  }, {} as Record<string, StaffAlert & { count: number; ids: string[] }>);
+
+  const handleAlertClick = async (alertIds: string[]) => {
+    onMarkAsRead(alertIds);
+    router.push('/admin-dashboard/notifications/alerts');
+    onClose();
   };
 
-  const getNotificationSummary = (notification: Notification) => {
-    const senderName = `${notification.sender.firstName} ${notification.sender.lastName}`;
-    return notification.type === 'ALERT'
-      ? `${senderName} sent an alert`
-      : `${senderName} sent a notification`;
+  const handleMarkAllAsRead = () => {
+    const unreadIds = notifications
+      .filter(n => !n.isRead)
+      .map(n => n.id);
+    
+    if (unreadIds.length > 0) {
+      onMarkAsRead(unreadIds);
+      onClose();
+    }
   };
 
   return (
@@ -76,49 +96,86 @@ export const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({
         horizontal: 'right',
       }}
       PaperProps={{
-        sx: { width: 360, maxHeight: 480 },
+        sx: {
+          width: 360,
+          maxHeight: 480,
+          overflow: 'auto',
+        },
       }}
     >
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6">Notifications</Typography>
-        <Badge badgeContent={notifications?.filter(n => !n.isRead).length || 0} color="error">
-          <NotificationsIcon />
-        </Badge>
+        <Typography variant="h6">Staff Alerts</Typography>
+        {unreadCount > 0 && (
+          <Button
+            size="small"
+            onClick={handleMarkAllAsRead}
+            sx={{ textTransform: 'none' }}
+          >
+            Mark all as read
+          </Button>
+        )}
       </Box>
       <Divider />
       <List sx={{ p: 0 }}>
-        {notifications && notifications.length > 0 ? (
-          notifications.map((notification) => (
-            <React.Fragment key={notification.id}>
-              <ListItem
-                button
-                onClick={() => handleNotificationClick(notification)}
-                sx={{
-                  bgcolor: notification.isRead ? 'transparent' : 'action.hover',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
-                <ListItemIcon>
-                  {notification.type === 'ALERT' ? (
-                    <WarningIcon color="warning" />
-                  ) : (
-                    <MessageIcon color="primary" />
-                  )}
-                </ListItemIcon>
-                <ListItemText
-                  primary={getNotificationSummary(notification)}
-                  secondary={format(parseISO(notification.createdAt), 'h:mm a')}
-                />
-                <IconButton size="small">
-                  <ArrowForwardIcon fontSize="small" />
-                </IconButton>
-              </ListItem>
-              <Divider />
-            </React.Fragment>
+        {Object.values(groupedAlerts).length > 0 ? (
+          Object.values(groupedAlerts).map((alert) => (
+            <ListItem
+              key={alert.id}
+              button
+              onClick={() => handleAlertClick(alert.ids)}
+              sx={{
+                backgroundColor: alert.isRead ? 'inherit' : 'action.hover',
+                '&:hover': {
+                  backgroundColor: 'action.selected',
+                },
+              }}
+            >
+              <ListItemIcon>
+                {alert.type === 'ALERT' ? (
+                  <WarningIcon color="error" />
+                ) : alert.type === 'WARNING' ? (
+                  <WarningIcon color="warning" />
+                ) : (
+                  <MessageIcon color="info" />
+                )}
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle2" component="span">
+                      {alert.title}
+                    </Typography>
+                    <Badge
+                      badgeContent={alert.count}
+                      color="primary"
+                      sx={{ ml: 1 }}
+                    />
+                  </Box>
+                }
+                secondary={
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    {`From: ${alert.sender.firstName} ${alert.sender.lastName} • ${format(parseISO(alert.createdAt), 'MMM d, h:mm a')}`}
+                  </Typography>
+                }
+              />
+              <IconButton size="small">
+                <ArrowForwardIcon fontSize="small" />
+              </IconButton>
+            </ListItem>
           ))
         ) : (
           <ListItem>
-            <ListItemText primary="No notifications" />
+            <ListItemText
+              primary={
+                <Typography color="text.secondary">
+                  No alerts
+                </Typography>
+              }
+            />
           </ListItem>
         )}
       </List>

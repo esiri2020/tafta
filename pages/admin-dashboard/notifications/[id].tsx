@@ -194,7 +194,7 @@ const NotificationDetailsPage = () => {
                       Filter Parameters
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {Object.entries(broadcast.filterParams).map(([key, value]) => (
+                      {(Object.entries(broadcast.filterParams) as [string, string][]).map(([key, value]) => (
                         value && (
                           <Chip
                             key={key}

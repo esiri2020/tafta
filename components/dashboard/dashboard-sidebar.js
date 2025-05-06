@@ -360,10 +360,6 @@ const getSuperAdminSections = userId => [
             title: 'Cohort Alerts',
             path: '/admin-dashboard/notifications/alerts',
           },
-          {
-            title: 'Create Notification',
-            path: '/admin-dashboard/notifications/create',
-          },
         ],
       },
     ],

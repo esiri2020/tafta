@@ -20,6 +20,7 @@ import {Users as UsersIcon} from '../../icons/users';
 import {AccountPopover} from '../account-popover';
 import NotificationsPopover from './notifications/notifications-popover';
 import {useGetNotificationsQuery} from '../../services/api';
+import {useNotifications} from '../../hooks/use-notifications';
 // import { ContactsPopover } from '../contacts-popover';
 // import { ContentSearchDialog } from './content-search-dialog';
 // import { LanguagePopover } from './language-popover';
@@ -143,22 +144,7 @@ const DashboardNavbarRoot = styled(AppBar)(({theme}) => ({
 
 const NotificationsButton = () => {
   const [openPopover, setOpenPopover] = useState(false);
-  const {data: notificationsData, refetch} = useGetNotificationsQuery({
-    page: 0,
-    limit: 5,
-    isRead: false, // Only fetch unread notifications
-  });
-
-  // Add polling for new notifications
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetch();
-    }, 10000); // Check for new notifications every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [refetch]);
-
-  const unreadCount = notificationsData?.notifications?.length || 0;
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   return (
     <>
@@ -192,7 +178,8 @@ const NotificationsButton = () => {
       <NotificationsPopover
         open={openPopover}
         onClose={() => setOpenPopover(false)}
-        notifications={notificationsData?.notifications || []}
+        notifications={notifications}
+        onMarkAsRead={markAsRead}
       />
     </>
   );
