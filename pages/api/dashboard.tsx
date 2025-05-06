@@ -227,7 +227,7 @@ export default async function handler(
       })
       .reverse();
 
-    const locations = ['Kaduna', 'Lagos', 'Ogun'];
+    const locations = ['Kano', 'Lagos', 'Ogun'];
 
     const locationCounts = await Promise.all(
       locations.map(async location => {
@@ -644,7 +644,9 @@ export default async function handler(
       const locationTrendsData = [];
 
       for (const month of months) {
-        const monthData = {month: month.name};
+        const monthData: {month: string; [key: string]: string | number} = {
+          month: month.name,
+        };
 
         for (const locationName of topLocations) {
           // Count enrollments for this location in this month

@@ -81,17 +81,6 @@ export const useFormSubmission = ({
         sessionStorage.getItem('selectedCourseActualId') ||
         '';
 
-      // Debug logging
-      console.log('Enrollment creation check:', {
-        selectedCourse,
-        cohortId,
-        selectedCourseId,
-        selectedCourseName,
-        hasAllRequiredFields: Boolean(
-          selectedCourse && cohortId && selectedCourseId && selectedCourseName,
-        ),
-      });
-
       // Build profile object
       const profile: any = {
         phoneNumber,
@@ -122,8 +111,8 @@ export const useFormSubmission = ({
         salaryRange,
       };
 
-      // Only include business fields for enterprise applicants or set valid default values for individuals
-      if (isEnterpriseType) {
+      // Only include business fields for enterprise applicants or entrepreneurs
+      if (isEnterpriseType || employmentStatus === 'entrepreneur') {
         // For enterprise applicants, include all business fields
         profile.businessSupportNeeds = businessSupportNeeds;
         profile.businessType = businessType || 'INFORMAL'; // Default to INFORMAL if empty
@@ -151,12 +140,17 @@ export const useFormSubmission = ({
       }
 
       // Update applicant
-      const updateResult = await editApplicant({
-        id: userId,
-        body: {firstName, lastName, email, profile},
-      });
+      let updateResult;
+      try {
+        updateResult = await editApplicant({
+          id: userId,
+          body: {firstName, lastName, email, profile},
+        });
+      } catch (apiError) {
+        return false;
+      }
 
-      if (updateResult.data?.message === 'Applicant Updated') {
+      if (updateResult?.data?.message === 'Applicant Updated') {
         // Create enrollment if course info is available
         if (
           selectedCourse &&
@@ -164,12 +158,6 @@ export const useFormSubmission = ({
           selectedCourseId &&
           selectedCourseName
         ) {
-          console.log('Attempting to create enrollment with:', {
-            userCohortId: cohortId,
-            course_id: Number.parseInt(selectedCourseId),
-            course_name: selectedCourseName,
-            user_email: email,
-          });
           try {
             await createEnrollment({
               body: {
@@ -179,13 +167,12 @@ export const useFormSubmission = ({
                 user_email: email,
               },
             });
-            console.log('Enrollment created successfully');
             handleNext();
           } catch (enrollErr) {
-            console.error('Error creating enrollment:', enrollErr);
+            return false;
           }
         } else {
-          console.log('Skipping enrollment creation - missing required fields');
+          handleNext();
         }
 
         // Move to next step
@@ -194,7 +181,6 @@ export const useFormSubmission = ({
 
       return false;
     } catch (err) {
-      console.error('Error submitting form:', err);
       return false;
     }
   };

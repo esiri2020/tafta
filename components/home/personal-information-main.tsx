@@ -22,6 +22,7 @@ import {ReferralInformation} from '@/components/home/form-sections/referral-info
 import {RegistrationTalp} from '@/components/home/form-sections/registration-talp';
 import {JobReadiness} from '@/components/home/form-sections/job-readiness';
 import {BusinessInformation} from '@/components/home/form-sections/business-information';
+import {EntrepreneurInformation} from '@/components/home/form-sections/entrepreneur-information';
 import {useCreateEnrollmentMutation} from '@/services/api';
 
 // Update the PersonalInformationProps interface to make props optional
@@ -95,6 +96,7 @@ const PersonalInformation = ({
     residencyStatus: applicant?.profile?.residencyStatus || '',
     selfEmployedType: applicant?.profile?.selfEmployedType || '',
     registrationMode: applicant?.profile?.registrationMode || 'online',
+    registrationType: applicant?.profile?.registrationType || '',
     talpParticipation: applicant?.profile?.talpParticipation === true,
     talpType: applicant?.profile?.talpType || '',
     talpOther: applicant?.profile?.talpOther || '',
@@ -103,13 +105,14 @@ const PersonalInformation = ({
     businessSupportNeeds: applicant?.profile?.businessSupportNeeds || [],
     businessType: applicant?.profile?.businessType || '',
     businessSector: applicant?.profile?.businessSector || '',
-    salaryRange: applicant?.profile?.salaryRange || '',
     businessSize: applicant?.profile?.businessSize || '',
+    businessName: applicant?.profile?.businessName || '',
     businessPartners: applicant?.profile?.businessPartners || '',
     companyPhoneNumber: applicant?.profile?.companyPhoneNumber || '',
     additionalPhoneNumber: applicant?.profile?.additionalPhoneNumber || '',
     companyEmail: applicant?.profile?.companyEmail || '',
     revenueRange: applicant?.profile?.revenueRange || '',
+    salaryRange: applicant?.profile?.salaryRange || '',
     dob: applicant?.profile?.dob || '',
     submit: null,
   };
@@ -118,6 +121,12 @@ const PersonalInformation = ({
   const {validationSchema, validateForm} = useFormValidation({
     isEnterpriseType,
   });
+
+  // Wrap the validation function to add logging
+  const validateFormWithLogging = (values: FormValues) => {
+    const errors = validateForm(values);
+    return errors;
+  };
 
   // Get form submission handler
   const {handleSubmit} = useFormSubmission({
@@ -132,7 +141,7 @@ const PersonalInformation = ({
   const formik = useFormik({
     initialValues,
     validationSchema,
-    validate: validateForm,
+    validate: validateFormWithLogging,
     onSubmit: async (values, helpers) => {
       setIsSubmitting(true);
 
@@ -155,6 +164,26 @@ const PersonalInformation = ({
       }
     },
   });
+
+  // Check for entrepreneur status
+  const isEntrepreneurStatus =
+    formik.values.employmentStatus === 'entrepreneur';
+
+  // Set defaults for employment sector based on status
+  useEffect(() => {
+    if (
+      formik.values.employmentStatus === 'employed' &&
+      !formik.values.employmentSector
+    ) {
+      // For employed users, default to 'other' if not set
+      formik.setFieldValue('employmentSector', 'other');
+    } else if (formik.values.employmentStatus === 'entrepreneur') {
+      // For entrepreneurs, clear employment sector if set
+      if (formik.values.employmentSector) {
+        formik.setFieldValue('employmentSector', '');
+      }
+    }
+  }, [formik.values.employmentStatus]);
 
   // Initialize date from form value when component mounts
   useEffect(() => {
@@ -192,6 +221,11 @@ const PersonalInformation = ({
               isEnterpriseType={isEnterpriseType}
             />
 
+            {/* Entrepreneur Section - Only shown for entrepreneur employment status */}
+            {isEntrepreneurStatus && (
+              <EntrepreneurInformation formik={formik} />
+            )}
+
             {/* Referral Section */}
             <ReferralInformation formik={formik} />
 
@@ -225,8 +259,64 @@ const PersonalInformation = ({
                   </Button>
                 )}
                 <Button
-                  type='submit'
-                  disabled={formik.isSubmitting || isSubmitting}>
+                  type='button'
+                  disabled={formik.isSubmitting || isSubmitting}
+                  onClick={async e => {
+                    e.preventDefault();
+
+                    // If button is disabled or form is already submitting, don't proceed
+                    if (formik.isSubmitting || isSubmitting) return;
+
+                    // Manually validate and submit
+                    try {
+                      setIsSubmitting(true);
+                      formik.setSubmitting(true);
+
+                      // Validate form
+                      const errors = await formik.validateForm();
+
+                      if (Object.keys(errors).length === 0) {
+                        // Form is valid, proceed with submission
+                        try {
+                          const success = await handleSubmit(formik.values);
+                          if (success) {
+                            formik.setStatus({success: true});
+                            // Force navigation to next step if handleSubmit didn't do it
+                            handleNext();
+                          } else {
+                            formik.setStatus({success: false});
+                            formik.setErrors({
+                              submit: 'Failed to update profile',
+                            });
+                          }
+                        } catch (submitError) {
+                          console.error(
+                            'Error during submission:',
+                            submitError,
+                          );
+                          formik.setStatus({success: false});
+                          formik.setErrors({
+                            submit: 'An unexpected error occurred',
+                          });
+                        }
+                      } else {
+                        formik.setTouched(
+                          Object.keys(errors).reduce(
+                            (touched: Record<string, boolean>, field) => {
+                              touched[field] = true;
+                              return touched;
+                            },
+                            {},
+                          ),
+                        );
+                      }
+                    } catch (error) {
+                      console.error('Error in manual form submission:', error);
+                    } finally {
+                      setIsSubmitting(false);
+                      formik.setSubmitting(false);
+                    }
+                  }}>
                   {formik.isSubmitting || isSubmitting
                     ? 'Saving...'
                     : 'Continue'}

@@ -172,7 +172,7 @@ export const LocationInformation = ({formik}: LocationInformationProps) => {
     if (formik.values.stateOfResidence) {
       const selectedState = formik.values.stateOfResidence;
       // Combine LGAs from all groups for the selected state
-      const allLGAs = Object.values(LGAs[selectedState] || {}).flat();
+      const allLGAs = Object.values(LGAs[selectedState as keyof typeof LGAs] || {}).flat();
       setAvailableLGAs(allLGAs);
     }
   }, [formik.values.stateOfResidence]);

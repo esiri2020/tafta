@@ -52,7 +52,7 @@ export const LGAs = {
       'Sumaila',
       'Wudil',
     ],
-    Group4: ['Kabo', 'Kibiya', 'Kiru', 'Rimin Gado', 'Shanono'],
+    Group4: ['Kabo', 'Kibiya Central', 'Kiru', 'Rimin Gado', 'Shanono'],
     Group5: [
       'Ajingi',
       'Bebeji',
@@ -115,7 +115,14 @@ export const employment_status = [
   {value: 'employed', label: 'Employed'},
   {value: 'unemployed', label: 'Unemployed'},
   {value: 'self-employed', label: 'Self-Employed'},
+  {value: 'entrepreneur', label: 'Entrepreneur'},
   {value: 'student', label: 'Student'},
+];
+
+// Registration type options
+export const registration_types = [
+  {value: 'CAC', label: 'CAC'},
+  {value: 'SMEDAN', label: 'SMEDAN'},
 ];
 
 // Self-employed types

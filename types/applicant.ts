@@ -85,6 +85,7 @@ export interface FormValues {
   residencyStatus: string;
   selfEmployedType: string;
   registrationMode: string;
+  registrationType: string;
   talpParticipation: boolean;
   talpType: string;
   talpOther: string;
@@ -96,6 +97,7 @@ export interface FormValues {
   businessType: string;
   businessSector: string;
   businessSize: string;
+  businessName: string;
   businessPartners: string;
   companyPhoneNumber: string;
   additionalPhoneNumber: string;

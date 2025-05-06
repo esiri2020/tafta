@@ -40,9 +40,9 @@ function SelectTrigger({
       )}
       {...props}
     >
-      {children}
+      {children as React.ReactNode}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
+        <ChevronDownIcon className='size-4 opacity-50' />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
