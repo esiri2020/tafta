@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {Input} from '@/components/ui/input';
+import {EntrepreneurBusinessInfo} from './entrepreneur-business-info';
 
 interface EmploymentResidencyProps {
   formik: FormikProps<FormValues>;
@@ -33,141 +34,155 @@ export const EmploymentResidency = ({
   formik,
   isEnterpriseType,
 }: EmploymentResidencyProps) => {
-  return (
-    <FormSection title='Employment & Residency'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        <FormField
-          id='employmentStatus'
-          label='Employment Status'
-          formik={formik}
-          render={() => (
-            <RadioGroup
-              value={formik.values.employmentStatus}
-              onValueChange={value =>
-                formik.setFieldValue('employmentStatus', value)
-              }
-              className='space-y-2'>
-              {employment_status.map(status => (
-                <div key={status.value} className='flex items-center space-x-2'>
-                  <RadioGroupItem
-                    value={status.value}
-                    id={`employment-${status.value}`}
-                  />
-                  <Label htmlFor={`employment-${status.value}`}>
-                    {status.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          )}
-        />
+  const showEntrepreneurSection =
+    formik.values.selfEmployedType === 'business_owner' ||
+    formik.values.employmentStatus === 'entrepreneur';
 
-        {formik.values.employmentStatus === 'self-employed' && (
+  return (
+    <>
+      <FormSection title='Employment & Residency'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           <FormField
-            id='selfEmployedType'
-            label='Self-Employed Type'
+            id='employmentStatus'
+            label='Employment Status'
             formik={formik}
             render={() => (
               <RadioGroup
-                value={formik.values.selfEmployedType}
+                value={formik.values.employmentStatus}
                 onValueChange={value =>
-                  formik.setFieldValue('selfEmployedType', value)
+                  formik.setFieldValue('employmentStatus', value)
                 }
                 className='space-y-2'>
-                {self_employed_types.map(type => (
-                  <div key={type.value} className='flex items-center space-x-2'>
+                {employment_status.map(status => (
+                  <div
+                    key={status.value}
+                    className='flex items-center space-x-2'>
                     <RadioGroupItem
-                      value={type.value}
-                      id={`self-employed-${type.value}`}
+                      value={status.value}
+                      id={`employment-${status.value}`}
                     />
-                    <Label htmlFor={`self-employed-${type.value}`}>
-                      {type.label}
+                    <Label htmlFor={`employment-${status.value}`}>
+                      {status.label}
                     </Label>
                   </div>
                 ))}
               </RadioGroup>
             )}
           />
-        )}
 
-        {formik.values.employmentStatus === 'employed' && (
-          <FormField
-            id='salaryRange'
-            label='Salary Range'
-            formik={formik}
-            render={() => (
-              <Select
-                value={formik.values.salaryRange}
-                onValueChange={value =>
-                  formik.setFieldValue('salaryRange', value)
-                }>
-                <SelectTrigger>
-                  <SelectValue placeholder='Select a salary range' />
-                </SelectTrigger>
-                <SelectContent>
-                  {salary_ranges.map(range => (
-                    <SelectItem key={range.value} value={range.value}>
-                      {range.label}
-                    </SelectItem>
+          {formik.values.employmentStatus === 'self-employed' && (
+            <FormField
+              id='selfEmployedType'
+              label='Self-Employed Type'
+              formik={formik}
+              render={() => (
+                <RadioGroup
+                  value={formik.values.selfEmployedType}
+                  onValueChange={value =>
+                    formik.setFieldValue('selfEmployedType', value)
+                  }
+                  className='space-y-2'>
+                  {self_employed_types.map(type => (
+                    <div
+                      key={type.value}
+                      className='flex items-center space-x-2'>
+                      <RadioGroupItem
+                        value={type.value}
+                        id={`self-employed-${type.value}`}
+                      />
+                      <Label htmlFor={`self-employed-${type.value}`}>
+                        {type.label}
+                      </Label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        )}
-
-        {formik.values.employmentStatus === 'employed' && (
-          <FormField
-            id='employmentSector'
-            label='Employment Sector'
-            formik={formik}
-            render={() => (
-              <Select
-                value={formik.values.employmentSector}
-                onValueChange={value =>
-                  formik.setFieldValue('employmentSector', value)
-                }>
-                <SelectTrigger>
-                  <SelectValue placeholder='Select an employment sector' />
-                </SelectTrigger>
-                <SelectContent>
-                  {business_sectors.map(sector => (
-                    <SelectItem key={sector.value} value={sector.value}>
-                      {sector.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        )}
-
-        <FormField
-          id='residencyStatus'
-          label='Residency Status'
-          formik={formik}
-          render={() => (
-            <RadioGroup
-              value={formik.values.residencyStatus}
-              onValueChange={value =>
-                formik.setFieldValue('residencyStatus', value)
-              }
-              className='space-y-2'>
-              {residency_status.map(status => (
-                <div key={status.value} className='flex items-center space-x-2'>
-                  <RadioGroupItem
-                    value={status.value}
-                    id={`residency-${status.value}`}
-                  />
-                  <Label htmlFor={`residency-${status.value}`}>
-                    {status.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+                </RadioGroup>
+              )}
+            />
           )}
-        />
-      </div>
-    </FormSection>
+
+          {formik.values.employmentStatus === 'employed' && (
+            <FormField
+              id='salaryRange'
+              label='Salary Range'
+              formik={formik}
+              render={() => (
+                <Select
+                  value={formik.values.salaryRange}
+                  onValueChange={value =>
+                    formik.setFieldValue('salaryRange', value)
+                  }>
+                  <SelectTrigger>
+                    <SelectValue placeholder='Select a salary range' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {salary_ranges.map(range => (
+                      <SelectItem key={range.value} value={range.value}>
+                        {range.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          )}
+
+          {formik.values.employmentStatus === 'employed' && (
+            <FormField
+              id='employmentSector'
+              label='Employment Sector'
+              formik={formik}
+              render={() => (
+                <Select
+                  value={formik.values.employmentSector}
+                  onValueChange={value =>
+                    formik.setFieldValue('employmentSector', value)
+                  }>
+                  <SelectTrigger>
+                    <SelectValue placeholder='Select an employment sector' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {business_sectors.map(sector => (
+                      <SelectItem key={sector.value} value={sector.value}>
+                        {sector.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          )}
+
+          <FormField
+            id='residencyStatus'
+            label='Residency Status'
+            formik={formik}
+            render={() => (
+              <RadioGroup
+                value={formik.values.residencyStatus}
+                onValueChange={value =>
+                  formik.setFieldValue('residencyStatus', value)
+                }
+                className='space-y-2'>
+                {residency_status.map(status => (
+                  <div
+                    key={status.value}
+                    className='flex items-center space-x-2'>
+                    <RadioGroupItem
+                      value={status.value}
+                      id={`residency-${status.value}`}
+                    />
+                    <Label htmlFor={`residency-${status.value}`}>
+                      {status.label}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+          />
+        </div>
+      </FormSection>
+
+      {showEntrepreneurSection && <EntrepreneurBusinessInfo formik={formik} />}
+    </>
   );
 };
