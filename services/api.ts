@@ -692,4 +692,5 @@ export const {
   useArchiveNotificationMutation,
   useGetCohortAlertsQuery,
   useTriggerCohortAlertMutation,
+  useResetPasswordMutation,
 } = apiService;

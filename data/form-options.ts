@@ -116,6 +116,7 @@ export const employment_status = [
   {value: 'unemployed', label: 'Unemployed'},
   {value: 'self-employed', label: 'Self-Employed'},
   {value: 'student', label: 'Student'},
+  {value: 'entrepreneur', label: 'Entrepreneur'},
 ];
 
 // Self-employed types

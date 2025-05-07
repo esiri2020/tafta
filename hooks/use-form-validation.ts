@@ -35,7 +35,20 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
 
     // Required fields
     employmentStatus: Yup.string().required('Employment Status is required'),
-    employmentSector: Yup.string().required('Employment Sector is required'),
+
+    // Employment sector validation - not required for business owners or entrepreneurs
+    employmentSector: Yup.string().when(
+      ['employmentStatus', 'selfEmployedType'],
+      {
+        is: (employmentStatus: string, selfEmployedType: string) =>
+          employmentStatus === 'self-employed' &&
+          (selfEmployedType === 'business_owner' ||
+            selfEmployedType === 'entrepreneur'),
+        then: schema => schema.notRequired(),
+        otherwise: schema => schema.required('Employment Sector is required'),
+      },
+    ),
+
     residencyStatus: Yup.string().required('Residency Status is required'),
 
     // Simple conditional validation
@@ -64,7 +77,18 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
       errors.selfEmployedType = 'Self-Employed Type is required';
     }
 
+    // Validate employment sector only if not a business owner or entrepreneur
     if (values.employmentStatus === 'employed' && !values.employmentSector) {
+      errors.employmentSector = 'Employment Sector is required';
+    }
+
+    // Validate employment sector for self-employed (except business owners and entrepreneurs)
+    if (
+      values.employmentStatus === 'self-employed' &&
+      !values.employmentSector &&
+      values.selfEmployedType !== 'business_owner' &&
+      values.selfEmployedType !== 'entrepreneur'
+    ) {
       errors.employmentSector = 'Employment Sector is required';
     }
 
