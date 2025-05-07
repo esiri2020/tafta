@@ -3,23 +3,34 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../lib/prismadb";
 import nodemailer from "nodemailer";
 import { bigint_filter } from "./enrollments";
+import type { User as PrismaUser } from '@prisma/client';
 
+// Define our own types based on the schema
 interface Location {
   id: string;
   location: string;
-  seats: number | null; // Allow seats to be null
+  seats: number | null;
   name: string;
   seatBooking: SeatBooking[];
 }
 
+interface UserWithRelations extends Omit<PrismaUser, 'userCohort'> {
+  userCohort: {
+    id: string;
+    cohort: {
+      id: string;
+      CohortToLocation: {
+        Location: Location;
+      }[];
+    };
+  }[];
+}
+
 interface SeatBooking {
   id: string;
-  userId: string;
-  seatNumber: number;
-  locationId: string;
   Date: Date;
-  timeslot: number;
-  // location: Location[];
+  user: UserWithRelations;
+  location: Location;
 }
 
 // Create a Nodemailer transporter with your email service configuration
@@ -108,9 +119,12 @@ export default async function handler(
         body.seatNumber
       );
       return res.status(201).send({ message: "success", seatBooking });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(400).send({ error: error.message });
+      if (error instanceof Error) {
+        return res.status(400).send({ error: error.message });
+      }
+      return res.status(400).send({ error: 'An error occurred' });
     }
   }
   if (req.method === "DELETE") {
@@ -121,110 +135,81 @@ export default async function handler(
         where: { id: id },
       });
       return res.status(200).send({ message: "success", deleted });
-    } catch (error) {
-      return res.status(400).send({ error: error.message });
+    } catch (error: unknown) {
+      console.error(error);
+      if (error instanceof Error) {
+        return res.status(400).send({ error: error.message });
+      }
+      return res.status(400).send({ error: 'An error occurred' });
     }
   }
-  try {
-    if (token.userData.role === "APPLICANT") {
-      const userCohort = await prisma.userCohort.findFirst({
-        where: {
-          userId: userId,
-        },
-        orderBy: {
-          created_at: "desc",
-        },
-      });
-      if (userCohort == null) {
-        return res.status(400).send({ error: "No cohort data" });
+  if (req.method === "PUT") {
+    try {
+      // ... existing code ...
+    } catch (error: unknown) {
+      console.error(error);
+      if (error instanceof Error) {
+        return res.status(400).send({ error: error.message });
+      }
+      return res.status(400).send({ error: 'An error occurred' });
+    }
+  }
+  if (req.method === 'GET') {
+    try {
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' })
       }
 
-      const locations: Location[] = await prisma.location.findMany({
+      const user = await prisma.user.findUnique({
         where: {
-          cohorts: {
-            some: {
-              id: userCohort.cohortId,
-            },
-          },
+          id: token.id as string
         },
         include: {
-          seatBooking: {
-            where: {
-              Date: {
-                gte: new Date(),
-              },
-            },
-          },
-        },
-      });
-
-      const seatBookings: SeatBooking[] = locations
-        .map((location: Location) => location.seatBooking)
-        .flat();
-
-      return res.status(200).send({ locations, seatBookings });
-    } else {
-      // Pagination
-      const { page, limit }: { page?: string; limit?: string } = req.query;
-      const take = parseInt(typeof limit == "string" && limit ? limit : "20");
-      const skip = take * parseInt(typeof page == "string" ? page : "0");
-      const count = await prisma.seatBooking.count({
-        where: {
-          Date: {
-            gte: new Date(),
-          },
-        },
-      });
-      const seatBookings = await prisma.seatBooking.findMany({
-        where: {
-          Date: {
-            gte: new Date(),
-          },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              userCohort: {
+          userCohort: {
+            include: {
+              cohort: {
                 include: {
-                  cohort: true,
-                },
-              },
-            },
-          },
-          location: true,
-        },
-        orderBy: {
-          id: "desc",
-        },
-        take,
-        skip,
-      });
-      const locations = await prisma.location.findMany({
-        include: {
-          seatBooking: {
-            where: {
-              Date: {
-                gte: new Date(),
-              },
-            },
-          },
-        },
-      });
-      return res.status(200).send({ locations, seatBookings, count });
+                  CohortToLocation: {
+                    include: {
+                      Location: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+      }
+
+      const userCohort = user.userCohort[0]
+      if (!userCohort) {
+        return res.status(404).json({ error: 'User cohort not found' })
+      }
+
+      const location = userCohort.cohort.CohortToLocation[0]?.Location
+      if (!location) {
+        return res.status(404).json({ error: 'Location not found' })
+      }
+
+      return res.status(200).json(location)
+    } catch (error: unknown) {
+      console.error('Error in seat-booking:', error)
+      if (error instanceof Error) {
+        return res.status(500).json({ error: error.message })
+      }
+      return res.status(500).json({ error: 'An unknown error occurred' })
     }
-  } catch (error) {
-    console.error(error);
-    return res.status(400).send({ error: error.message });
   }
+  return res.status(405).json({ error: 'Method not allowed' })
 }
 
 // Define the function to send the Seat Booking Confirmation email
 async function sendSeatBookingConfirmationEmail(
-  recipientEmail: string, // Add the type for recipientEmail
+  recipientEmail: string,
   applicantName: string,
   dateAndTime: string,
   seatNumber: string
@@ -254,8 +239,11 @@ async function sendSeatBookingConfirmationEmail(
     });
 
     console.log(`Email sent successfully to ${recipientEmail}`);
-  } catch (error) {
-    console.error(`Error sending email to ${recipientEmail}: ${error.message}`);
-    throw error;
+  } catch (error: unknown) {
+    console.error(`Error sending email to ${recipientEmail}:`, error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to send email');
   }
 }

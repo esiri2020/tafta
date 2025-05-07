@@ -26,7 +26,7 @@ import {
 import { useMarkNotificationsAsReadMutation } from '../../../services/api';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 
-interface Notification {
+export interface Notification {
   id: string;
   title: string;
   message: string;

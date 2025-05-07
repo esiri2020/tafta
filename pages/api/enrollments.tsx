@@ -4,7 +4,71 @@ import data from '../../input.json' assert {type: 'JSON'};
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../lib/prismadb';
 import {PrismaClientKnownRequestError} from '@prisma/client/runtime/library';
-import {Enrollment, User} from '@prisma/client';
+
+type Role = 'ADMIN' | 'APPLICANT' | 'SUPERADMIN' | 'SUPPORT' | 'USER';
+type RegistrationType = 'INDIVIDUAL' | 'ORGANIZATION' | 'ENTERPRISE';
+
+// Define our own types based on the schema
+interface User {
+  id: string;
+  email: string;
+  image: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  role: Role;
+  type: RegistrationType | null;
+  thinkific_user_id: string | null;
+  profile: {
+    id: string;
+    ageRange?: string;
+    stateOfResidence?: string;
+    educationLevel?: string;
+    gender?: string;
+  } | null;
+  userCohort: {
+    enrollments: {
+      course_name: string;
+      course_id: bigint;
+      enrolled: boolean;
+    }[];
+  }[];
+}
+
+interface Enrollment {
+  id: bigint | null;
+  uid: string;
+  created_at: Date;
+  course_id: bigint;
+  course_name: string;
+  enrolled: boolean | null;
+  percentage_completed: number | null;
+  expired: boolean | null;
+  is_free_trial: boolean | null;
+  completed: boolean | null;
+  started_at: Date | null;
+  activated_at: Date | null;
+  completed_at: Date | null;
+  updated_at: Date | null;
+  expiry_date: Date | null;
+  user_id: bigint | null;
+  userCohort?: {
+    id: string;
+    user?: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      email: string;
+      profile?: {
+        gender: string;
+      };
+    };
+    cohort?: {
+      id: string;
+      name: string;
+    };
+  };
+}
 
 export const bigint_filter = (data: Object) => {
   return JSON.parse(
@@ -274,11 +338,10 @@ export default async function handler(
       }
     } catch (err) {
       console.error(err);
-      if (err instanceof PrismaClientKnownRequestError)
-        return res.status(404).send({message: 'User not found'});
-      return res.status(500).send({
-        error: 'E no work.',
-      });
+      if (err instanceof Error) {
+        return res.status(400).send(err.message);
+      }
+      return res.status(400).send('An error occurred');
     }
   }
 
@@ -602,8 +665,11 @@ export default async function handler(
 
     return res.status(200).send({enrollments, count, maleCount, femaleCount});
   } catch (err) {
-    console.error(err.message);
-    return res.status(400).send(err.message);
+    console.error(err);
+    if (err instanceof Error) {
+      return res.status(400).send(err.message);
+    }
+    return res.status(400).send('An error occurred');
   }
 }
 

@@ -64,7 +64,10 @@ export default async function handler(
       return res.status(200).send({ message: 'success', cohort })
     } catch (err) {
       console.error(err)
-      return res.status(400).send(err.message)
+      if (err instanceof Error) {
+        return res.status(400).send(err.message)
+      }
+      return res.status(400).send('An error occurred')
     }
   }
 
@@ -114,7 +117,10 @@ export default async function handler(
       return res.status(202).send({ message: 'success', cohort })
     } catch (err) {
       console.error(err)
-      return res.status(400).send(err.message)
+      if (err instanceof Error) {
+        return res.status(400).send(err.message)
+      }
+      return res.status(400).send('An error occurred')
     }
   }
 
@@ -126,7 +132,10 @@ export default async function handler(
       return res.status(200).send({ message: 'Cohort Deleted', result })
     } catch (err) {
       console.error(err)
-      return res.status(400).send(err.message)
+      if (err instanceof Error) {
+        return res.status(400).send(err.message)
+      }
+      return res.status(400).send('An error occurred')
     }
   }
 

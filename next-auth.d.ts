@@ -36,7 +36,7 @@ declare module 'next-auth' {
   /**
    * Extends the built-in Session type
    */
-  interface Session {
+  interface Session extends DefaultSession {
     userData?: UserData;
     user?: DefaultSession['user'];
     expires: string;
@@ -51,3 +51,5 @@ declare module 'next-auth/jwt' {
     userData?: UserData;
   }
 }
+
+export type {Session, User, UserData};

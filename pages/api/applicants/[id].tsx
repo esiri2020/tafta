@@ -92,21 +92,26 @@ export default async function handler(
         .send({message: 'Applicant Updated', applicant: user});
     } catch (err) {
       console.error(err);
+      if (err instanceof Error) {
       return res.status(400).send(err.message);
+      }
+      return res.status(400).send('An error occurred');
     }
   }
   if (req.method === 'DELETE') {
     try {
-      const result = await prisma.user.deleteMany({
+      await prisma.user.delete({
         where: {
           id: id,
-          role: 'APPLICANT',
         },
       });
-      return res.status(200).send({message: 'User Deleted', result});
+      return res.status(200).json({message: 'User deleted successfully'});
     } catch (err) {
       console.error(err);
+      if (err instanceof Error) {
       return res.status(400).send(err.message);
+      }
+      return res.status(400).send('An error occurred');
     }
   }
   try {

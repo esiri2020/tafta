@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import Head from 'next/head';
 import {Box, Container, Grid} from '@mui/material';
 import dynamic from 'next/dynamic';
@@ -7,7 +7,7 @@ import {SplashScreen} from '@/components/splash-screen';
 import {useGetDashboardDataQuery, useGetLocationBreakdownQuery} from '@/services/api';
 import {selectCohort} from '@/services/cohortSlice';
 import {useAppSelector} from '@/hooks/rtkHook';
-import type {DashboardData, LocationData} from '@/types/api';
+import type {DashboardData, LocationData, CourseEnrollment} from '@/types/api';
 
 // Dynamically import chart components
 const EnrollmentOverTimeChart = dynamic(
@@ -63,9 +63,9 @@ const IndexPage = () => {
   if (!data) return null;
 
   // Transform location data to match the expected format
-  const transformedLocationData = locationData?.states.map(state => ({
+  const transformedLocationData = locationData?.states.map((state: LocationData['states'][0]) => ({
     location: state.state,
-    courses: state.courses.map(course => ({
+    courses: state.courses.map((course: LocationData['states'][0]['courses'][0]) => ({
       course_name: course.course,
       male_enrollments: course.male,
       female_enrollments: course.female,
@@ -120,12 +120,12 @@ const IndexPage = () => {
             {/* Course Distribution Chart */}
             <Grid item lg={8} md={12} xl={9} xs={12}>
               <CourseDistributionChart
-                data={data.courseEnrollmentData.map((course: DashboardData['courseEnrollmentData'][0]) => ({
+                data={data.courseEnrollmentData?.map((course: CourseEnrollment) => ({
                   course_name: course.name,
                   total_enrollments: Number(course.count),
                   male_enrollments: 0, // TODO: Update when API provides gender breakdown
                   female_enrollments: 0, // TODO: Update when API provides gender breakdown
-                }))}
+                })) || []}
               />
             </Grid>
 

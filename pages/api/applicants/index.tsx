@@ -1,8 +1,11 @@
-import {getToken} from 'next-auth/jwt';
 import api from '../../../lib/axios.setup';
 import type {NextApiRequest, NextApiResponse} from 'next';
+import {getServerSession} from 'next-auth/next';
+import {authOptions} from '../auth/[...nextauth]';
 import prisma from '../../../lib/prismadb';
 import {Enrollment, User} from '@prisma/client';
+import {Prisma} from '@prisma/client';
+import {getToken} from 'next-auth/jwt';
 
 export default async function handler(
   req: NextApiRequest,
@@ -155,10 +158,11 @@ export default async function handler(
       const enrollments_results = await Promise.allSettled(enrollment_promises);
       return res.status(201).send({message: 'success'});
     } catch (error) {
-      console.error(error.response?.data || error);
-      return res
-        .status(400)
-        .send({message: error.response?.data || error.message});
+      console.error(error);
+      if (error instanceof Error) {
+        return res.status(400).send({message: error.message});
+      }
+      return res.status(400).send({message: 'An error occurred'});
     }
   }
   if (req.method === 'DELETE') {
@@ -178,7 +182,10 @@ export default async function handler(
       return res.status(200).send({message: 'Users Deleted'});
     } catch (err) {
       console.error(err);
-      return res.status(400).send(err.message);
+      if (err instanceof Error) {
+        return res.status(400).send({message: err.message});
+      }
+      return res.status(400).send({message: 'An error occurred'});
     }
   }
   // Pagination
@@ -593,7 +600,10 @@ export default async function handler(
 
     return res.status(200).json({applicants, count});
   } catch (err) {
-    console.error(err.message);
-    return res.status(400).send(err.message);
+    console.error(err);
+    if (err instanceof Error) {
+      return res.status(400).send({message: err.message});
+    }
+    return res.status(400).send({message: 'An error occurred'});
   }
 }

@@ -60,7 +60,10 @@ export default async function handler(
             return res.status(400).send(response.status)
         } catch (err) {
             console.error(err)
-            return res.send(err.message)
+            if (err instanceof Error) {
+                return res.send(err.message)
+            }
+            return res.send('An error occurred')
         }
     }
 }

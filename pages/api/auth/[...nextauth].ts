@@ -9,7 +9,7 @@ import prisma from '../../../lib/prismadb';
 import { html, text } from '../../../utils';
 // import {Theme} from 'next-auth';
 // import sendVerificationRequest from '../../../lib/sendVerificationRequest';
-import type { Session } from 'next-auth';
+import type { Session, UserData } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 
 // For more information on each option (and a full list of options) go to
@@ -145,7 +145,7 @@ export const authOptions: AuthOptions = {
             email: user.email,
             role: user.role,
             profile: user.profile ? true : false,
-          };
+          } as UserData;
         }
       }
       return token;

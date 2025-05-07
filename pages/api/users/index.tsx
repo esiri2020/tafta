@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt"
 // import api from "../../lib/axios.setup"
 import type { NextApiRequest, NextApiResponse } from "next"
 import prisma from "../../../lib/prismadb"
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 export default async function handler(
   req: NextApiRequest,
@@ -76,8 +76,11 @@ export default async function handler(
             })            
         }
         return res.status(200).json({users, count})
-    } catch (err) {
-        console.error(err.message)
-        return res.status(400).send(err.message)
+    } catch (error: unknown) {
+        console.error(error)
+        if (error instanceof Error) {
+            return res.status(400).send(error.message)
+        }
+        return res.status(400).send('An error occurred')
     }
 }

@@ -1,5 +1,10 @@
 import { UseQueryHookResult } from '@reduxjs/toolkit/dist/query/react/buildHooks';
 
+export interface CourseEnrollment {
+  name: string;
+  count: string;
+}
+
 export interface DashboardData {
   enrollment_completion_graph: {
     id: bigint;
@@ -13,10 +18,7 @@ export interface DashboardData {
   total_enrolled: number;
   male_enrollees: number;
   female_enrollees: number;
-  courseEnrollmentData: Array<{
-    name: string;
-    count: string;
-  }>;
+  courseEnrollmentData: CourseEnrollment[];
 }
 
 export interface LocationData {
@@ -39,14 +41,4 @@ declare module '@/services/api' {
   interface ApiResponse<T> {
     data: T;
   }
-
-  export function useGetDashboardDataQuery(
-    params: { cohortId?: string },
-    options?: any
-  ): UseQueryHookResult<ApiResponse<DashboardData>>;
-
-  export function useGetLocationBreakdownQuery(
-    params: { cohortId?: string },
-    options?: any
-  ): UseQueryHookResult<ApiResponse<LocationData>>;
 } 

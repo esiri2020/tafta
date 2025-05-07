@@ -1,8 +1,20 @@
 import { getToken } from "next-auth/jwt"
 import type { NextApiRequest, NextApiResponse } from "next"
 import prisma from "../../lib/prismadb"
-import { Course } from "@prisma/client";
-import { bigint_filter } from "./enrollments";
+import { bigint_filter } from "./enrollments"
+
+// Define our own types based on the schema
+interface Course {
+  id: bigint;
+  name: string;
+  active: boolean | null;
+  description: string | null;
+  created_at: Date;
+  uid: string;
+  course_capacity: number | null;
+  course_colour: string | null;
+  slug: string | null;
+}
 
 export default async function handler(
     req: NextApiRequest,
@@ -35,7 +47,7 @@ export default async function handler(
                         } 
                     }
                 })
-                course_list = cl?.map(c => ({id: c.id}))
+                course_list = cl?.map((c: Course) => ({id: c.id}))
             }
 
             const result = await prisma.location.create({
@@ -54,7 +66,10 @@ export default async function handler(
             return res.status(201).send(bigint_filter(result));
         } catch (err) {
             console.error(err)
-            return res.status(400).send(err.message)
+            if (err instanceof Error) {
+                return res.status(400).send(err.message)
+            }
+            return res.status(400).send('An error occurred')
         }
     }
     

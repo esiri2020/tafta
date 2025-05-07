@@ -1,5 +1,3 @@
-import {EnrollmentCompletionGraph} from '@prisma/client';
-
 export interface DashboardData {
   total_enrolled_by_courses: number;
   total_enrolled_applicants: number;
@@ -8,9 +6,17 @@ export interface DashboardData {
   active_enrollees: number;
   certified_enrollees: number;
   total_applicants: number;
-  enrollment_completion_graph: EnrollmentCompletionGraph[];
+  enrollment_completion_graph: Array<{
+    id: bigint;
+    date: Date | null;
+    count: bigint;
+  }>;
   inactive_enrollments: number;
-  age_group: EnrollmentCompletionGraph[];
+  age_group: Array<{
+    id: bigint;
+    date: Date | null;
+    count: bigint;
+  }>;
   location: string; // The location of the enrollees (city, region, etc.)
   courses_by_location: Record<string, number>; // A mapping of courses to the number of enrollees in each course at the given location
   statusOfResidency: {
@@ -20,4 +26,24 @@ export interface DashboardData {
     resident: number; // Number of resident enrollees
     non_resident: number; // Number of non-resident enrollees
   };
+  courseEnrollmentData: Array<{
+    name: string;
+    count: string;
+  }>;
+}
+
+export interface LocationData {
+  states: Array<{
+    state: string;
+    courses: Array<{
+      course: string;
+      female: number;
+      male: number;
+      total: number;
+    }>;
+    total: number;
+  }>;
+  totalCompletion: number;
+  cohortName: string;
+  date: string;
 }

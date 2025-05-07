@@ -31,7 +31,10 @@ export default async function handler(
             return res.send({ message: 'success' })
         } catch (error) {
             console.error(error)
-            return res.status(400).send({ error: error.message })
+            if (error instanceof Error) {
+                return res.status(400).send({ error: error.message })
+            }
+            return res.status(400).send({ error: 'An error occurred' })
         }
     }
 }
