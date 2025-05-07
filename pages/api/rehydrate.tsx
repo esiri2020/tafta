@@ -184,7 +184,7 @@ export default async function handler(
     } catch (err) {
       console.error(err)
       if (err instanceof Error) {
-        return res.send(err.message)
+      return res.send(err.message)
       }
       return res.send('An error occurred')
     }
