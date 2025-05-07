@@ -60,7 +60,7 @@ export default async function handler(
             return res.status(400).send(response.status)
         } catch (err) {
             console.error(err)
-            return res.send(err.message)
+            return res.send(err instanceof Error ? err.message : 'An unknown error occurred')
         }
     }
 }

@@ -92,7 +92,10 @@ export default async function handler(
         .send({message: 'Applicant Updated', applicant: user});
     } catch (err) {
       console.error(err);
-      return res.status(400).send(err.message);
+      if (err instanceof Error) {
+        return res.status(400).send(err.message);
+      }
+      return res.status(400).send('An error occurred');
     }
   }
   if (req.method === 'DELETE') {
@@ -106,7 +109,10 @@ export default async function handler(
       return res.status(200).send({message: 'User Deleted', result});
     } catch (err) {
       console.error(err);
-      return res.status(400).send(err.message);
+      if (err instanceof Error) {
+        return res.status(400).send(err.message);
+      }
+      return res.status(400).send('An error occurred');
     }
   }
   try {

@@ -489,25 +489,32 @@ export default async function handler(
     );
 
     // 7. Course Enrollment Distribution
-    const courses = await prisma.course.findMany({
-      select: {
-        id: true,
-        name: true,
+    const courseEnrollmentData = await prisma.enrollment.groupBy({
+      by: ['course_id'],
+      where: {
+        userCohort: cohortId ? {cohortId} : undefined,
+      },
+      _count: {
+        course_id: true,
       },
     });
 
-    const courseEnrollmentData = await Promise.all(
-      courses.map(async course => {
-        const count = await prisma.enrollment.count({
+    // Get course names for the enrollment data
+    const courseEnrollmentDataWithNames = await Promise.all(
+      courseEnrollmentData.map(async (enrollment) => {
+        const course = await prisma.course.findUnique({
           where: {
-            course_id: Number(course.id),
-            userCohort: {
-              cohortId: cohortId || undefined,
-            },
+            id: enrollment.course_id,
+          },
+          select: {
+            name: true,
           },
         });
-        return {name: course.name, count};
-      }),
+        return {
+          name: course?.name || 'Unknown Course',
+          count: enrollment._count?.course_id?.toString() || '0',
+        };
+      })
     );
 
     // 8. Internship Program Distribution
@@ -747,10 +754,7 @@ export default async function handler(
         status: item.status,
         count: item.count.toString(),
       })),
-      courseEnrollmentData: courseEnrollmentData.map(item => ({
-        name: item.name,
-        count: item.count.toString(),
-      })),
+      courseEnrollmentData: courseEnrollmentDataWithNames,
       internshipProgramData: internshipProgramData.map(item => ({
         program: item.program.replace(/([A-Z])/g, ' $1').trim(),
         count: item.count.toString(),

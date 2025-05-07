@@ -17,6 +17,10 @@ export interface DashboardData {
     name: string;
     count: string;
   }>;
+  total_enrolled_by_courses: number;
+  total_enrolled_applicants: number;
+  female_enrollments: number;
+  male_enrollments: number;
 }
 
 export interface LocationData {
@@ -35,18 +39,4 @@ export interface LocationData {
   date: string;
 }
 
-declare module '@/services/api' {
-  interface ApiResponse<T> {
-    data: T;
-  }
-
-  export function useGetDashboardDataQuery(
-    params: { cohortId?: string },
-    options?: any
-  ): UseQueryHookResult<ApiResponse<DashboardData>>;
-
-  export function useGetLocationBreakdownQuery(
-    params: { cohortId?: string },
-    options?: any
-  ): UseQueryHookResult<ApiResponse<LocationData>>;
-} 
+// Remove duplicate hook declarations since they're implemented in services/api.ts 

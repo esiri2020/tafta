@@ -110,7 +110,9 @@ export default async function handler(
       return res.status(201).send({ message: "success", seatBooking });
     } catch (error) {
       console.error(error);
-      return res.status(400).send({ error: error.message });
+      return res.status(400).send({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      });
     }
   }
   if (req.method === "DELETE") {
@@ -122,7 +124,9 @@ export default async function handler(
       });
       return res.status(200).send({ message: "success", deleted });
     } catch (error) {
-      return res.status(400).send({ error: error.message });
+      return res.status(400).send({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      });
     }
   }
   try {
@@ -139,11 +143,13 @@ export default async function handler(
         return res.status(400).send({ error: "No cohort data" });
       }
 
-      const locations: Location[] = await prisma.location.findMany({
+      const locations = await prisma.location.findMany({
         where: {
-          cohorts: {
+          CohortToLocation: {
             some: {
-              id: userCohort.cohortId,
+              Cohort: {
+                id: userCohort.cohortId
+              }
             },
           },
         },
@@ -158,8 +164,8 @@ export default async function handler(
         },
       });
 
-      const seatBookings: SeatBooking[] = locations
-        .map((location: Location) => location.seatBooking)
+      const seatBookings = locations
+        .map((location) => location.seatBooking)
         .flat();
 
       return res.status(200).send({ locations, seatBookings });
@@ -218,7 +224,9 @@ export default async function handler(
     }
   } catch (error) {
     console.error(error);
-    return res.status(400).send({ error: error.message });
+    return res.status(400).send({ 
+      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    });
   }
 }
 
@@ -255,7 +263,7 @@ async function sendSeatBookingConfirmationEmail(
 
     console.log(`Email sent successfully to ${recipientEmail}`);
   } catch (error) {
-    console.error(`Error sending email to ${recipientEmail}: ${error.message}`);
+    console.error(`Error sending email to ${recipientEmail}: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
     throw error;
   }
 }

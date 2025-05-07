@@ -155,10 +155,10 @@ export default async function handler(
       const enrollments_results = await Promise.allSettled(enrollment_promises);
       return res.status(201).send({message: 'success'});
     } catch (error) {
-      console.error(error.response?.data || error);
-      return res
-        .status(400)
-        .send({message: error.response?.data || error.message});
+      console.error(error instanceof Error ? error.message : 'An unknown error occurred');
+      return res.status(400).send({
+        message: error instanceof Error ? error.message : 'An unknown error occurred',
+      });
     }
   }
   if (req.method === 'DELETE') {
@@ -178,7 +178,10 @@ export default async function handler(
       return res.status(200).send({message: 'Users Deleted'});
     } catch (err) {
       console.error(err);
-      return res.status(400).send(err.message);
+      if (err instanceof Error) {
+        return res.status(400).send(err.message);
+      }
+      return res.status(400).send('An error occurred');
     }
   }
   // Pagination
@@ -593,7 +596,7 @@ export default async function handler(
 
     return res.status(200).json({applicants, count});
   } catch (err) {
-    console.error(err.message);
-    return res.status(400).send(err.message);
+    console.error(err instanceof Error ? err.message : 'An unknown error occurred');
+    return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred');
   }
 }

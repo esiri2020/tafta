@@ -53,7 +53,7 @@ export default async function handler(
         return res.status(202).send(user)
       } catch (err) {
         console.error(err)
-        return res.status(400).send(err.message)
+        return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
       }
     }
 
@@ -65,7 +65,7 @@ export default async function handler(
         return res.status(200).send({message: 'User Deleted', result})
       } catch (err) {
         console.error(err)
-        return res.status(400).send(err.message)
+        return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
       }
     }
 
@@ -89,16 +89,16 @@ export default async function handler(
           },
         });
     
-       
         if (!user) {
           return res.status(404).json({message: "Invalid Credientials" });
         }
     
-    
         res.json({ message: "success", user });
     } catch (error) {
         console.error(error);
-        res.status(400).json({ message: "Something went wrong" });
+        res.status(400).json({ 
+          message: "Something went wrong",
+          error: error instanceof Error ? error.message : 'An unknown error occurred'
+        });
     }
-
 }

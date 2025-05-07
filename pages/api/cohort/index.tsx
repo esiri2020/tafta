@@ -46,8 +46,10 @@ export default async function handler(
         return res.status(201).send({ message: 'success', cohort, group })
       })
     } catch (err) {
-      console.error(err.message)
-      return res.status(400).send({ message: err.message })
+      console.error(err instanceof Error ? err.message : 'An unknown error occurred')
+      return res.status(400).send({ 
+        message: err instanceof Error ? err.message : 'An unknown error occurred' 
+      })
     }
   }
   try {
@@ -98,7 +100,9 @@ export default async function handler(
 
     return res.status(200).send({ message: 'success', cohorts: bigint_filter(cohorts), count })
   } catch (err) {
-    console.error(err.message)
-    return res.status(400).send({ message: err.message })
+    console.error(err instanceof Error ? err.message : 'An unknown error occurred')
+    return res.status(400).send({ 
+      message: err instanceof Error ? err.message : 'An unknown error occurred' 
+    })
   }
 }

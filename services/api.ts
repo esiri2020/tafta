@@ -4,7 +4,7 @@ import {
   FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
 import {env} from 'process';
-import {DashboardData} from '../types';
+import {DashboardData} from '../types/api';
 import {RootState} from '../store';
 import {getSession} from 'next-auth/react';
 import type {Session} from 'next-auth';
@@ -40,7 +40,7 @@ export const apiService = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: url,
     prepareHeaders: async (headers) => {
-      const session = await getSession();
+      const session = await getSession() as Session;
       if (session?.userData?.userId) {
         headers.set('authorization', `Bearer ${session.userData.userId}`);
       }

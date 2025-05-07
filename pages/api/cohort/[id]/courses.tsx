@@ -28,7 +28,7 @@ export default async function handler(
             return res.status(200).send({ message: 'Cohort Deleted', deletedCourses: bigint_filter(deletedCourses) })
         } catch (err) {
             console.error(err)
-            return res.status(400).send(err.message)
+            return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
         }
     }
     try {
@@ -44,6 +44,9 @@ export default async function handler(
         return res.status(200).send(bigint_filter({ message: 'success', cohortCourses }))
     } catch (error) {
         console.error(error);
-        res.status(400).send({ message: "Something went wrong", error });
+        res.status(400).send({ 
+            message: "Something went wrong", 
+            error: error instanceof Error ? error.message : 'An unknown error occurred' 
+        });
     }
 }

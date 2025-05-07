@@ -59,7 +59,7 @@ export default async function handler(
             return res.status(201).send({ message: 'success', report })
         } catch (err) {
             console.error(err)
-            return res.status(400).send(err.message)
+            return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
         }
     }
     if (req.method === 'DELETE') {
@@ -104,7 +104,7 @@ export default async function handler(
             return res.send({ message: 'success', report: result })
         } catch (err) {
             console.error(err)
-            return res.status(400).send(err.message)
+            return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
         }
     }
     try {
@@ -178,6 +178,6 @@ export default async function handler(
         return res.status(200).send({ message: 'success', reports, count })
     } catch (err) {
         console.error(err)
-        return res.status(400).send(err.message)
+        return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
     }
 }

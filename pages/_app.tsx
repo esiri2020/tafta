@@ -12,6 +12,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // import { AuthConsumer, AuthProvider } from '../contexts/auth-context';
 import { createEmotionCache } from '../utils/create-emotion-cache';
 import { registerChartJs } from '../utils/register-chart-js';
@@ -39,6 +40,7 @@ interface CustomAppProps extends AppProps {
 registerChartJs();
 
 const clientSideEmotionCache = createEmotionCache();
+const queryClient = new QueryClient();
 
 // Use of the <SessionProvider> is mandatory to allow components that call
 // `useSession()` anywhere in your application to access the `session` object.
@@ -68,11 +70,13 @@ export default function App({
           <CssBaseline />
             <Toaster position="top-center" />
             <Provider store={store}>
-              <SessionProvider session={session}>          
-                {
-                  getLayout(<Component {...pageProps} />)
-                }            
-              </SessionProvider>
+              <QueryClientProvider client={queryClient}>
+                <SessionProvider session={session}>          
+                  {
+                    getLayout(<Component {...pageProps} />)
+                  }            
+                </SessionProvider>
+              </QueryClientProvider>
             </Provider>
         </ThemeProvider>
       </LocalizationProvider>

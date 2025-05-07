@@ -602,8 +602,8 @@ export default async function handler(
 
     return res.status(200).send({enrollments, count, maleCount, femaleCount});
   } catch (err) {
-    console.error(err.message);
-    return res.status(400).send(err.message);
+    console.error(err instanceof Error ? err.message : 'An unknown error occurred');
+    return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred');
   }
 }
 
