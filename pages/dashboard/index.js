@@ -68,7 +68,6 @@ import {
   MarkEmailRead as MarkEmailReadIcon,
   Announcement as AnnouncementIcon,
   Mail as MailIcon,
-  MailOpen as MailOpenIcon,
   History as HistoryIcon,
 } from '@mui/icons-material';
 import {format} from 'date-fns';
