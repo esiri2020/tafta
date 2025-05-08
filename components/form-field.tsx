@@ -15,6 +15,7 @@ interface FormFieldProps {
   formik: FormikProps<any>;
   render: () => ReactNode;
   tooltip?: string;
+  required?: boolean;
 }
 
 export const FormField = ({
@@ -23,13 +24,17 @@ export const FormField = ({
   formik,
   render,
   tooltip,
+  required,
 }: FormFieldProps) => {
   const hasError = formik.touched[id] && formik.errors[id];
 
   return (
     <div className='space-y-2'>
       <div className='flex items-center space-x-2'>
-        <Label htmlFor={id}>{label}</Label>
+        <Label htmlFor={id}>
+          {label}
+          {required && <span className='text-red-500'>*</span>}
+        </Label>
         {tooltip && (
           <TooltipProvider>
             <Tooltip delayDuration={300}>

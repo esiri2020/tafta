@@ -3,6 +3,7 @@ import api from "../../../lib/axios.setup"
 import type { NextApiRequest, NextApiResponse } from "next"
 import prisma from "../../../lib/prismadb"
 import { bigint_filter } from "../enrollments"
+import type { Prisma } from '.prisma/client'
 
 // TODO: Create cohort group on thinkific on cohort creation. ✔️
 
@@ -19,7 +20,7 @@ export default async function handler(
     }
     const { cohortCourses, centers, values } = typeof (req.body) === 'object' ? req.body : JSON.parse(req.body)
     try {
-      return await prisma.$transaction(async (tx) => {
+      return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const cohort = await tx.cohort.create({
           data: {
             ...values,
@@ -46,10 +47,18 @@ export default async function handler(
         return res.status(201).send({ message: 'success', cohort, group })
       })
     } catch (err) {
+<<<<<<< HEAD
       console.error(err instanceof Error ? err.message : 'An unknown error occurred')
       return res.status(400).send({ 
         message: err instanceof Error ? err.message : 'An unknown error occurred' 
       })
+=======
+      console.error(err)
+      if (err instanceof Error) {
+      return res.status(400).send({ message: err.message })
+      }
+      return res.status(400).send({ message: 'An error occurred' })
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
   try {
@@ -100,9 +109,17 @@ export default async function handler(
 
     return res.status(200).send({ message: 'success', cohorts: bigint_filter(cohorts), count })
   } catch (err) {
+<<<<<<< HEAD
     console.error(err instanceof Error ? err.message : 'An unknown error occurred')
     return res.status(400).send({ 
       message: err instanceof Error ? err.message : 'An unknown error occurred' 
     })
+=======
+    console.error(err)
+    if (err instanceof Error) {
+    return res.status(400).send({ message: err.message })
+    }
+    return res.status(400).send({ message: 'An error occurred' })
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
 }

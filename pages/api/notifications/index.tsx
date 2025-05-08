@@ -23,7 +23,7 @@ export default async function handler(
 
   // Check if user is staff (super admin, admin, or support)
   const userRole = token?.userData?.role as string;
-  if (!userRole || !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)) {
+  if (!userRole || !['SUPERADMIN', 'ADMIN', 'SUPPORT', 'APPLICANT'].includes(userRole)) {
     return res.status(403).send({
       error: 'Unauthorized. Only staff members can access notifications.',
     });
@@ -39,12 +39,14 @@ export default async function handler(
       // Build where clause based on filters
       const whereClause: any = {};
 
-      // For non-super admins, only show notifications they created or are assigned to
-      if (userRole !== 'SUPERADMIN') {
-        whereClause.OR = [
-          {senderId: token?.userData?.userId},
-          {recipientId: token?.userData?.userId}
-        ];
+      // For applicants, only show their own notifications
+      if (userRole === 'APPLICANT') {
+        whereClause.recipientId = token.sub;
+      } else if (userRole !== 'SUPERADMIN') {
+        // For non-super admins, show all notifications but filter by status
+        whereClause.status = {
+          not: 'ARCHIVED' // Only show non-archived notifications
+        };
       }
 
       if (isRead !== undefined) {
@@ -188,6 +190,7 @@ export default async function handler(
         type: type || 'GENERAL',
         cohortId: cohortId || null,
         relatedEntityId: relatedEntityId || null,
+        status: NotificationStatus.DELIVERED,
       }));
 
       // Log the data we're trying to create

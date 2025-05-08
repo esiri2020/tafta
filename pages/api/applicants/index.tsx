@@ -154,11 +154,19 @@ export default async function handler(
       const results = await Promise.allSettled(promises);
       const enrollments_results = await Promise.allSettled(enrollment_promises);
       return res.status(201).send({message: 'success'});
+<<<<<<< HEAD
     } catch (error) {
       console.error(error instanceof Error ? error.message : 'An unknown error occurred');
       return res.status(400).send({
         message: error instanceof Error ? error.message : 'An unknown error occurred',
       });
+=======
+    } catch (error: any) {
+      console.error(error.response?.data || error);
+      return res
+        .status(400)
+        .send({message: error.response?.data || error.message});
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
   if (req.method === 'DELETE') {
@@ -176,7 +184,7 @@ export default async function handler(
         },
       });
       return res.status(200).send({message: 'Users Deleted'});
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       if (err instanceof Error) {
         return res.status(400).send(err.message);
@@ -221,6 +229,9 @@ export default async function handler(
     communityArea?: string[];
     talpParticipation?: boolean | null;
     type?: string[];
+    location?: string[];
+    lga?: string[];
+    [key: string]: any; // Add index signature to allow indexing with string
   }
 
   let parsedFilter: string | FilterParams | undefined = filter;
@@ -235,6 +246,10 @@ export default async function handler(
   }
 
   try {
+    let filteredOutCount = 0;
+    let filteredOutSample: any[] = [];
+    let filterConditions: any = null;
+
     if (query) {
       const isEmail =
         /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/gi;
@@ -327,7 +342,7 @@ export default async function handler(
       parsedFilter !== undefined
     ) {
       // Build filter conditions based on the parsed filter object
-      const filterConditions: any = {
+      filterConditions = {
         role: 'APPLICANT',
         userCohort: userCohortFilter,
       };
@@ -387,6 +402,16 @@ export default async function handler(
       // Handle type of applicant filter
       if (parsedFilter.type && parsedFilter.type.length > 0) {
         profileConditions.type = {in: parsedFilter.type};
+      }
+
+      // Handle location filter
+      if (parsedFilter.location && parsedFilter.location.length > 0) {
+        profileConditions.stateOfResidence = {in: parsedFilter.location};
+      }
+
+      // Handle LGA filter
+      if (parsedFilter.lga && parsedFilter.lga.length > 0) {
+        profileConditions.LGADetails = {in: parsedFilter.lga};
       }
 
       // Add profile conditions if any were set
@@ -594,9 +619,78 @@ export default async function handler(
       });
     }
 
+<<<<<<< HEAD
     return res.status(200).json({applicants, count});
   } catch (err) {
     console.error(err instanceof Error ? err.message : 'An unknown error occurred');
     return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred');
+=======
+    // After getting the matching applicants, get a sample of those who don't match
+    if (
+      typeof parsedFilter === 'object' &&
+      parsedFilter !== null &&
+      parsedFilter !== undefined &&
+      Object.keys(parsedFilter).some(key => {
+        const value = parsedFilter[key];
+        return Array.isArray(value)
+          ? value.length > 0
+          : value !== null && value !== undefined;
+      }) &&
+      filterConditions !== null
+    ) {
+      // Build inverse filter conditions to get filtered out applicants
+      const inverseFilterConditions: any = {
+        role: 'APPLICANT',
+        userCohort: userCohortFilter,
+        NOT: {},
+      };
+
+      // Copy the original filter conditions for the NOT clause
+      if (filterConditions && filterConditions.profile) {
+        inverseFilterConditions.NOT.profile = {...filterConditions.profile};
+      }
+
+      if (filterConditions && filterConditions.OR) {
+        inverseFilterConditions.NOT.OR = [...filterConditions.OR];
+      }
+
+      // Get count of filtered out applicants
+      filteredOutCount = await prisma.user.count({
+        where: inverseFilterConditions,
+      });
+
+      // Get a sample of filtered out applicants (first 10)
+      if (filteredOutCount > 0) {
+        filteredOutSample = await prisma.user.findMany({
+          where: inverseFilterConditions,
+          include: {
+            profile: true,
+            userCohort: {
+              select: {
+                enrollments: {
+                  select: {
+                    enrolled: true,
+                    course_name: true,
+                  },
+                },
+                cohort: true,
+              },
+            },
+          },
+          take: 10, // Just get 10 samples
+        });
+      }
+    }
+
+    return res.status(200).json({
+      applicants,
+      count,
+      filteredOutCount,
+      filteredOutSample,
+    });
+  } catch (err: any) {
+    console.error(err.message);
+    return res.status(400).send(err.message);
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
 }

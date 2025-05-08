@@ -4,10 +4,15 @@ import {
   FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
 import {env} from 'process';
+<<<<<<< HEAD
 import {DashboardData} from '../types/api';
+=======
+import {DashboardData, LocationData} from '../types';
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
 import {RootState} from '../store';
 import {getSession} from 'next-auth/react';
-import type {Session} from 'next-auth';
+import type {Session, UserData} from 'next-auth';
+import type {Notification} from '../components/dashboard/notifications/notification-panel';
 
 // No need to extend Session type as it's already defined in next-auth.d.ts
 
@@ -40,7 +45,11 @@ export const apiService = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: url,
     prepareHeaders: async (headers) => {
+<<<<<<< HEAD
       const session = await getSession() as Session;
+=======
+      const session = await getSession() as Session & { userData?: UserData };
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
       if (session?.userData?.userId) {
         headers.set('authorization', `Bearer ${session.userData.userId}`);
       }
@@ -80,28 +89,16 @@ export const apiService = createApi({
         body: {password},
       }),
     }),
-    getDashboardData: builder.query<DashboardData, string | undefined | any>({
+    getDashboardData: builder.query<DashboardData, {cohortId?: string}>({
       query: ({cohortId}) =>
-        cohortId ? `dashboard?cohortId=${cohortId}` : `dashboard`, // No cohortId for All active cohorts
+        cohortId ? `dashboard?cohortId=${cohortId}` : `dashboard`,
+      providesTags: ['Dashboard'],
     }),
-    // getEnrollments: builder.query({
-    //   query: ({page, limit, course, status, cohort}) =>
-    //     `enrollments?page=${page}&limit=${limit}${
-    //       course ? `&course=${course}` : ''
-    //     }${status ? `&status=${status}` : ''}${
-    //       cohort ? `&cohort=${cohort}` : ''
-    //     }`,
-    //   providesTags: result =>
-    //     result
-    //       ? [
-    //           ...result.enrollments?.map(({id}: ResultData) => ({
-    //             type: 'Enrollments',
-    //             id,
-    //           })),
-    //           {type: 'Enrollments', id: 'PARTIAL-LIST'},
-    //         ]
-    //       : [{type: 'Enrollments', id: 'PARTIAL-LIST'}],
-    // }),
+    getLocationBreakdown: builder.query<LocationData, {cohortId?: string}>({
+      query: ({cohortId}) =>
+        cohortId ? `dashboard/location-breakdown?cohortId=${cohortId}` : `dashboard/location-breakdown`,
+      providesTags: ['Dashboard'],
+    }),
     getEnrollments: builder.query({
       query: ({
         page,
@@ -602,37 +599,70 @@ export const apiService = createApi({
       invalidatesTags: ['Notifications'],
     }),
 
-    getLocationBreakdown: builder.query<{
-      states: Array<{
-        state: string;
-        courses: Array<{
-          course: string;
-          female: number;
-          male: number;
-          total: number;
-        }>;
-        total: number;
-      }>;
-      totalCompletion: number;
-      cohortName: string;
-      date: string;
-    }, { cohortId?: string }>({
-      query: ({ cohortId }) => ({
-        url: '/dashboard/location-breakdown',
-        params: { cohortId },
+    getSeatBooking: builder.query({
+      query: id => `seat-bookings/${id}`,
+      providesTags: (result, error, arg) =>
+        result ? [{type: 'SeatBookings', id: arg.id}] : ['SeatBookings'],
+    }),
+    editSeatBooking: builder.mutation({
+      query: ({id, body}) => ({
+        url: `seat-bookings/${id}`,
+        method: 'PATCH',
+        body,
       }),
-      providesTags: ['Dashboard'],
+      invalidatesTags: (result, error, arg) =>
+        result ? [{type: 'SeatBookings', id: arg.id}] : ['SeatBookings'],
+    }),
+    getCohort: builder.query({
+      query: id => `cohorts/${id}`,
+      providesTags: (result, error, arg) =>
+        result ? [{type: 'Cohorts', id: arg.id}] : ['Cohorts'],
+    }),
+    getCourse: builder.query({
+      query: id => `courses/${id}`,
+      providesTags: (result, error, arg) =>
+        result ? [{type: 'Courses', id: arg.id}] : ['Courses'],
+    }),
+    createCourse: builder.mutation({
+      query: ({body}) => ({
+        url: 'courses',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Courses'],
+    }),
+    editCourse: builder.mutation({
+      query: ({id, body}) => ({
+        url: `courses/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (result, error, arg) =>
+        result ? [{type: 'Courses', id: arg.id}] : ['Courses'],
+    }),
+    deleteCourse: builder.mutation({
+      query: id => ({
+        url: `courses/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, arg) =>
+        result ? [{type: 'Courses', id: arg.id}] : ['Courses'],
+    }),
+    getCohortCourse: builder.query({
+      query: id => `cohort-courses/${id}`,
+      providesTags: (result, error, arg) =>
+        result ? [{type: 'CohortCourses', id: arg.id}] : ['CohortCourses'],
     }),
   }),
 });
 
+// Export all hooks
 export const {
-  useLoginMutation,
-  useResetPasswordMutation,
   useGetDashboardDataQuery,
-  useGetApplicantsQuery,
+  useGetLocationBreakdownQuery,
   useGetEnrollmentsQuery,
   useCreateEnrollmentMutation,
+  useGetApplicantsQuery,
   useGetApplicantQuery,
   useCreateApplicantMutation,
   useEditApplicantMutation,
@@ -644,16 +674,16 @@ export const {
   useCreateUserMutation,
   useEditUserMutation,
   useDeleteUserMutation,
+  useGetSeatBookingsQuery,
+  useCreateSeatBookingMutation,
+  useDeleteSeatBookingMutation,
   useGetCohortsQuery,
-  useGetCohortCoursesQuery,
-  useDeleteCohortCoursesMutation,
   useCreateCohortMutation,
   useEditCohortMutation,
   useDeleteCohortMutation,
   useGetCoursesQuery,
-  useGetSeatBookingsQuery,
-  useCreateSeatBookingMutation,
-  useDeleteSeatBookingMutation,
+  useGetCohortCoursesQuery,
+  useDeleteCohortCoursesMutation,
   useGetReportsQuery,
   useCreateReportMutation,
   useDeleteReportMutation,
@@ -670,5 +700,5 @@ export const {
   useArchiveNotificationMutation,
   useGetCohortAlertsQuery,
   useTriggerCohortAlertMutation,
-  useGetLocationBreakdownQuery,
+  useResetPasswordMutation,
 } = apiService;

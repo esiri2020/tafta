@@ -51,9 +51,18 @@ export default async function handler(
           }
         })
         return res.status(202).send(user)
+<<<<<<< HEAD
       } catch (err) {
         console.error(err)
         return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
+=======
+      } catch (error: unknown) {
+        console.error(error)
+        if (error instanceof Error) {
+          return res.status(400).send(error.message)
+        }
+        return res.status(400).send('An error occurred')
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
       }
     }
 
@@ -63,9 +72,18 @@ export default async function handler(
           where: { id }
         })
         return res.status(200).send({message: 'User Deleted', result})
+<<<<<<< HEAD
       } catch (err) {
         console.error(err)
         return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
+=======
+      } catch (error: unknown) {
+        console.error(error)
+        if (error instanceof Error) {
+          return res.status(400).send(error.message)
+        }
+        return res.status(400).send('An error occurred')
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
       }
     }
 
@@ -94,11 +112,18 @@ export default async function handler(
         }
     
         res.json({ message: "success", user });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error(error);
+<<<<<<< HEAD
         res.status(400).json({ 
           message: "Something went wrong",
           error: error instanceof Error ? error.message : 'An unknown error occurred'
         });
+=======
+        if (error instanceof Error) {
+          return res.status(400).json({ message: error.message });
+        }
+        return res.status(400).json({ message: "Something went wrong" });
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
 }

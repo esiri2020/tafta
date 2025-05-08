@@ -708,6 +708,10 @@ export default async function handler(
         count: item.count.toString(),
       })),
       inactive_enrollments: inactive_enrollments.toString(),
+      courseEnrollmentData: courseEnrollmentData.map(item => ({
+        name: item.name,
+        count: item.count.toString(),
+      })),
       age_range: age_range.map(item => ({
         ageRange: item.ageRange,
         count: item.count.toString(),
@@ -754,7 +758,10 @@ export default async function handler(
         status: item.status,
         count: item.count.toString(),
       })),
+<<<<<<< HEAD
       courseEnrollmentData: courseEnrollmentDataWithNames,
+=======
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
       internshipProgramData: internshipProgramData.map(item => ({
         program: item.program.replace(/([A-Z])/g, ' $1').trim(),
         count: item.count.toString(),

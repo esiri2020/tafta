@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useRef, useState, useEffect} from 'react';
 import PropTypes from 'prop-types';
 import {useTranslation} from 'react-i18next';
 import {
@@ -18,9 +18,9 @@ import {Search as SearchIcon} from '../../icons/search';
 import {UserCircle as UserCircleIcon} from '../../icons/user-circle';
 import {Users as UsersIcon} from '../../icons/users';
 import {AccountPopover} from '../account-popover';
-import {NotificationBadge} from './notifications/notification-badge';
 import NotificationsPopover from './notifications/notifications-popover';
 import {useGetNotificationsQuery} from '../../services/api';
+import {useNotifications} from '../../hooks/use-notifications';
 // import { ContactsPopover } from '../contacts-popover';
 // import { ContentSearchDialog } from './content-search-dialog';
 // import { LanguagePopover } from './language-popover';
@@ -144,41 +144,42 @@ const DashboardNavbarRoot = styled(AppBar)(({theme}) => ({
 
 const NotificationsButton = () => {
   const [openPopover, setOpenPopover] = useState(false);
-  const {data: notificationsData} = useGetNotificationsQuery({
-    page: 0,
-    limit: 10,
-  });
-
-  const unreadCount = notificationsData?.notifications
-    ? notificationsData.notifications.filter(
-        notification => !notification.isRead,
-      ).length
-    : 0;
-
-  const handleOpenPopover = () => {
-    setOpenPopover(true);
-  };
-
-  const handleClosePopover = () => {
-    setOpenPopover(false);
-  };
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   return (
     <>
-      <Tooltip title='Notifications'>
-        <IconButton onClick={handleOpenPopover} sx={{ml: 1}}>
-          {unreadCount > 0 ? (
-            <Badge badgeContent={unreadCount} color='error'>
-              <BellIcon fontSize='small' />
+      <Tooltip title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'No new notifications'}>
+        <IconButton 
+          onClick={() => setOpenPopover(true)} 
+          sx={{
+            ml: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+        >
+          <Badge 
+            badgeContent={unreadCount} 
+            color="error" 
+            max={99}
+            sx={{
+              '& .MuiBadge-badge': {
+                right: -3,
+                top: 3,
+                border: '2px solid #fff',
+                padding: '0 4px',
+              },
+            }}
+          >
+            <BellIcon fontSize="small" />
             </Badge>
-          ) : (
-            <BellIcon fontSize='small' />
-          )}
         </IconButton>
       </Tooltip>
       <NotificationsPopover
         open={openPopover}
-        onClose={handleClosePopover}
+        onClose={() => setOpenPopover(false)}
+        notifications={notifications}
+        onMarkAsRead={markAsRead}
       />
     </>
   );
@@ -261,7 +262,7 @@ export const DashboardNavbar = props => {
                 lg: 'none',
               },
             }}>
-            <MenuIcon fontSize='small' />
+            <MenuIcon fontSize="small" />
           </IconButton>
           <Box sx={{flexGrow: 1}} />
           {/* <LanguageButton /> */}

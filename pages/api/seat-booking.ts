@@ -3,23 +3,34 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../lib/prismadb";
 import nodemailer from "nodemailer";
 import { bigint_filter } from "./enrollments";
+import type { User as PrismaUser } from '@prisma/client';
 
+// Define our own types based on the schema
 interface Location {
   id: string;
   location: string;
-  seats: number | null; // Allow seats to be null
+  seats: number | null;
   name: string;
   seatBooking: SeatBooking[];
 }
 
+interface UserWithRelations extends Omit<PrismaUser, 'userCohort'> {
+  userCohort: {
+    id: string;
+    cohort: {
+      id: string;
+      CohortToLocation: {
+        Location: Location;
+      }[];
+    };
+  }[];
+}
+
 interface SeatBooking {
   id: string;
-  userId: string;
-  seatNumber: number;
-  locationId: string;
   Date: Date;
-  timeslot: number;
-  // location: Location[];
+  user: UserWithRelations;
+  location: Location;
 }
 
 // Create a Nodemailer transporter with your email service configuration
@@ -108,11 +119,18 @@ export default async function handler(
         body.seatNumber
       );
       return res.status(201).send({ message: "success", seatBooking });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
+<<<<<<< HEAD
       return res.status(400).send({ 
         error: error instanceof Error ? error.message : 'An unknown error occurred' 
       });
+=======
+      if (error instanceof Error) {
+        return res.status(400).send({ error: error.message });
+      }
+      return res.status(400).send({ error: 'An error occurred' });
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
   if (req.method === "DELETE") {
@@ -123,26 +141,39 @@ export default async function handler(
         where: { id: id },
       });
       return res.status(200).send({ message: "success", deleted });
+<<<<<<< HEAD
     } catch (error) {
       return res.status(400).send({ 
         error: error instanceof Error ? error.message : 'An unknown error occurred' 
       });
+=======
+    } catch (error: unknown) {
+      console.error(error);
+      if (error instanceof Error) {
+        return res.status(400).send({ error: error.message });
+      }
+      return res.status(400).send({ error: 'An error occurred' });
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
-  try {
-    if (token.userData.role === "APPLICANT") {
-      const userCohort = await prisma.userCohort.findFirst({
-        where: {
-          userId: userId,
-        },
-        orderBy: {
-          created_at: "desc",
-        },
-      });
-      if (userCohort == null) {
-        return res.status(400).send({ error: "No cohort data" });
+  if (req.method === "PUT") {
+    try {
+      // ... existing code ...
+    } catch (error: unknown) {
+      console.error(error);
+      if (error instanceof Error) {
+        return res.status(400).send({ error: error.message });
+      }
+      return res.status(400).send({ error: 'An error occurred' });
+    }
+  }
+  if (req.method === 'GET') {
+    try {
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' })
       }
 
+<<<<<<< HEAD
       const locations = await prisma.location.findMany({
         where: {
           CohortToLocation: {
@@ -195,44 +226,66 @@ export default async function handler(
               lastName: true,
               email: true,
               userCohort: {
-                include: {
-                  cohort: true,
-                },
-              },
-            },
-          },
-          location: true,
+=======
+      const user = await prisma.user.findUnique({
+        where: {
+          id: token.id as string
         },
-        orderBy: {
-          id: "desc",
-        },
-        take,
-        skip,
-      });
-      const locations = await prisma.location.findMany({
         include: {
-          seatBooking: {
-            where: {
-              Date: {
-                gte: new Date(),
-              },
-            },
-          },
-        },
-      });
-      return res.status(200).send({ locations, seatBookings, count });
+          userCohort: {
+            include: {
+              cohort: {
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
+                include: {
+                  CohortToLocation: {
+                    include: {
+                      Location: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+      }
+
+      const userCohort = user.userCohort[0]
+      if (!userCohort) {
+        return res.status(404).json({ error: 'User cohort not found' })
+      }
+
+      const location = userCohort.cohort.CohortToLocation[0]?.Location
+      if (!location) {
+        return res.status(404).json({ error: 'Location not found' })
+      }
+
+      return res.status(200).json(location)
+    } catch (error: unknown) {
+      console.error('Error in seat-booking:', error)
+      if (error instanceof Error) {
+        return res.status(500).json({ error: error.message })
+      }
+      return res.status(500).json({ error: 'An unknown error occurred' })
     }
+<<<<<<< HEAD
   } catch (error) {
     console.error(error);
     return res.status(400).send({ 
       error: error instanceof Error ? error.message : 'An unknown error occurred' 
     });
+=======
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
+  return res.status(405).json({ error: 'Method not allowed' })
 }
 
 // Define the function to send the Seat Booking Confirmation email
 async function sendSeatBookingConfirmationEmail(
-  recipientEmail: string, // Add the type for recipientEmail
+  recipientEmail: string,
   applicantName: string,
   dateAndTime: string,
   seatNumber: string
@@ -262,8 +315,17 @@ async function sendSeatBookingConfirmationEmail(
     });
 
     console.log(`Email sent successfully to ${recipientEmail}`);
+<<<<<<< HEAD
   } catch (error) {
     console.error(`Error sending email to ${recipientEmail}: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
     throw error;
+=======
+  } catch (error: unknown) {
+    console.error(`Error sending email to ${recipientEmail}:`, error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to send email');
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
 }

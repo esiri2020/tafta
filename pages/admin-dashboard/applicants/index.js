@@ -1,4 +1,4 @@
-import {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import {
@@ -11,6 +11,7 @@ import {
   UserPlus,
   Bell,
 } from 'lucide-react';
+import {nigeria_states, LGAs} from '@/data/form-options';
 
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
@@ -98,6 +99,138 @@ const useAutoEnrollmentMutation = () => {
   ];
 };
 
+// Component for displaying filtered out applicants
+const FilteredOutApplicantsCard = ({
+  filteredOutCount,
+  filteredOutSample,
+  isExpanded,
+  onToggleExpand,
+}) => {
+  if (!filteredOutCount || filteredOutCount === 0) return null;
+
+  return (
+    <Card className='mt-6'>
+      <CardHeader className='pb-2'>
+        <div className='flex justify-between items-center'>
+          <div>
+            <h3 className='text-lg font-medium'>Filtered Out Applicants</h3>
+            <p className='text-sm text-muted-foreground'>
+              {isExpanded
+                ? `Showing ${
+                    filteredOutSample?.length || 0
+                  } of ${filteredOutCount} filtered out applicants`
+                : `${filteredOutCount} applicants are filtered out by your current criteria`}
+            </p>
+          </div>
+          <Button variant='ghost' size='sm' onClick={onToggleExpand}>
+            {isExpanded ? 'Hide' : 'Show Preview'}
+          </Button>
+        </div>
+      </CardHeader>
+
+      {isExpanded && filteredOutSample?.length > 0 && (
+        <CardContent>
+          <div className='rounded-md border'>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Applicant</TableHead>
+                  <TableHead className='hidden md:table-cell'>
+                    Profile Details
+                  </TableHead>
+                  <TableHead>Application Status</TableHead>
+                  <TableHead className='text-right'>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOutSample.map(applicant => (
+                  <TableRow key={applicant.id}>
+                    <TableCell>
+                      <div className='flex items-center gap-3'>
+                        <Avatar>
+                          <AvatarFallback>
+                            {applicant.firstName?.charAt(0)}
+                            {applicant.lastName?.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className='flex flex-col'>
+                          <span className='font-medium'>
+                            {applicant.firstName} {applicant.lastName}
+                          </span>
+                          <span className='text-sm text-muted-foreground'>
+                            {applicant.email}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell'>
+                      {applicant.profile ? (
+                        <div className='text-sm space-y-1'>
+                          <div className='flex gap-2'>
+                            <span className='font-medium'>Gender:</span>
+                            <span>{applicant.profile.gender || 'N/A'}</span>
+                          </div>
+                          <div className='flex gap-2'>
+                            <span className='font-medium'>Age:</span>
+                            <span>{applicant.profile.ageRange || 'N/A'}</span>
+                          </div>
+                          <div className='flex gap-2'>
+                            <span className='font-medium'>State:</span>
+                            <span>
+                              {applicant.profile.stateOfResidence || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className='text-muted-foreground'>
+                          No profile data
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {applicant.profile ? (
+                        applicant.userCohort?.[0]?.enrollments?.[0]
+                          ?.enrolled ? (
+                          <Badge variant='secondary'>Approved</Badge>
+                        ) : (
+                          <Badge variant='outline' className='bg-yellow-100'>
+                            Completed
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant='outline'>Pending</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className='text-right'>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger>
+                          <Button variant='ghost' size='sm' type='button'>
+                            <span className='sr-only'>Open menu</span>
+                            <ChevronDown className='h-4 w-4' />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end'>
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>
+                            <Link
+                              href={`/admin-dashboard/applicants/${applicant.id}`}>
+                              <a>View Details</a>
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+};
+
 function ApplicantList() {
   // State for filters
   const [filters, setFilters] = useState({
@@ -110,6 +243,8 @@ function ApplicantList() {
     communityArea: [],
     talpParticipation: null,
     type: [],
+    location: [], // State of residence
+    lga: [], // Local Government Area
   });
 
   const [page, setPage] = useState(0);
@@ -118,6 +253,7 @@ function ApplicantList() {
   const [cohortId, setCohortId] = useState(null);
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const [showFilteredOut, setShowFilteredOut] = useState(false);
 
   // Get the selected cohort from redux state
   const selectedCohort = useAppSelector(selectCohort);
@@ -178,6 +314,8 @@ function ApplicantList() {
         ? filters.talpParticipation
         : undefined,
     type: filters.type.length > 0 ? filters.type : undefined,
+    location: filters.location.length > 0 ? filters.location : undefined,
+    lga: filters.lga.length > 0 ? filters.lga : undefined,
   });
 
   // Log the current filter state for debugging
@@ -253,6 +391,8 @@ function ApplicantList() {
       communityArea: [],
       talpParticipation: null,
       type: [],
+      location: [],
+      lga: [],
     });
     setSearchQuery('');
   };
@@ -427,6 +567,8 @@ function ApplicantList() {
     setNotificationDialogOpen(false);
   };
 
+  const filteredApplicantIds = getFilteredApplicantIds();
+
   if (isLoading)
     return (
       <div className='flex items-center justify-center h-screen'>
@@ -435,8 +577,6 @@ function ApplicantList() {
     );
   if (error)
     return <div className='text-red-500'>Error loading applicants</div>;
-
-  const filteredApplicantIds = getFilteredApplicantIds();
 
   return (
     <>
@@ -864,6 +1004,71 @@ function ApplicantList() {
                           </div>
                         </div>
                       </div>
+
+                      <Separator />
+
+                      <div className='space-y-2'>
+                        <h3 className='text-sm font-medium'>
+                          Location (State)
+                        </h3>
+                        <div className='space-y-2'>
+                          {nigeria_states.map(state => (
+                            <div
+                              key={state}
+                              className='flex items-center space-x-2'>
+                              <Checkbox
+                                id={`location-${state}`}
+                                checked={filters.location.includes(state)}
+                                onCheckedChange={checked =>
+                                  handleFilterChange('location', state)
+                                }
+                              />
+                              <Label htmlFor={`location-${state}`}>
+                                {state}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className='space-y-2'>
+                        <h3 className='text-sm font-medium'>LGA</h3>
+                        <div className='space-y-2 max-h-[200px] overflow-y-auto'>
+                          {filters.location.length > 0 ? (
+                            filters.location.map(state => (
+                              <div key={state}>
+                                <div className='font-semibold text-xs mt-2 mb-1'>
+                                  {state}
+                                </div>
+                                {Object.values(LGAs[state] || {})
+                                  .flat()
+                                  .map(lga => (
+                                    <div
+                                      key={lga}
+                                      className='flex items-center space-x-2 ml-2 mb-2'>
+                                      <Checkbox
+                                        id={`lga-${lga}`}
+                                        checked={filters.lga.includes(lga)}
+                                        onCheckedChange={checked =>
+                                          handleFilterChange('lga', lga)
+                                        }
+                                      />
+                                      <Label htmlFor={`lga-${lga}`}>
+                                        {lga}
+                                      </Label>
+                                    </div>
+                                  ))}
+                              </div>
+                            ))
+                          ) : (
+                            <div className='text-sm text-muted-foreground italic'>
+                              Select a state first to view LGAs
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <SheetFooter>
                       <Button
@@ -1168,6 +1373,16 @@ function ApplicantList() {
             </div> */}
           </CardContent>
         </Card>
+
+        {/* Filtered Out Applicants Card */}
+        {data?.filteredOutCount > 0 && (
+          <FilteredOutApplicantsCard
+            filteredOutCount={data.filteredOutCount}
+            filteredOutSample={data.filteredOutSample}
+            isExpanded={showFilteredOut}
+            onToggleExpand={() => setShowFilteredOut(prev => !prev)}
+          />
+        )}
       </div>
     </>
   );

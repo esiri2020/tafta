@@ -545,7 +545,7 @@ export const PersonalInformation = ({
           internshipProgram: '',
           submit: null,
         },
-    validationSchema: Yup.object({
+    validationSchema: Yup.object().shape({
       homeAddress: Yup.string(),
       LGADetails: Yup.string().max(255),
       country: Yup.string().max(255),
@@ -571,6 +571,100 @@ export const PersonalInformation = ({
       projectType: Yup.string().max(255).required('Project Type is required'),
       internshipProgram: Yup.string().required(
         'Internship Program is required',
+      ),
+      entrepreneurBusinessName: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema => schema.required('Business name is required'),
+        },
+      ),
+      entrepreneurBusinessType: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema => schema.required('Business type is required'),
+        },
+      ),
+      entrepreneurBusinessSize: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema => schema.required('Business size is required'),
+        },
+      ),
+      entrepreneurBusinessSector: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema => schema.required('Business sector is required'),
+        },
+      ),
+      entrepreneurCompanyPhoneNumber: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema =>
+            schema.matches(/^[0-9]+$/, 'Phone number must contain only digits'),
+        },
+      ),
+      entrepreneurAdditionalPhoneNumber: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema =>
+            schema.matches(/^[0-9]+$/, 'Phone number must contain only digits'),
+        },
+      ),
+      entrepreneurCompanyEmail: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema => schema.email('Invalid email format'),
+        },
+      ),
+      entrepreneurBusinessPartners: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema =>
+            schema.max(255, 'Business partners must be at most 255 characters'),
+        },
+      ),
+      entrepreneurRevenueRange: Yup.string().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema => schema.required('Revenue range is required'),
+        },
+      ),
+      entrepreneurRegistrationType: Yup.array().when(
+        ['employmentStatus', 'selfEmployedType'],
+        {
+          is: (employmentStatus, selfEmployedType) =>
+            employmentStatus === 'self-employed' &&
+            selfEmployedType === 'entrepreneur',
+          then: schema =>
+            schema.min(1, 'At least one registration type must be selected'),
+        },
       ),
     }),
     onSubmit: async (values, helpers) => {

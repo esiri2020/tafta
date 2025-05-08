@@ -28,7 +28,14 @@ export default async function handler(
             return res.status(200).send({ message: 'Cohort Deleted', deletedCourses: bigint_filter(deletedCourses) })
         } catch (err) {
             console.error(err)
+<<<<<<< HEAD
             return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
+=======
+            if (err instanceof Error) {
+                return res.status(400).send(err.message)
+            }
+            return res.status(400).send('An error occurred')
+>>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
         }
     }
     try {
