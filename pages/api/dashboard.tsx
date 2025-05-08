@@ -2,9 +2,49 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {getToken} from 'next-auth/jwt';
 import prisma from '../../lib/prismadb';
 
+// Add helper function to handle BigInt serialization
+function bigintToNumber(value: any): any {
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+  if (Array.isArray(value)) {
+    return value.map(bigintToNumber);
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, bigintToNumber(v)])
+    );
+  }
+  return value;
+}
+
 interface MonthData {
   month: string;
   [key: string]: string | number; // Allow string indexing with string or number values
+}
+
+// Add interfaces for the data types
+interface Enrollment {
+  course_id: string;
+  _count: {
+    course_id: number;
+  };
+}
+
+interface CompletionData {
+  _avg: {
+    percentage_completed: number | null;
+  };
+}
+
+interface EnrollmentData {
+  percentage_completed: number | null;
+}
+
+// Add interface for business type data
+interface BusinessTypeData {
+  type: string;
+  count: number;
 }
 
 export default async function handler(
@@ -445,7 +485,7 @@ export default async function handler(
             },
           },
         });
-        return {type, count};
+        return {type, count} as BusinessTypeData;
       }),
     );
 
@@ -501,7 +541,7 @@ export default async function handler(
 
     // Get course names for the enrollment data
     const courseEnrollmentDataWithNames = await Promise.all(
-      courseEnrollmentData.map(async (enrollment) => {
+      courseEnrollmentData.map(async (enrollment: Enrollment) => {
         const course = await prisma.course.findUnique({
           where: {
             id: enrollment.course_id,
@@ -588,7 +628,7 @@ export default async function handler(
     const avgCompletionPercentage =
       totalEnrollments > 0
         ? enrollmentProgressData.reduce(
-            (sum, item) => sum + (item._avg.percentage_completed || 0),
+            (sum: number, item: CompletionData) => sum + (item._avg.percentage_completed || 0),
             0,
           ) / totalEnrollments
         : 0;
@@ -614,7 +654,7 @@ export default async function handler(
 
     const completionRangeData = completionRanges.map(range => {
       const count = enrollments.filter(
-        e =>
+        (e: EnrollmentData) =>
           e.percentage_completed !== null &&
           e.percentage_completed >= range.min &&
           e.percentage_completed <= range.max,
@@ -695,7 +735,7 @@ export default async function handler(
     // END of your data fetching code
 
     // Return the data
-    return res.json({
+    const responseData = {
       total_enrolled_by_courses: total_enrolled_by_courses.toString(),
       total_enrolled_applicants: total_enrolled_applicants.toString(),
       female_enrollments: female_enrollments.toString(),
@@ -726,7 +766,6 @@ export default async function handler(
         idp: statusOfResidency.idp.toString(),
         resident: statusOfResidency.resident.toString(),
       },
-      // New metrics
       educationLevelData: educationLevelData.map(item => ({
         level: item.level
           .replace(/_/g, ' ')
@@ -774,7 +813,11 @@ export default async function handler(
         })),
       },
       location_trends,
-    });
+    };
+
+    // Convert any remaining BigInt values to strings
+    const serializedData = bigintToNumber(responseData);
+    return res.json(serializedData);
   } catch (err: any) {
     console.error(err);
     return res.status(500).json({error: err.message});

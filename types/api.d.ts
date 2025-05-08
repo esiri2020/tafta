@@ -7,18 +7,76 @@ export interface CourseEnrollment {
 
 export interface DashboardData {
   enrollment_completion_graph: {
-    id: bigint;
+    id: string;
     date: Date | null;
-    count: bigint;
+    count: string;
   }[];
-  active_enrollees: number;
-  inactive_enrollments: number;
-  certified_enrollees: number;
-  total_applicants: number;
-  total_enrolled: number;
-  male_enrollees: number;
-  female_enrollees: number;
+  active_enrollees: string;
+  inactive_enrollments: string;
+  certified_enrollees: string;
+  total_applicants: string;
+  total_enrolled: string;
+  male_enrollees: string;
+  female_enrollees: string;
   courseEnrollmentData: CourseEnrollment[];
+  age_range: Array<{
+    ageRange: string;
+    count: string;
+  }>;
+  location: Array<{
+    location: string;
+    count: string;
+  }>;
+  statusOfResidency: {
+    refugee: string;
+    migrant_workers: string;
+    idp: string;
+    resident: string;
+  };
+  educationLevelData: Array<{
+    level: string;
+    count: string;
+  }>;
+  communityAreaData: {
+    urban: string;
+    rural: string;
+    periUrban: string;
+  };
+  registrationTypeData: {
+    individual: string;
+    enterprise: string;
+  };
+  businessTypeData: Array<{
+    type: string;
+    count: string;
+  }>;
+  businessSizeData: Array<{
+    size: string;
+    count: string;
+  }>;
+  employmentStatusData: Array<{
+    status: string;
+    count: string;
+  }>;
+  internshipProgramData: Array<{
+    program: string;
+    count: string;
+  }>;
+  projectTypeData: Array<{
+    type: string;
+    count: string;
+  }>;
+  enrollmentProgressData: {
+    averageCompletion: string;
+    completionRanges: Array<{
+      range: string;
+      count: string;
+    }>;
+  };
+  location_trends: Array<{
+    month: string;
+    [key: string]: string | number;
+  }>;
 }
 
 export interface LocationData {

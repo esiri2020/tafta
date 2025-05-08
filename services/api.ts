@@ -35,6 +35,7 @@ function providesList<
 
 const url: string = env['API']
   ? env['API']
+  // : 'http://localhost:3000/api/';
   : 'https://reg.terraacademyforarts.com/api/';
 // const url: string = env['API'] ? env['API'] : 'http://localhost:3000/api/';
 
@@ -43,7 +44,7 @@ export const apiService = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: url,
     prepareHeaders: async headers => {
-      const session = (await getSession()) as Session & {userData?: UserData};
+      const session = await getSession() as Session & {userData?: UserData};
       if (session?.userData?.userId) {
         headers.set('authorization', `Bearer ${session.userData.userId}`);
       }
