@@ -183,14 +183,10 @@ export default async function handler(
       return res.send({ message: 'Synchronizing', count: enrollments.length })
     } catch (err) {
       console.error(err)
-<<<<<<< HEAD
-      return res.send(err instanceof Error ? err.message : 'An unknown error occurred')
-=======
       if (err instanceof Error) {
       return res.send(err.message)
       }
       return res.send('An error occurred')
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
 }

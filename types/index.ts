@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import {EnrollmentCompletionGraph} from '@prisma/client';
-
-// Remove duplicate DashboardData interface since we're using the one from api.d.ts
-=======
 export interface DashboardData {
   total_enrolled_by_courses: number;
   total_enrolled_applicants: number;
@@ -52,4 +47,3 @@ export interface LocationData {
   cohortName: string;
   date: string;
 }
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621

@@ -76,17 +76,11 @@ export default async function handler(
             })            
         }
         return res.status(200).json({users, count})
-<<<<<<< HEAD
-    } catch (err) {
-        console.error(err instanceof Error ? err.message : 'An unknown error occurred')
-        return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred')
-=======
     } catch (error: unknown) {
         console.error(error)
         if (error instanceof Error) {
             return res.status(400).send(error.message)
         }
         return res.status(400).send('An error occurred')
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
 }

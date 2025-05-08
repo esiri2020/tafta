@@ -18,18 +18,7 @@ export interface DashboardData {
   total_enrolled: number;
   male_enrollees: number;
   female_enrollees: number;
-<<<<<<< HEAD
-  courseEnrollmentData: Array<{
-    name: string;
-    count: string;
-  }>;
-  total_enrolled_by_courses: number;
-  total_enrolled_applicants: number;
-  female_enrollments: number;
-  male_enrollments: number;
-=======
   courseEnrollmentData: CourseEnrollment[];
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
 }
 
 export interface LocationData {
@@ -48,12 +37,8 @@ export interface LocationData {
   date: string;
 }
 
-<<<<<<< HEAD
-// Remove duplicate hook declarations since they're implemented in services/api.ts 
-=======
 declare module '@/services/api' {
   interface ApiResponse<T> {
     data: T;
   }
 } 
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621

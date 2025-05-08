@@ -93,11 +93,7 @@ export default async function handler(
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
-<<<<<<< HEAD
-        return res.status(400).send(err.message);
-=======
       return res.status(400).send(err.message);
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
       }
       return res.status(400).send('An error occurred');
     }
@@ -113,11 +109,7 @@ export default async function handler(
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
-<<<<<<< HEAD
-        return res.status(400).send(err.message);
-=======
       return res.status(400).send(err.message);
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
       }
       return res.status(400).send('An error occurred');
     }

@@ -154,19 +154,11 @@ export default async function handler(
       const results = await Promise.allSettled(promises);
       const enrollments_results = await Promise.allSettled(enrollment_promises);
       return res.status(201).send({message: 'success'});
-<<<<<<< HEAD
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : 'An unknown error occurred');
-      return res.status(400).send({
-        message: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-=======
     } catch (error: any) {
       console.error(error.response?.data || error);
       return res
         .status(400)
         .send({message: error.response?.data || error.message});
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
   if (req.method === 'DELETE') {
@@ -619,12 +611,6 @@ export default async function handler(
       });
     }
 
-<<<<<<< HEAD
-    return res.status(200).json({applicants, count});
-  } catch (err) {
-    console.error(err instanceof Error ? err.message : 'An unknown error occurred');
-    return res.status(400).send(err instanceof Error ? err.message : 'An unknown error occurred');
-=======
     // After getting the matching applicants, get a sample of those who don't match
     if (
       typeof parsedFilter === 'object' &&
@@ -691,6 +677,5 @@ export default async function handler(
   } catch (err: any) {
     console.error(err.message);
     return res.status(400).send(err.message);
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
 }

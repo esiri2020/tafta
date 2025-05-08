@@ -4,11 +4,7 @@ import {
   FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
 import {env} from 'process';
-<<<<<<< HEAD
-import {DashboardData} from '../types/api';
-=======
 import {DashboardData, LocationData} from '../types';
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
 import {RootState} from '../store';
 import {getSession} from 'next-auth/react';
 import type {Session, UserData} from 'next-auth';
@@ -37,19 +33,17 @@ function providesList<
     : ['UNKNOWN_ERROR'];
 }
 
-const url: string = env["API"] ? env["API"] : "https://reg.terraacademyforarts.com/api/";
+const url: string = env['API']
+  ? env['API']
+  : 'https://reg.terraacademyforarts.com/api/';
 // const url: string = env['API'] ? env['API'] : 'http://localhost:3000/api/';
 
 export const apiService = createApi({
   reducerPath: 'apiService',
   baseQuery: fetchBaseQuery({
     baseUrl: url,
-    prepareHeaders: async (headers) => {
-<<<<<<< HEAD
-      const session = await getSession() as Session;
-=======
-      const session = await getSession() as Session & { userData?: UserData };
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
+    prepareHeaders: async headers => {
+      const session = (await getSession()) as Session & {userData?: UserData};
       if (session?.userData?.userId) {
         headers.set('authorization', `Bearer ${session.userData.userId}`);
       }
@@ -96,7 +90,9 @@ export const apiService = createApi({
     }),
     getLocationBreakdown: builder.query<LocationData, {cohortId?: string}>({
       query: ({cohortId}) =>
-        cohortId ? `dashboard/location-breakdown?cohortId=${cohortId}` : `dashboard/location-breakdown`,
+        cohortId
+          ? `dashboard/location-breakdown?cohortId=${cohortId}`
+          : `dashboard/location-breakdown`,
       providesTags: ['Dashboard'],
     }),
     getEnrollments: builder.query({
@@ -447,23 +443,23 @@ export const apiService = createApi({
     getNotifications: builder.query({
       query: ({page, limit, search, status, type, tag}) => {
         let queryString = `notifications?page=${page}&limit=${limit}`;
-        
+
         if (search) {
           queryString += `&search=${search}`;
         }
-        
+
         if (status) {
           queryString += `&status=${status}`;
         }
-        
+
         if (type) {
           queryString += `&type=${type}`;
         }
-        
+
         if (tag) {
           queryString += `&tag=${tag}`;
         }
-        
+
         return queryString;
       },
       providesTags: result =>
@@ -573,7 +569,7 @@ export const apiService = createApi({
     }),
 
     archiveNotification: builder.mutation<Notification, string>({
-      query: (id) => ({
+      query: id => ({
         url: `/api/notifications/${id}/archive`,
         method: 'PATCH',
       }),
@@ -582,16 +578,16 @@ export const apiService = createApi({
 
     // Add these endpoints to the existing API service
     getCohortAlerts: builder.query({
-      query: ({ page = 1, limit = 10, cohortId }) => ({
+      query: ({page = 1, limit = 10, cohortId}) => ({
         url: '/api/notifications/cohort-alerts',
         method: 'GET',
-        params: { page, limit, cohortId },
+        params: {page, limit, cohortId},
       }),
       providesTags: ['Notifications'],
     }),
 
     triggerCohortAlert: builder.mutation({
-      query: (data) => ({
+      query: data => ({
         url: '/api/notifications/cohort-alerts',
         method: 'POST',
         body: data,

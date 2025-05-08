@@ -199,16 +199,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
     } catch (err) {
       console.error(err);
-<<<<<<< HEAD
-      return res.status(400).json({
-        message: err instanceof Error ? err.message : 'An unknown error occurred'
-      });
-=======
       if (err instanceof Error) {
         return res.status(400).json({message: err.message});
       }
       return res.status(400).json({message: 'An error occurred'});
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   } else {
     //Response for other than POST method

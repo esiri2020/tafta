@@ -121,16 +121,10 @@ export default async function handler(
       return res.status(201).send({ message: "success", seatBooking });
     } catch (error: unknown) {
       console.error(error);
-<<<<<<< HEAD
-      return res.status(400).send({ 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
-      });
-=======
       if (error instanceof Error) {
         return res.status(400).send({ error: error.message });
       }
       return res.status(400).send({ error: 'An error occurred' });
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
   if (req.method === "DELETE") {
@@ -141,19 +135,12 @@ export default async function handler(
         where: { id: id },
       });
       return res.status(200).send({ message: "success", deleted });
-<<<<<<< HEAD
-    } catch (error) {
-      return res.status(400).send({ 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
-      });
-=======
     } catch (error: unknown) {
       console.error(error);
       if (error instanceof Error) {
         return res.status(400).send({ error: error.message });
       }
       return res.status(400).send({ error: 'An error occurred' });
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
     }
   }
   if (req.method === "PUT") {
@@ -173,60 +160,6 @@ export default async function handler(
         return res.status(401).json({ error: 'Unauthorized' })
       }
 
-<<<<<<< HEAD
-      const locations = await prisma.location.findMany({
-        where: {
-          CohortToLocation: {
-            some: {
-              Cohort: {
-                id: userCohort.cohortId
-              }
-            },
-          },
-        },
-        include: {
-          seatBooking: {
-            where: {
-              Date: {
-                gte: new Date(),
-              },
-            },
-          },
-        },
-      });
-
-      const seatBookings = locations
-        .map((location) => location.seatBooking)
-        .flat();
-
-      return res.status(200).send({ locations, seatBookings });
-    } else {
-      // Pagination
-      const { page, limit }: { page?: string; limit?: string } = req.query;
-      const take = parseInt(typeof limit == "string" && limit ? limit : "20");
-      const skip = take * parseInt(typeof page == "string" ? page : "0");
-      const count = await prisma.seatBooking.count({
-        where: {
-          Date: {
-            gte: new Date(),
-          },
-        },
-      });
-      const seatBookings = await prisma.seatBooking.findMany({
-        where: {
-          Date: {
-            gte: new Date(),
-          },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              userCohort: {
-=======
       const user = await prisma.user.findUnique({
         where: {
           id: token.id as string
@@ -235,7 +168,6 @@ export default async function handler(
           userCohort: {
             include: {
               cohort: {
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
                 include: {
                   CohortToLocation: {
                     include: {
@@ -271,14 +203,6 @@ export default async function handler(
       }
       return res.status(500).json({ error: 'An unknown error occurred' })
     }
-<<<<<<< HEAD
-  } catch (error) {
-    console.error(error);
-    return res.status(400).send({ 
-      error: error instanceof Error ? error.message : 'An unknown error occurred' 
-    });
-=======
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
   return res.status(405).json({ error: 'Method not allowed' })
 }
@@ -315,17 +239,11 @@ async function sendSeatBookingConfirmationEmail(
     });
 
     console.log(`Email sent successfully to ${recipientEmail}`);
-<<<<<<< HEAD
-  } catch (error) {
-    console.error(`Error sending email to ${recipientEmail}: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
-    throw error;
-=======
   } catch (error: unknown) {
     console.error(`Error sending email to ${recipientEmail}:`, error);
     if (error instanceof Error) {
       throw error;
     }
     throw new Error('Failed to send email');
->>>>>>> 31ff53017003a0538b28a39456a22b39183ff621
   }
 }
