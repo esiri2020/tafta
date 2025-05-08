@@ -154,7 +154,7 @@ export default async function handler(
       const results = await Promise.allSettled(promises);
       const enrollments_results = await Promise.allSettled(enrollment_promises);
       return res.status(201).send({message: 'success'});
-    } catch (error) {
+    } catch (error: any) {
       console.error(error.response?.data || error);
       return res
         .status(400)
@@ -176,7 +176,7 @@ export default async function handler(
         },
       });
       return res.status(200).send({message: 'Users Deleted'});
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       return res.status(400).send(err.message);
     }
@@ -671,7 +671,7 @@ export default async function handler(
       filteredOutCount,
       filteredOutSample,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err.message);
     return res.status(400).send(err.message);
   }
