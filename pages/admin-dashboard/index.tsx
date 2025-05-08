@@ -125,7 +125,7 @@ const IndexPage = () => {
             <Grid item lg={8} md={12} xl={9} xs={12}>
               <EnrollmentOverTimeChart
                 data={data.enrollment_completion_graph.map(
-                  (item: DashboardData['enrollment_completion_graph'][0]) => ({
+                  (item) => ({
                     date: item.date,
                     male_count: Number(item.count),
                     female_count: Number(item.count), // TODO: Update when API provides gender breakdown

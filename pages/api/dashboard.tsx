@@ -25,7 +25,7 @@ interface MonthData {
 
 // Add interfaces for the data types
 interface Enrollment {
-  course_id: string;
+  course_id: bigint;
   _count: {
     course_id: number;
   };
@@ -541,7 +541,7 @@ export default async function handler(
 
     // Get course names for the enrollment data
     const courseEnrollmentDataWithNames = await Promise.all(
-      courseEnrollmentData.map(async (enrollment: Enrollment) => {
+      courseEnrollmentData.map(async (enrollment: { course_id: bigint; _count?: { course_id?: number } }) => {
         const course = await prisma.course.findUnique({
           where: {
             id: enrollment.course_id,
@@ -628,7 +628,8 @@ export default async function handler(
     const avgCompletionPercentage =
       totalEnrollments > 0
         ? enrollmentProgressData.reduce(
-            (sum: number, item: CompletionData) => sum + (item._avg.percentage_completed || 0),
+            (sum: number, item: { _avg: { percentage_completed: number | null } }) => 
+              sum + (item._avg.percentage_completed || 0),
             0,
           ) / totalEnrollments
         : 0;
@@ -654,7 +655,7 @@ export default async function handler(
 
     const completionRangeData = completionRanges.map(range => {
       const count = enrollments.filter(
-        (e: EnrollmentData) =>
+        (e: { percentage_completed: number | null }) =>
           e.percentage_completed !== null &&
           e.percentage_completed >= range.min &&
           e.percentage_completed <= range.max,
@@ -662,7 +663,7 @@ export default async function handler(
 
       return {
         range: range.label,
-        count,
+        count: count.toString(),
       };
     });
 
@@ -809,7 +810,7 @@ export default async function handler(
         averageCompletion: avgCompletionPercentage.toFixed(2),
         completionRanges: completionRangeData.map(item => ({
           range: item.range,
-          count: item.count.toString(),
+          count: item.count,
         })),
       },
       location_trends,
