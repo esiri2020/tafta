@@ -33,11 +33,9 @@ function providesList<
     : ['UNKNOWN_ERROR'];
 }
 
-const url: string = env['API']
-  ? env['API']
-  // : 'http://localhost:3000/api/';
-  : 'https://reg.terraacademyforarts.com/api/';
-// const url: string = env['API'] ? env['API'] : 'http://localhost:3000/api/';
+const url: string = process.env.NODE_ENV === 'production'
+  ? 'https://reg.terraacademyforarts.com/api/'
+  : 'http://localhost:3000/api/';
 
 export const apiService = createApi({
   reducerPath: 'apiService',
