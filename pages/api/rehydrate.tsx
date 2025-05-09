@@ -102,30 +102,33 @@ export default async function handler(
         }
       })
       const { data } = await api.get(`/enrollments?limit=${limit}&query[updated_after]=${
-        last_date?.created_at? 
+        last_date?.created_at?
         last_date.created_at.toISOString().split('T')[0] : '2023-05-01'}T00:00:00Z`)
 
       const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase())
       const users = await prisma.user.findMany({
+        where: {
+          email: { in: userEmails }
+        },
         select: {
-          email: true,
           id: true,
+          email: true,
           role: true,
+          thinkific_user_id: true,
           userCohort: {
             select: {
               id: true
             }
-          },
-          thinkific_user_id: true
+          }
         }
-      }) as ThinkificUser[]
+      })
 
-      const user_list: Promise<User>[] = []
+      const user_list: Promise<any>[] = []
 
-      const enrollments: Enrollment[] = await data.items.map(async (item: Data) => {
+      const enrollments: any[] = await Promise.all(data.items.map(async (item: Data) => {
         let { user_email, user_name, ...data } = item
         user_email = user_email.toLowerCase()
-        const user = users.find((u: ThinkificUser) => u.email === user_email)
+        const user = users.find((user) => user.email === user_email)
         if (!user) {
           console.warn('No User: ' + user_email);
           return;
@@ -168,7 +171,7 @@ export default async function handler(
           }
         })
         return enrollment
-      })
+      }))
 
       if (user_list.length > 0) {
         await Promise.allSettled(user_list)
@@ -184,7 +187,7 @@ export default async function handler(
     } catch (err) {
       console.error(err)
       if (err instanceof Error) {
-      return res.send(err.message)
+        return res.send(err.message)
       }
       return res.send('An error occurred')
     }
