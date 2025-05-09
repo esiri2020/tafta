@@ -22,11 +22,14 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+    console.log('Incoming request:', req.method, req.url);
     if (req.method === 'GET'){
         try {
             // Check authentication
             const token = await getToken({ req });
+            console.log('Token:', token);
             if (!token || !token.userData) {
+                console.log('Unauthorized access attempt');
                 return res.status(401).json({ error: 'Unauthorized' });
             }
 
@@ -36,6 +39,7 @@ export default async function handler(
                     active: true
                 }
             });
+            console.log('Local courses found:', localCourses.length);
 
             // If we have courses in local database, return them
             if (localCourses.length > 0) {
@@ -45,9 +49,9 @@ export default async function handler(
             // If no local courses, try to fetch from Thinkific API
             try {
                 const response = await api.get(`/courses?limit=1000`);
+                console.log('Thinkific API response:', response.status, response.data);
                 if (response.status === 200) {
                     const { data: { items } } = response;
-                    
                     await Promise.all(items.map(async (course: ThinkificCourse) => {
                         const { 
                             id,
@@ -56,7 +60,6 @@ export default async function handler(
                             slug,
                             reviews_enabled
                         } = course;
-                        
                         await prisma.course.upsert({
                             where: { id: BigInt(id) },
                             update: {
@@ -74,7 +77,6 @@ export default async function handler(
                             }
                         });
                     }));
-
                     const courses = await prisma.course.findMany({
                         where: {
                             active: true
@@ -83,7 +85,12 @@ export default async function handler(
                     return res.status(200).json({ courses: bigint_filter(courses) });
                 }
             } catch (apiError) {
-                console.error('Error fetching from Thinkific API:', apiError);
+                if (typeof apiError === 'object' && apiError !== null && 'response' in apiError) {
+                    const err = apiError as any;
+                    console.error('Error fetching from Thinkific API:', err.response?.status, err.response?.data, err);
+                } else {
+                    console.error('Error fetching from Thinkific API:', apiError);
+                }
                 // If API fails, return empty array instead of error
                 return res.status(200).json({ courses: [] });
             }
