@@ -66,13 +66,12 @@ export const authOptions: AuthOptions = {
     }),
     EmailProvider({
       server: {
-        host: process.env.HOST,
-        port: parseInt(process.env.PORT ? process.env.PORT : '2525'),
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT),
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
         },
-        tls: { rejectUnauthorized: false },
       },
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({
