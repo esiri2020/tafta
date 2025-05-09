@@ -148,8 +148,8 @@ export default async function handler(
           })
           user_list.push(updated_user)
         }
-        if (data.percentage_completed) {
-          data.percentage_completed = parseFloat(data.percentage_completed)
+        if (typeof data.percentage_completed !== 'number' || isNaN(data.percentage_completed)) {
+          data.percentage_completed = data.completed ? 1 : 0;
         }
         const enrollment = await prisma.enrollment.upsert({
           where: {
