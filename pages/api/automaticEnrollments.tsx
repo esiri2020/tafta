@@ -200,6 +200,25 @@ export default async function handler(
                 });
                 enrollment_promises.push(enrollment);
               }
+              const groupName = user.userCohort[0]?.cohort?.name;
+              const thinkificUserId = response?.data.id;
+              if (!groupName || !thinkificUserId) {
+                console.warn('Missing groupName or thinkificUserId for group assignment:', { groupName, thinkificUserId });
+              } else {
+                try {
+                  const groupRes = await api.post('/group_users', {
+                    group_names: [groupName],
+                    user_id: thinkificUserId
+                  });
+                  console.log('User added to Thinkific group:', groupRes.data);
+                } catch (err) {
+                  if (err instanceof Error) {
+                    console.error('Failed to add user to Thinkific group:', err.message);
+                  } else {
+                    console.error('Failed to add user to Thinkific group:', err);
+                  }
+                }
+              }
             }
 
             // const response2 = await api.post('/group_users', {
@@ -232,6 +251,25 @@ export default async function handler(
                 },
               });
               enrollment_promises.push(enrollment);
+              const groupName = user.userCohort[0]?.cohort?.name;
+              const thinkificUserId = user.thinkific_user_id;
+              if (!groupName || !thinkificUserId) {
+                console.warn('Missing groupName or thinkificUserId for group assignment:', { groupName, thinkificUserId });
+              } else {
+                try {
+                  const groupRes = await api.post('/group_users', {
+                    group_names: [groupName],
+                    user_id: thinkificUserId
+                  });
+                  console.log('User added to Thinkific group:', groupRes.data);
+                } catch (err) {
+                  if (err instanceof Error) {
+                    console.error('Failed to add user to Thinkific group:', err.message);
+                  } else {
+                    console.error('Failed to add user to Thinkific group:', err);
+                  }
+                }
+              }
             }
           }
         }

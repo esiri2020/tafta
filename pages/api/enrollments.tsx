@@ -98,7 +98,11 @@ export default async function handler(
       const user = await prisma.user.findUniqueOrThrow({
         where: {email: user_email},
         include: {
-          userCohort: true,
+          userCohort: {
+            include: {
+              cohort: true,
+            },
+          },
         },
       });
 
@@ -290,6 +294,24 @@ export default async function handler(
               const enrollment = await enrollmentPromise; // Use await here
               enrollment_promises.push(Promise.resolve(enrollment));
               console.log('enrollment : ', enrollment);
+
+              const groupName = user.userCohort[0]?.cohort?.name;
+              const thinkificUserId = response?.data.id;
+              if (groupName && thinkificUserId) {
+                try {
+                  const groupRes = await api.post('/group_users', {
+                    group_names: [groupName],
+                    user_id: thinkificUserId
+                  });
+                  console.log('User added to Thinkific group:', groupRes.data);
+                } catch (err) {
+                  if (err instanceof Error) {
+                    console.error('Failed to add user to Thinkific group:', err.message);
+                  } else {
+                    console.error('Failed to add user to Thinkific group:', err);
+                  }
+                }
+              }
             }
           }
 
@@ -323,6 +345,24 @@ export default async function handler(
             enrollment_promises.push(enrollment);
 
             console.log('enrollment', enrollment);
+
+            const groupName = user.userCohort[0]?.cohort?.name;
+            const thinkificUserId = user.thinkific_user_id;
+            if (groupName && thinkificUserId) {
+              try {
+                const groupRes = await api.post('/group_users', {
+                  group_names: [groupName],
+                  user_id: thinkificUserId
+                });
+                console.log('User added to Thinkific group:', groupRes.data);
+              } catch (err) {
+                if (err instanceof Error) {
+                  console.error('Failed to add user to Thinkific group:', err.message);
+                } else {
+                  console.error('Failed to add user to Thinkific group:', err);
+                }
+              }
+            }
           }
         }
 
