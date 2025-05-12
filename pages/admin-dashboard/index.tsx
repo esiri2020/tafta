@@ -109,6 +109,7 @@ const IndexPage = () => {
         }}>
         <Container maxWidth={false}>
           {/* <CourseCompletionStats /> */}
+          
 
           <Grid container spacing={3}>
             {/* Metrics Cards */}
