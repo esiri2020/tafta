@@ -108,6 +108,7 @@ const PersonalInformation = ({
     entrepreneurCompanyEmail: applicant?.profile?.entrepreneurCompanyEmail || '',
     entrepreneurBusinessPartners: applicant?.profile?.entrepreneurBusinessPartners || '',
     entrepreneurRevenueRange: applicant?.profile?.entrepreneurRevenueRange || '',
+    entrepreneurRegistrationType: applicant?.profile?.entrepreneurRegistrationType || [],
     businessSupport: applicant?.profile?.businessSupport || [],
     businessSupportNeeds: applicant?.profile?.businessSupportNeeds || [],
     businessType: applicant?.profile?.businessType || '',

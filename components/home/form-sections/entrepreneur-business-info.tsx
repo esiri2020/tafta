@@ -241,12 +241,12 @@ export const EntrepreneurBusinessInfo = ({
                 <div key={type.value} className='flex items-center space-x-2'>
                   <Checkbox
                     id={`registration-${type.value}`}
-                    checked={formik.values.entrepreneurBusinessType?.includes(
+                    checked={formik.values.entrepreneurRegistrationType?.includes(
                       type.value,
                     )}
                     onCheckedChange={checked => {
-                      const currentTypes =
-                        formik.values.entrepreneurBusinessType || [];
+                     const currentTypes =
+                       formik.values.entrepreneurRegistrationType || [];
                       const newTypes = checked
                         ? [...(currentTypes as string[]), type.value]
                         : (currentTypes as string[]).filter(

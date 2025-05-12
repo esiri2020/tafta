@@ -186,7 +186,9 @@ export const BasicInformation = ({
             <Select
               name='ageRange'
               value={formik.values.ageRange}
-              onValueChange={value => formik.setFieldValue('ageRange', value)}>
+              onValueChange={value => formik.setFieldValue('ageRange', value)}
+              disabled={true}
+            >
               <SelectTrigger>
                 <SelectValue placeholder='Select age range' />
               </SelectTrigger>

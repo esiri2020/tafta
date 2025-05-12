@@ -110,6 +110,7 @@ export interface FormValues {
   entrepreneurCompanyEmail: string;
   entrepreneurBusinessPartners: string;
   entrepreneurRevenueRange: string;
+  entrepreneurRegistrationType: string[] | null;
   businessSupport: string[];
   businessSupportNeeds: string[];
   businessType: string;

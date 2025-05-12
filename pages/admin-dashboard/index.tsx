@@ -108,7 +108,7 @@ const IndexPage = () => {
           py: 8,
         }}>
         <Container maxWidth={false}>
-          <CourseCompletionStats />
+          {/* <CourseCompletionStats /> */}
 
           <Grid container spacing={3}>
             {/* Metrics Cards */}
@@ -124,13 +124,11 @@ const IndexPage = () => {
             {/* Enrollment Over Time Chart */}
             <Grid item lg={8} md={12} xl={9} xs={12}>
               <EnrollmentOverTimeChart
-                data={data.enrollment_completion_graph.map(
-                  (item) => ({
-                    date: item.date,
-                    male_count: Number(item.count),
-                    female_count: Number(item.count), // TODO: Update when API provides gender breakdown
-                  }),
-                )}
+                data={data.enrollment_completion_graph.map(item => ({
+                  date: item.date,
+                  male_count: Number(item.count),
+                  female_count: Number(item.count), // TODO: Update when API provides gender breakdown
+                }))}
               />
             </Grid>
 
