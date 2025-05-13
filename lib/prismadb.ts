@@ -14,14 +14,14 @@ const prisma = global.prisma || new PrismaClient({
 })
 
 // Handle connection errors
-prisma.$on('query', (e: any) => {
-  console.log('Query:', e.query)
-  console.log('Duration:', e.duration, 'ms')
-})
+// prisma.$on('query' as any, (e: { query: string; duration: number }) => {
+//   console.log('Query:', e.query)
+//   console.log('Duration:', e.duration, 'ms')
+// })
 
-prisma.$on('error', (e: any) => {
-  console.error('Prisma Error:', e)
-})
+// prisma.$on('error' as any, (e: Error) => {
+//   console.error('Prisma Error:', e)
+// })
 
 if (process.env.NODE_ENV !== "production") global.prisma = prisma
 
