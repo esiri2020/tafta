@@ -79,6 +79,7 @@ const PersonalInformation = ({
     email: applicant?.email || '',
     firstName: applicant?.firstName || '',
     lastName: applicant?.lastName || '',
+    middleName: applicant?.middleName || '',
     phoneNumber: applicant?.profile?.phoneNumber || '',
     stateOfResidence: applicant?.profile?.stateOfResidence || '',
     gender: applicant?.profile?.gender || 'MALE',
