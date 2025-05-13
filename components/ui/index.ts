@@ -48,3 +48,4 @@ export {
 } from '@/components/ui/table';
 export {Badge} from '@/components/ui/badge';
 export {Separator} from '@/components/ui/separator';
+export {Tabs, TabsList, TabsContent, TabsTrigger} from '@/components/ui/tabs';

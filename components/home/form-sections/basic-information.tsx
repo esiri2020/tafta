@@ -21,12 +21,14 @@ interface BasicInformationProps {
   formik: FormikProps<FormValues>;
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
+  type?: string;
 }
 
 export const BasicInformation = ({
   formik,
   date,
   setDate,
+  type,
 }: BasicInformationProps) => {
   return (
     <FormSection title='Basic Information'>
@@ -44,6 +46,23 @@ export const BasicInformation = ({
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               placeholder='Enter your first name'
+            />
+          )}
+        />
+
+        <FormField
+          id='middleName'
+          label='Middle Name'
+          formik={formik}
+          tooltip='Enter your legal middle name as it appears on your official documents'
+          render={() => (
+            <Input
+              id='middleName'
+              name='middleName'
+              value={formik.values.middleName}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              placeholder='Enter your middle name'
             />
           )}
         />
@@ -78,7 +97,7 @@ export const BasicInformation = ({
               value={formik.values.email}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              disabled
+              disabled={type !== 'admin'}
               placeholder='Enter your email address'
             />
           )}
@@ -187,8 +206,7 @@ export const BasicInformation = ({
               name='ageRange'
               value={formik.values.ageRange}
               onValueChange={value => formik.setFieldValue('ageRange', value)}
-              disabled={true}
-            >
+              disabled={true}>
               <SelectTrigger>
                 <SelectValue placeholder='Select age range' />
               </SelectTrigger>

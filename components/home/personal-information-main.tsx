@@ -99,16 +99,26 @@ const PersonalInformation = ({
     talpType: applicant?.profile?.talpType || '',
     talpOther: applicant?.profile?.talpOther || '',
     jobReadiness: applicant?.profile?.jobReadiness || [],
-    entrepreneurBusinessName: applicant?.profile?.entrepreneurBusinessName || '',
-    entrepreneurBusinessType: applicant?.profile?.entrepreneurBusinessType || '',
-    entrepreneurBusinessSize: applicant?.profile?.entrepreneurBusinessSize || '',
-    entrepreneurBusinessSector: applicant?.profile?.entrepreneurBusinessSector || '',
-    entrepreneurCompanyPhoneNumber: applicant?.profile?.entrepreneurCompanyPhoneNumber || '',
-    entrepreneurAdditionalPhoneNumber: applicant?.profile?.entrepreneurAdditionalPhoneNumber || '',
-    entrepreneurCompanyEmail: applicant?.profile?.entrepreneurCompanyEmail || '',
-    entrepreneurBusinessPartners: applicant?.profile?.entrepreneurBusinessPartners || '',
-    entrepreneurRevenueRange: applicant?.profile?.entrepreneurRevenueRange || '',
-    entrepreneurRegistrationType: applicant?.profile?.entrepreneurRegistrationType || [],
+    entrepreneurBusinessName:
+      applicant?.profile?.entrepreneurBusinessName || '',
+    entrepreneurBusinessType:
+      applicant?.profile?.entrepreneurBusinessType || '',
+    entrepreneurBusinessSize:
+      applicant?.profile?.entrepreneurBusinessSize || '',
+    entrepreneurBusinessSector:
+      applicant?.profile?.entrepreneurBusinessSector || '',
+    entrepreneurCompanyPhoneNumber:
+      applicant?.profile?.entrepreneurCompanyPhoneNumber || '',
+    entrepreneurAdditionalPhoneNumber:
+      applicant?.profile?.entrepreneurAdditionalPhoneNumber || '',
+    entrepreneurCompanyEmail:
+      applicant?.profile?.entrepreneurCompanyEmail || '',
+    entrepreneurBusinessPartners:
+      applicant?.profile?.entrepreneurBusinessPartners || '',
+    entrepreneurRevenueRange:
+      applicant?.profile?.entrepreneurRevenueRange || '',
+    entrepreneurRegistrationType:
+      applicant?.profile?.entrepreneurRegistrationType || [],
     businessSupport: applicant?.profile?.businessSupport || [],
     businessSupportNeeds: applicant?.profile?.businessSupportNeeds || [],
     businessType: applicant?.profile?.businessType || '',

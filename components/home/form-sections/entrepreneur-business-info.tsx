@@ -245,8 +245,8 @@ export const EntrepreneurBusinessInfo = ({
                       type.value,
                     )}
                     onCheckedChange={checked => {
-                     const currentTypes =
-                       formik.values.entrepreneurRegistrationType || [];
+                      const currentTypes =
+                        formik.values.entrepreneurRegistrationType || [];
                       const newTypes = checked
                         ? [...(currentTypes as string[]), type.value]
                         : (currentTypes as string[]).filter(

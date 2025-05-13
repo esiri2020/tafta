@@ -1,6 +1,7 @@
 export interface Applicant {
   id?: string;
   firstName?: string;
+  middleName?: string;
   lastName?: string;
   email?: string;
   profile?: {
@@ -78,6 +79,7 @@ export interface FormValues {
   LGADetails: string;
   email: string;
   firstName: string;
+  middleName: string;
   lastName: string;
   phoneNumber: string;
   stateOfResidence: string;

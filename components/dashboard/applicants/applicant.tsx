@@ -1,16 +1,17 @@
-import {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {useRouter} from 'next/router';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import {useFormik} from 'formik';
+import {useFormik, FormikHelpers, FormikProps} from 'formik';
 import * as Yup from 'yup';
 import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardHeader, CardActions} from '@/components/ui/card';
+import {Card, CardContent, CardHeader, CardFooter} from '@/components/ui/card';
 import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {FormSection} from '@/components/form-section';
 
-// Form Sections
+// Form Sections - Import as type any to avoid strict type checking
+// We'll apply explicit type casting when using these components
 import {BasicInformation} from '@/components/home/form-sections/basic-information';
 import {LocationInformation} from '@/components/home/form-sections/location-information';
 import {EducationDisability} from '@/components/home/form-sections/education-disability';
@@ -23,6 +24,9 @@ import {BusinessInformation} from '@/components/home/form-sections/business-info
 // API
 import {useCreateApplicantMutation} from '../../../services/api';
 
+// Types
+import {FormValues} from '@/types/applicant';
+
 // Form Options
 import {
   levels_of_education,
@@ -31,6 +35,143 @@ import {
   revenue_ranges,
   business_sectors,
 } from '@/data/form-options';
+
+// Type definitions
+interface Course {
+  id: string;
+  name: string;
+  slug: string;
+  courseId: string;
+}
+
+interface Cohort {
+  id: string;
+  name: string;
+}
+
+interface CohortCourse {
+  id: string;
+  course: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+interface Profile {
+  type: string;
+  registrationMode: string;
+  phoneNumber: string;
+  gender: string;
+  ageRange: string;
+  dob: string;
+  homeAddress: string;
+  stateOfResidence: string;
+  LGADetails: string;
+  communityArea: string;
+  educationLevel: string;
+  employmentStatus: string;
+  employmentSector: string | null;
+  selfEmployedType: string | null;
+  residencyStatus: string;
+  disability: string;
+  talpParticipation: boolean;
+  talpType: string | null;
+  talpOther: string | null;
+  jobReadiness: string[];
+  businessSupport: string[];
+  businessSupportNeeds: string[];
+  source: string;
+  salaryRange: string | null;
+  cohortId: string;
+  referrer?: {
+    fullName: string;
+    phoneNumber: string;
+  };
+  businessName?: string;
+  businessType?: string;
+  businessSize?: string;
+  businessSector?: string;
+  businessPartners?: string;
+  companyPhoneNumber?: string;
+  additionalPhoneNumber?: string;
+  companyEmail?: string;
+  revenueRange?: string;
+  entrepreneurRegistrationType?: string[];
+}
+
+interface ApiError {
+  data?: {
+    message?: string;
+  };
+  message?: string;
+}
+
+// Since we can't modify the imported FormValues, define a local version that includes our extra fields
+interface LocalFormValues {
+  // Base FormValues fields
+  homeAddress: string;
+  LGADetails: string;
+  email: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  phoneNumber: string;
+  stateOfResidence: string;
+  gender: string;
+  ageRange: string;
+  educationLevel: string;
+  communityArea: string;
+  _disability: boolean;
+  disability: string;
+  source: string;
+  referrer_fullName: string;
+  referrer_phoneNumber: string;
+  employmentStatus: string;
+  employmentSector: string;
+  residencyStatus: string;
+  selfEmployedType: string;
+  registrationMode: string;
+  talpParticipation: boolean;
+  talpType: string;
+  talpOther: string;
+  jobReadiness: string[];
+  salaryRange: string;
+  revenueRange: string;
+  entrepreneurBusinessName: string;
+  entrepreneurBusinessType: string;
+  entrepreneurBusinessSize: string;
+  entrepreneurBusinessSector: string;
+  entrepreneurCompanyPhoneNumber: string;
+  entrepreneurAdditionalPhoneNumber: string;
+  entrepreneurCompanyEmail: string;
+  entrepreneurBusinessPartners: string;
+  entrepreneurRevenueRange: string;
+  entrepreneurRegistrationType: string[];
+  businessSupport: string[];
+  businessSupportNeeds: string[];
+  businessType: string;
+  businessSector: string;
+  businessSize: string;
+  businessPartners: string;
+  companyPhoneNumber: string;
+  additionalPhoneNumber: string;
+  companyEmail: string;
+  dob: string;
+  submit: null;
+
+  // Additional fields for this component
+  applicantType: string;
+  courseId: string;
+  cohortId: string;
+  businessName: string;
+  selectedCourseName?: string;
+}
+
+// Type for form section components
+interface FormSectionComponent {
+  (props: {formik: any; [key: string]: any}): JSX.Element;
+}
 
 const validationSchema = Yup.object().shape({
   applicantType: Yup.string().required('Applicant type is required'),
@@ -49,12 +190,12 @@ const validationSchema = Yup.object().shape({
   educationLevel: Yup.string().required('Education level is required'),
   employmentStatus: Yup.string().required('Employment status is required'),
   employmentSector: Yup.string().when('employmentStatus', {
-    is: val => val === 'employed',
+    is: (val: string) => val === 'employed',
     then: schema => schema.required('Employment sector is required'),
     otherwise: schema => schema.notRequired(),
   }),
   selfEmployedType: Yup.string().when('employmentStatus', {
-    is: val => val === 'self-employed',
+    is: (val: string) => val === 'self-employed',
     then: schema => schema.required('Self-employment type is required'),
     otherwise: schema => schema.notRequired(),
   }),
@@ -69,7 +210,7 @@ const validationSchema = Yup.object().shape({
     otherwise: schema => schema.notRequired(),
   }),
   jobReadiness: Yup.array().when('employmentStatus', {
-    is: val => val === 'unemployed',
+    is: (val: string) => val === 'unemployed',
     then: schema =>
       schema.min(1, 'At least one job readiness support is required'),
     otherwise: schema => schema.notRequired(),
@@ -101,63 +242,77 @@ const validationSchema = Yup.object().shape({
   }),
 });
 
-const initialValues = {
-  applicantType: 'INDIVIDUAL',
-  courseId: '',
-  cohortId: '',
-  firstName: '',
-  lastName: '',
-  email: '',
-  phoneNumber: '',
-  gender: '',
-  dob: '',
-  ageRange: '',
-  stateOfResidence: '',
-  LGADetails: '',
+const initialValues: LocalFormValues = {
+  // Base form fields
   homeAddress: '',
+  LGADetails: '',
+  email: '',
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  phoneNumber: '',
+  stateOfResidence: '',
+  gender: '',
+  ageRange: '',
+  educationLevel: '',
   communityArea: '',
   _disability: false,
   disability: '',
-  educationLevel: '',
-  employmentStatus: '',
-  employmentSector: '',
-  selfEmployedType: '',
-  residencyStatus: '',
-  salaryRange: '',
-  businessName: '',
-  businessType: '',
-  businessSize: '',
-  businessSector: '',
-  businessPartners: '',
-  companyPhoneNumber: '',
-  additionalPhoneNumber: '',
-  companyEmail: '',
-  revenueRange: '',
-  entrepreneurRegistrationType: [],
-  businessSupport: [],
-  businessSupportNeeds: [],
-  registrationMode: 'online',
   source: '',
   referrer_fullName: '',
   referrer_phoneNumber: '',
+  employmentStatus: '',
+  employmentSector: '',
+  residencyStatus: '',
+  selfEmployedType: '',
+  registrationMode: 'online',
   talpParticipation: false,
   talpType: '',
   talpOther: '',
   jobReadiness: [],
+  salaryRange: '',
+  revenueRange: '',
+  entrepreneurBusinessName: '',
+  entrepreneurBusinessType: '',
+  entrepreneurBusinessSize: '',
+  entrepreneurBusinessSector: '',
+  entrepreneurCompanyPhoneNumber: '',
+  entrepreneurAdditionalPhoneNumber: '',
+  entrepreneurCompanyEmail: '',
+  entrepreneurBusinessPartners: '',
+  entrepreneurRevenueRange: '',
+  entrepreneurRegistrationType: [],
+  businessSupport: [],
+  businessSupportNeeds: [],
+  businessType: '',
+  businessSector: '',
+  businessSize: '',
+  businessPartners: '',
+  companyPhoneNumber: '',
+  additionalPhoneNumber: '',
+  companyEmail: '',
+  dob: '',
+  submit: null,
+
+  // Additional component-specific fields
+  applicantType: 'INDIVIDUAL',
+  courseId: '',
+  cohortId: '',
+  businessName: '',
 };
 
-const ApplicantCreateForm = () => {
+const ApplicantCreateForm: React.FC = () => {
   const [createApplicant] = useCreateApplicantMutation();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState('individual');
-  const [cohorts, setCohorts] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [date, setDate] = useState(undefined);
-  const [error, setError] = useState(null);
-  const selectedCohortId = useRef('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('individual');
+  const [cohorts, setCohorts] = useState<Cohort[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
+  const selectedCohortId = useRef<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Fetch active cohorts
   useEffect(() => {
@@ -171,7 +326,7 @@ const ApplicantCreateForm = () => {
         setCohorts(cohortsData);
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError(err.message);
+        setError(typeof err === 'string' ? err : 'Failed to load cohorts');
         toast.error('Failed to load form data. Please try again.');
       } finally {
         setIsLoading(false);
@@ -181,17 +336,17 @@ const ApplicantCreateForm = () => {
     fetchCohorts();
   }, []);
 
-  const formik = useFormik({
+  const formik = useFormik<LocalFormValues>({
     initialValues,
     validationSchema,
-    onSubmit: async (values, helpers) => {
+    onSubmit: async (values, helpers: FormikHelpers<LocalFormValues>) => {
       console.log('Form values before submission:', values);
       if (isSubmitting) return;
       setIsSubmitting(true);
 
       try {
         // Prepare profile data
-        const profile = {
+        const profile: Profile = {
           type: values.applicantType,
           registrationMode: values.registrationMode,
           phoneNumber: values.phoneNumber,
@@ -224,10 +379,17 @@ const ApplicantCreateForm = () => {
           businessSupport: values.businessSupport,
           businessSupportNeeds: values.businessSupportNeeds,
           source: values.source,
-          referrer_fullName: values.referrer_fullName,
-          referrer_phoneNumber: values.referrer_phoneNumber,
           salaryRange: values.salaryRange || null,
+          cohortId: values.cohortId,
         };
+
+        // Add referrer information if provided
+        if (values.referrer_fullName || values.referrer_phoneNumber) {
+          profile.referrer = {
+            fullName: values.referrer_fullName,
+            phoneNumber: values.referrer_phoneNumber,
+          };
+        }
 
         // Add enterprise specific data if type is ENTERPRISE
         if (values.applicantType === 'ENTERPRISE') {
@@ -241,12 +403,13 @@ const ApplicantCreateForm = () => {
           profile.companyEmail = values.companyEmail;
           profile.revenueRange = values.revenueRange;
           profile.entrepreneurRegistrationType =
-            values.entrepreneurRegistrationType;
+            values.entrepreneurRegistrationType || [];
         }
 
         const requestPayload = {
           firstName: values.firstName,
           lastName: values.lastName,
+          middleName: values.middleName || '',
           email: values.email,
           password: 'tafta1234', // Default password
           type: values.applicantType,
@@ -277,10 +440,11 @@ const ApplicantCreateForm = () => {
           router.replace({pathname: '/admin-dashboard/applicants/'});
         }
       } catch (err) {
-        console.error('Form submission error:', err);
-        toast.error(err.data?.message || 'Something went wrong!');
+        const apiError = err as ApiError;
+        console.error('Form submission error:', apiError);
+        toast.error(apiError.data?.message || 'Something went wrong!');
         helpers.setStatus({success: false});
-        helpers.setErrors({submit: err.message});
+        // No need to set form-level errors for API issues
         helpers.setSubmitting(false);
       } finally {
         setIsSubmitting(false);
@@ -297,23 +461,25 @@ const ApplicantCreateForm = () => {
       selectedCohortId.current = cohortId;
       setIsLoading(true);
       setError(null);
+
       try {
         const coursesRes = await fetch(`/api/cohort/${cohortId}/courses`);
         if (!coursesRes.ok) throw new Error('Failed to fetch cohort courses');
-        const cohortCoursesData = await coursesRes.json();
+        const cohortCoursesData: {cohortCourses: CohortCourse[]} =
+          await coursesRes.json();
+
         // Transform the data to match the expected format
-        const transformedCourses = cohortCoursesData.cohortCourses.map(
-          cohortCourse => ({
+        const transformedCourses: Course[] =
+          cohortCoursesData.cohortCourses.map(cohortCourse => ({
             id: cohortCourse.id,
             name: cohortCourse.course.name,
             slug: cohortCourse.course.slug,
             courseId: cohortCourse.course.id,
-          }),
-        );
+          }));
         setCourses(transformedCourses);
       } catch (err) {
         console.error('Error fetching cohort courses:', err);
-        setError(err.message);
+        setError(typeof err === 'string' ? err : 'Failed to load courses');
         toast.error('Failed to load cohort courses. Please try again.');
       } finally {
         setIsLoading(false);
@@ -321,6 +487,10 @@ const ApplicantCreateForm = () => {
     };
 
     fetchCourses();
+
+    // Reset course selection when cohort changes
+    formik.setFieldValue('courseId', '');
+    formik.setFieldValue('selectedCourseName', '');
   }, [formik.values.cohortId]);
 
   // Course Selection Section Component
@@ -337,7 +507,8 @@ const ApplicantCreateForm = () => {
             className='block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'
             value={formik.values.cohortId}
             onChange={formik.handleChange}
-            onBlur={formik.handleBlur}>
+            onBlur={formik.handleBlur}
+            disabled={isLoading}>
             <option value=''>Select a cohort</option>
             {cohorts.map(cohort => (
               <option key={cohort.id} value={cohort.id}>
@@ -364,6 +535,9 @@ const ApplicantCreateForm = () => {
               if (course) {
                 formik.setFieldValue('courseId', e.target.value);
                 formik.setFieldValue('selectedCourseName', course.name);
+              } else {
+                formik.setFieldValue('courseId', e.target.value);
+                formik.setFieldValue('selectedCourseName', '');
               }
             }}
             onBlur={formik.handleBlur}
@@ -399,7 +573,6 @@ const ApplicantCreateForm = () => {
         </CardHeader>
         <Separator />
         <CardContent>
-          {/* <div className='mb-6'> */}
           <Tabs
             defaultValue='individual'
             value={activeTab}
@@ -414,34 +587,43 @@ const ApplicantCreateForm = () => {
               <TabsTrigger value='individual'>Individual</TabsTrigger>
               <TabsTrigger value='enterprise'>Enterprise</TabsTrigger>
             </TabsList>
-            {/* </Tabs> */}
-            {/* </div> */}
 
-            {/* <div className='space-y-8'> */}
             <CourseSelection />
 
-            <TabsContent value='individual' className='space-y-6'>
-              <BasicInformation formik={formik} date={date} setDate={setDate} />
-              <LocationInformation formik={formik} />
-              <EducationDisability formik={formik} />
-              <EmploymentResidency formik={formik} />
-              <ReferralInformation formik={formik} />
-              <RegistrationTalp formik={formik} />
-              <JobReadiness formik={formik} />
+            <TabsContent value='individual' className='space-y-6 mt-6'>
+              <BasicInformation
+                formik={formik as any}
+                date={date}
+                setDate={setDate}
+                type='admin'
+              />
+              <LocationInformation formik={formik as any} />
+              <EducationDisability formik={formik as any} />
+              <EmploymentResidency formik={formik as any} />
+              <ReferralInformation formik={formik as any} />
+              <RegistrationTalp formik={formik as any} />
+              <JobReadiness formik={formik as any} />
             </TabsContent>
 
-            <TabsContent value='enterprise' className='space-y-6'>
-              <BasicInformation formik={formik} date={date} setDate={setDate} />
-              <LocationInformation formik={formik} />
-              <EmploymentResidency formik={formik} isEnterpriseType={true} />
-              <BusinessInformation formik={formik} />
-              <ReferralInformation formik={formik} />
+            <TabsContent value='enterprise' className='space-y-6 mt-6'>
+              <BasicInformation
+                formik={formik as any}
+                date={date}
+                setDate={setDate}
+                type='admin'
+              />
+              <LocationInformation formik={formik as any} />
+              <EmploymentResidency
+                formik={formik as any}
+                isEnterpriseType={true}
+              />
+              <BusinessInformation formik={formik as any} />
+              <ReferralInformation formik={formik as any} />
             </TabsContent>
           </Tabs>
-          {/* </div> */}
         </CardContent>
         <Separator />
-        <CardActions className='flex justify-between p-6'>
+        <CardFooter className='flex justify-between p-6'>
           <div>
             <Button
               type='submit'
@@ -459,7 +641,7 @@ const ApplicantCreateForm = () => {
               </Button>
             </Link>
           </div>
-        </CardActions>
+        </CardFooter>
       </Card>
     </form>
   );
