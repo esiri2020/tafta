@@ -93,17 +93,39 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Add cache control headers
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (req.method === 'GET') {
     try {
+      console.log('Starting rehydration process...');
       const limit = 100000
       const last_date = await prisma.rehydrationDate.findFirst({
         orderBy: {
           created_at: 'desc'
         }
       })
-      const { data } = await api.get(`/enrollments?limit=${limit}&query[updated_after]=${
-        last_date?.created_at?
-        last_date.created_at.toISOString().split('T')[0] : '2023-05-01'}T00:00:00Z`)
+      
+      console.log('Last rehydration date:', last_date?.created_at);
+      
+      // Force fresh data by adding a timestamp to the URL
+      const timestamp = new Date().getTime();
+      const { data } = await api.get(`/enrollments?limit=${limit}&_t=${timestamp}`)
+
+      // Log only essential enrollment data
+      console.log('\n=== THINKIFIC ENROLLMENTS ===');
+      console.log('Total enrollments:', data.items.length);
+      
+      // Log completion statistics
+      const completionStats = data.items.reduce((acc: any, item: Data) => {
+        const status = item.completed ? 'completed' : 
+                      item.percentage_completed > 0 ? 'in_progress' : 'not_started';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('Completion stats:', completionStats);
 
       const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase())
       const users = await prisma.user.findMany({
@@ -123,34 +145,43 @@ export default async function handler(
         }
       })
 
+      console.log('\n=== USER MATCHING ===');
+      console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
+
       const user_list: Promise<any>[] = []
+      let processedCount = 0;
+      let skippedCount = 0;
+      let roleMismatchCount = 0;
+      let noCohortCount = 0;
 
       const enrollments: any[] = await Promise.all(data.items.map(async (item: Data) => {
         let { user_email, user_name, ...data } = item
         user_email = user_email.toLowerCase()
-        const user = users.find((user) => user.email === user_email)
+        const user = users.find((user) => user.email.toLowerCase() === user_email)
+        
         if (!user) {
-          console.warn('No User: ' + user_email);
+          skippedCount++;
           return;
         }
-        if (user.role !== "APPLICANT") return;
+        if (user.role !== "APPLICANT") {
+          roleMismatchCount++;
+          return;
+        }
         const userCohortId = user.userCohort.at(-1)?.id
         if (!userCohortId) {
-          console.error(`User ${user.email} has no cohort`)
+          noCohortCount++;
           return
         }
-        if (user.thinkific_user_id === null) {
-          const updated_user = prisma.user.update({
-            where: { id: user.id },
-            data: {
-              thinkific_user_id: `${item.user_id}`
-            }
-          })
-          user_list.push(updated_user)
-        }
+        processedCount++;
+
+        // Handle percentage_completed
         if (typeof data.percentage_completed !== 'number' || isNaN(data.percentage_completed)) {
-          data.percentage_completed = data.completed ? 1 : 0;
+          data.percentage_completed = data.completed ? 100 : 0;
         }
+
+        // Ensure completed status is boolean
+        data.completed = Boolean(data.completed);
+
         const enrollment = await prisma.enrollment.upsert({
           where: {
             id: data.id
@@ -170,18 +201,20 @@ export default async function handler(
             }
           }
         })
+
         return enrollment
       }))
 
-      if (user_list.length > 0) {
-        await Promise.allSettled(user_list)
-      }
-
-      const date = await prisma.rehydrationDate.create({
-        data: {
-          enrollment_count: enrollments.length
-        }
-      })
+      console.log('\n=== PROCESSING SUMMARY ===');
+      console.log({
+        totalEnrollments: data.items.length,
+        processedCount,
+        skippedCount,
+        roleMismatchCount,
+        noCohortCount,
+        updatedCount: enrollments.length,
+        completionStats
+      });
       
       return res.send({ message: 'Synchronizing', count: enrollments.length })
     } catch (err) {
