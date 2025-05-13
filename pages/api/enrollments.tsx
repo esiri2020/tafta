@@ -489,9 +489,10 @@ export default async function handler(
       case 'active':
         whereCondition.completed = false;
         whereCondition.expired = false;
-        whereCondition.percentage_completed = {
-          gt: 0,
-        };
+        whereCondition.enrolled = true;
+        break;
+      case 'pending':
+        whereCondition.activated_at = null;
         break;
     }
   }
@@ -703,7 +704,46 @@ export default async function handler(
     enrollments = bigint_filter(enrollments);
     console.log(count, maleCount, femaleCount);
 
-    return res.status(200).send({enrollments, count, maleCount, femaleCount});
+    // Always count over all enrollments matching the filters, NOT paginated
+    const allWhere = { ...whereCondition };
+
+    const activeCount = await prisma.enrollment.count({
+      where: {
+        ...allWhere,
+        completed: false,
+        expired: false,
+        enrolled: true,
+      },
+    });
+    const completedCount = await prisma.enrollment.count({
+      where: {
+        ...allWhere,
+        completed: true,
+      },
+    });
+    const expiredCount = await prisma.enrollment.count({
+      where: {
+        ...allWhere,
+        expired: true,
+      },
+    });
+    const pendingCount = await prisma.enrollment.count({
+      where: {
+        ...allWhere,
+        activated_at: null,
+      },
+    });
+
+    return res.status(200).send({
+      enrollments,
+      count,
+      maleCount,
+      femaleCount,
+      activeCount,
+      completedCount,
+      expiredCount,
+      pendingCount,
+    });
   } catch (err) {
     console.error(err);
     if (err instanceof Error) {

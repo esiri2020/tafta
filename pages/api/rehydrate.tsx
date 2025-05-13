@@ -105,6 +105,11 @@ export default async function handler(
         last_date?.created_at?
         last_date.created_at.toISOString().split('T')[0] : '2023-05-01'}T00:00:00Z`)
 
+      // Log the first item from Thinkific API response for inspection
+      if (data.items && data.items.length > 0) {
+        console.log('Thinkific API Response Example:', JSON.stringify(data.items[0], null, 2));
+      }
+
       const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase())
       const users = await prisma.user.findMany({
         where: {
@@ -139,6 +144,14 @@ export default async function handler(
           console.error(`User ${user.email} has no cohort`)
           return
         }
+        // Log the enrollment data before processing
+        console.log('Updating enrollment:', {
+          id: data.id,
+          user_email,
+          percentage_completed: data.percentage_completed,
+          completed: data.completed,
+          expired: data.expired,
+        });
         if (user.thinkific_user_id === null) {
           const updated_user = prisma.user.update({
             where: { id: user.id },
@@ -170,6 +183,13 @@ export default async function handler(
             }
           }
         })
+        // Log the result of the upsert
+        console.log('Enrollment upserted:', {
+          id: enrollment.id,
+          percentage_completed: enrollment.percentage_completed,
+          completed: enrollment.completed,
+          expired: enrollment.expired,
+        });
         return enrollment
       }))
 

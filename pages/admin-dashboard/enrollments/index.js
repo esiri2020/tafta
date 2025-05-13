@@ -137,16 +137,10 @@ export default function EnrollmentsPage() {
       </Container>
     );
 
-  const {enrollments = [], count = 0, femaleCount = 0, maleCount = 0} = data;
+  const {enrollments = [], count = 0, femaleCount = 0, maleCount = 0, activeCount = 0, completedCount = 0, expiredCount = 0, pendingCount = 0} = data;
 
   // Safe enrollment filtering with null checks
   const safeEnrollments = enrollments || [];
-  const activeCount = safeEnrollments.filter(
-    e => !e.expired && !e.completed && e.activated_at,
-  ).length;
-  const completedCount = safeEnrollments.filter(e => e.completed).length;
-  const expiredCount = safeEnrollments.filter(e => e.expired).length;
-  const pendingCount = safeEnrollments.filter(e => !e.activated_at).length;
 
   return (
     <Container>
