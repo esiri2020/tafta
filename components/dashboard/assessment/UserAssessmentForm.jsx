@@ -28,6 +28,7 @@ import {
   useGetApplicantQuery,
 } from '../../../services/api';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/router';
 
 // Rating options for various questions
 const ratingOptions = [
@@ -96,6 +97,7 @@ export const UserAssessmentForm = ({userId}) => {
     useGetUserAssessmentQuery(userId);
   const {data: applicantData, isLoading: applicantLoading} =
     useGetApplicantQuery(userId);
+  const router = useRouter();
 
   // Extract enrolled courses from the user data
   const enrolledCourses =
@@ -203,6 +205,8 @@ export const UserAssessmentForm = ({userId}) => {
           toast.success('Assessment submitted successfully!');
         }
         helpers.setStatus({success: true});
+        // Redirect to dashboard after success
+        router.push('/dashboard');
       } catch (error) {
         console.error('Error submitting assessment:', error);
         toast.error('Failed to submit assessment');
