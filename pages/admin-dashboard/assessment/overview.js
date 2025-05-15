@@ -148,7 +148,7 @@ const AssessmentOverviewPage = () => {
     value: item.count,
   }));
 
-  const courseDistributionData = data.courseDistribution
+  const courseDistributionData = [...data.courseDistribution]
     .sort((a, b) => b.count - a.count)
     .map(item => ({
       name: item.course,
@@ -186,7 +186,7 @@ const AssessmentOverviewPage = () => {
   }));
 
   // Prepare bar chart data
-  const courseBarData = data.courseDistribution
+  const courseBarData = [...data.courseDistribution]
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
     .map(item => ({
