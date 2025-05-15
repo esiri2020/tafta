@@ -33,6 +33,8 @@ function providesList<
     : ['UNKNOWN_ERROR'];
 }
 
+
+//testing 
 const url: string = process.env.NODE_ENV === 'production'
   ? 'https://reg.terraacademyforarts.com/api/'
   : 'http://localhost:3000/api/';
