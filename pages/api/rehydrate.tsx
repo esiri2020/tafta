@@ -175,8 +175,15 @@ export default async function handler(
         processedCount++;
 
         // Handle percentage_completed
-        if (typeof data.percentage_completed !== 'number' || isNaN(data.percentage_completed)) {
-          data.percentage_completed = data.completed ? 100 : 0;
+        if (typeof data.percentage_completed === 'string' || typeof data.percentage_completed === 'number') {
+          const val = typeof data.percentage_completed === 'string' 
+            ? parseFloat(data.percentage_completed)
+            : data.percentage_completed;
+          // Convert to decimal (0-1) if value is greater than 1
+          data.percentage_completed = val > 1 ? val / 100 : val;
+        } else {
+          // If no valid percentage, set based on completion status
+          data.percentage_completed = data.completed ? 1 : 0;
         }
 
         // Ensure completed status is boolean

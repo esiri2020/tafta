@@ -36,9 +36,9 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
     // Required fields
     employmentStatus: Yup.string().required('Employment Status is required'),
 
-    // Employment sector validation - not required for business owners or entrepreneurs
-    employmentSector: Yup.string().when(['employmentStatus'], {
-      is: (employmentStatus: string) => employmentStatus === 'employed',
+    // Employment sector validation - only required for employed status
+    employmentSector: Yup.string().when('employmentStatus', {
+      is: 'employed',
       then: schema => schema.required('Employment Sector is required'),
       otherwise: schema => schema.notRequired(),
     }),
@@ -63,27 +63,15 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
   const validateForm = (values: FormValues) => {
     const errors: Partial<Record<keyof FormValues, string>> = {};
 
-    // Validate self-employed type if employment status is self-employed
-    if (
-      values.employmentStatus === 'self-employed' &&
-      !values.selfEmployedType
-    ) {
-      errors.selfEmployedType = 'Self-Employed Type is required';
-    }
-
-    // Validate employment sector only if not a business owner or entrepreneur
+    // Validate employment sector only if employed
     if (values.employmentStatus === 'employed' && !values.employmentSector) {
       errors.employmentSector = 'Employment Sector is required';
     }
 
-    // Validate employment sector for self-employed (except business owners and entrepreneurs)
-    if (
-      values.employmentStatus === 'self-employed' &&
-      !values.employmentSector &&
-      values.selfEmployedType !== 'business_owner' &&
-      values.selfEmployedType !== 'entrepreneur'
-    ) {
-      errors.employmentSector = 'Employment Sector is required';
+    // Remove any validation errors for fields that should not be validated
+    // based on the current employment status
+    if (values.employmentStatus !== 'employed') {
+      delete errors.employmentSector;
     }
 
     // Validate referrer if source is by_referral
