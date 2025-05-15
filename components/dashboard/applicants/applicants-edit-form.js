@@ -352,10 +352,9 @@ export const ApplicantEditForm = ({applicant, ...other}) => {
       registrationMode: Yup.string().required('Registration mode is required'),
       employmentStatus: Yup.string(),
       employmentSector: Yup.string().when('employmentStatus', {
-        is: val => val === 'employed' || val === 'self-employed',
-        then: Yup.string().required(
-          'Employment sector is required when employed',
-        ),
+        is: 'employed',
+        then: Yup.string().required('Employment sector is required'),
+        otherwise: Yup.string().notRequired(),
       }),
       residencyStatus: Yup.string(),
       selfEmployedType: Yup.string().when('employmentStatus', {
@@ -412,12 +411,22 @@ export const ApplicantEditForm = ({applicant, ...other}) => {
       // Handle disability field (converting string to actual disability value)
       const disabilityValue = _disability === 'true' ? values.disability : null;
 
+      // Process employment fields
+      const employmentSectorValue =
+        values.employmentStatus === 'employed' ? values.employmentSector : null;
+      const selfEmployedTypeValue =
+        values.employmentStatus === 'self-employed'
+          ? values.selfEmployedType
+          : null;
+
       // Restructure data to match API requirements
       const profileDataWithReferrer = {
         ...profileData,
         taftaCenter,
         referrer: referrerData,
         disability: disabilityValue,
+        employmentSector: employmentSectorValue,
+        selfEmployedType: selfEmployedTypeValue,
       };
 
       // Submit to API
@@ -913,8 +922,7 @@ export const ApplicantEditForm = ({applicant, ...other}) => {
             )}
 
             {formik.values.employmentStatus &&
-              (formik.values.employmentStatus === 'employed' ||
-                formik.values.employmentStatus === 'self-employed') && (
+              formik.values.employmentStatus === 'employed' && (
                 <Grid item md={6} xs={12}>
                   <TextField
                     error={Boolean(
