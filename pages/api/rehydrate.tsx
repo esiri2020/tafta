@@ -154,6 +154,10 @@ export default async function handler(
       let roleMismatchCount = 0;
       let noCohortCount = 0;
 
+      // Log the full raw Thinkific API response
+      console.log('\n=== RAW THINKIFIC API RESPONSE ===');
+      console.log(JSON.stringify(data.items, null, 2));
+
       const enrollments: any[] = await Promise.all(data.items.map(async (item: Data) => {
         let { user_email, user_name, ...data } = item
         user_email = user_email.toLowerCase()
@@ -189,6 +193,18 @@ export default async function handler(
         // Ensure completed status is boolean
         data.completed = Boolean(data.completed);
 
+        // Log processed values before upsert
+        console.log('\n--- PROCESSED ENROLLMENT DATA BEFORE UPSERT ---');
+        console.log({
+          id: data.id,
+          userCohortId,
+          percentage_completed: data.percentage_completed,
+          completed: data.completed,
+          completed_at: data.completed_at,
+          user_email,
+          course_name: data.course_name,
+        });
+
         const enrollment = await prisma.enrollment.upsert({
           where: {
             id: data.id
@@ -208,6 +224,10 @@ export default async function handler(
             }
           }
         })
+
+        // Log the upserted enrollment record
+        console.log('\n--- UPSERTED ENROLLMENT RECORD ---');
+        console.log(enrollment);
 
         return enrollment
       }))
