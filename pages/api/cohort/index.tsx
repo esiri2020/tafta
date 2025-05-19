@@ -11,16 +11,17 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Handle POST request
   if (req.method === "POST") {
-    const token = await getToken({ req })
-    if (!token || !token.userData || token.userData.role !== "SUPERADMIN") {
-      return res.status(401).send({
-        error: "Unauthorized.",
-      })
-    }
-    const { cohortCourses, centers, values } = typeof (req.body) === 'object' ? req.body : JSON.parse(req.body)
     try {
-      return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const token = await getToken({ req })
+      if (!token || !token.userData || token.userData.role !== "SUPERADMIN") {
+        return res.status(401).json({ error: "Unauthorized." })
+      }
+
+      const { cohortCourses, centers, values } = typeof (req.body) === 'object' ? req.body : JSON.parse(req.body)
+      
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const cohort = await tx.cohort.create({
           data: {
             ...values,
@@ -43,69 +44,72 @@ export default async function handler(
             } : undefined
           }
         })
+        
         const { data: { group } } = await api.post('/groups', { name: values.name })
-        return res.status(201).send({ message: 'success', cohort, group })
+        return { cohort, group }
       })
+
+      return res.status(201).json({ message: 'success', ...result })
     } catch (err) {
-      console.error(err)
-      if (err instanceof Error) {
-      return res.status(400).send({ message: err.message })
-      }
-      return res.status(400).send({ message: 'An error occurred' })
+      console.error('Error creating cohort:', err)
+      return res.status(400).json({ 
+        message: err instanceof Error ? err.message : 'An error occurred',
+        error: err instanceof Error ? err.stack : undefined
+      })
     }
   }
-  try {
-    const { page, limit, filter: _filter, query }: {
-      page?: string,
-      limit?: string,
-      filter?: any,
-      query?: string
-    } = req.query;
-    let filter: boolean | undefined
-    if (_filter) {
-      switch (_filter) {
-        case 'true':
-          filter = true
-          break;
-        case 'false':
-          filter = false
-          break;
-        case 'undefined':
-        default:
-          filter = undefined
-          break;
-      }
-    }
-    const take = parseInt(typeof (limit) == 'string' && limit ? limit : '100')
-    const skip = take * parseInt(typeof (page) == 'string' ? page : '0')
-    let count, cohorts;
-    count = await prisma.cohort.count({
-      where: {
-        active: filter,
-      }
-    })
-    cohorts = await prisma.cohort.findMany({
-      where: {
-        active: filter
-      },
-      include: {
-        cohortCourses: true,
-        CohortToLocation: {
-          include: {
-            Location: true
-          }
-        }
-      },
-      take,
-      skip
-    })
 
-    return res.status(200).send({ message: 'success', cohorts: bigint_filter(cohorts), count })
+  // Handle GET request
+  try {
+    console.log('Query parameters:', req.query)
+
+    const { 
+      page = '0', 
+      limit = '100', 
+      filter: _filter, 
+      query 
+    } = req.query
+
+    // Parse filter parameter
+    let filter: boolean | undefined
+    if (_filter === 'true') filter = true
+    else if (_filter === 'false') filter = false
+
+    const take = parseInt(limit as string)
+    const skip = take * parseInt(page as string)
+
+    console.log('Processed parameters:', { take, skip, filter })
+
+    const [count, cohorts] = await Promise.all([
+      prisma.cohort.count({
+        where: { active: filter }
+      }),
+      prisma.cohort.findMany({
+        where: { active: filter },
+        include: {
+          cohortCourses: true,
+          CohortToLocation: {
+            include: {
+              Location: true
+            }
+          }
+        },
+        take,
+        skip
+      })
+    ])
+
+    return res.status(200).json({ 
+      message: 'success', 
+      cohorts: bigint_filter(cohorts), 
+      count,
+      params: { page, limit, filter: _filter, query }
+    })
   } catch (err) {
-    console.error(err)
-    if (err instanceof Error) {
-    return res.status(400).send({ message: err.message })
-    }
-    return res.status(400).send({ message: 'An error occurred' })
+    console.error('Error fetching cohorts:', err)
+    return res.status(400).json({ 
+      message: err instanceof Error ? err.message : 'An error occurred',
+      error: err instanceof Error ? err.stack : undefined
+    })
   }
 }

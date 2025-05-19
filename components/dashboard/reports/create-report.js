@@ -14,7 +14,10 @@ import {
   MenuItem,
   Switch,
   TextField,
-  Typography
+  Typography,
+  Select,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import { useCreateReportMutation } from '../../../services/api'
 import { selectCohort } from '../../../services/cohortSlice'
@@ -24,21 +27,48 @@ export const CreateReport = (props) => {
   const cohort = useAppSelector(state => selectCohort(state))
   const router = useRouter();
   const [createReport, result] = useCreateReportMutation()
+  const [cohorts, setCohorts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Fetch available cohorts
+    const fetchCohorts = async () => {
+      try {
+        const response = await fetch('/api/cohorts/active')
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setCohorts(data)
+        }
+      } catch (error) {
+        console.error('Error fetching cohorts:', error)
+        toast.error('Failed to load cohorts')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCohorts()
+  }, [])
+
   const formik = useFormik({
     initialValues: {
       title: '',
       description: '',
-      cohortId: cohort?.id,
+      cohortId: cohort?.id || '',
       files: [],
       submit: null
     },
     validationSchema: Yup.object({
       description: Yup.string().max(5000),
       files: Yup.array(),
-      title: Yup.string().max(255).required(),
+      title: Yup.string().max(255).required('Title is required'),
+      cohortId: Yup.string().required('Cohort is required'),
     }),
     onSubmit: async (values, helpers) => {
       const { title, description, cohortId } = values
+      if (!cohortId) {
+        toast.error('Please select a cohort')
+        return
+      }
       try {
         let toastId = toast.loading('Uploading...')
         // NOTE: Make API request
@@ -47,9 +77,9 @@ export const CreateReport = (props) => {
           for (var i = 0; i < files.length; i++) {
             let file = files[i]
             let safeFilename = Date.now() + '_' + file.name.replace(/\s+/g, '_')
-            // your code goes here    
             formData.append('files[]', file, safeFilename)
           }
+          console.log('Uploading files...', files);
           const res = await fetch(
             'https://files.terraacademyforarts.com/upload.php',
             {
@@ -59,11 +89,14 @@ export const CreateReport = (props) => {
           )
           if (res.status === 200) {
             let resData = await res.json()
+            console.log('File upload response:', resData);
             let { files: filesRes } = resData
             let body = {
               title, description, cohortId, files: filesRes.map(file => file.url)
             }
+            console.log('Creating report with body:', body);
             result = await createReport({ body }).unwrap()
+            console.log('Report creation response:', result);
             if (result?.message == 'success') {
               toast.dismiss()
               toast.success('Report uploaded')
@@ -73,6 +106,7 @@ export const CreateReport = (props) => {
               toast.error('Upload Failed')
             }
           } else {
+            console.error('File upload failed:', await res.text());
             toast.dismiss()
             toast.error('Upload failed')
           }
@@ -80,7 +114,9 @@ export const CreateReport = (props) => {
           let body = {
             title, description, cohortId, files: []
           }
+          console.log('Creating report without files:', body);
           result = await createReport({ body }).unwrap()
+          console.log('Report creation response:', result);
           if (result?.message == 'success') {
             toast.dismiss()
             toast.success('Report uploaded')
@@ -91,7 +127,7 @@ export const CreateReport = (props) => {
           }
         }
       } catch (err) {
-        console.error(err);
+        console.error('Error details:', err);
         toast.dismiss()
         toast.error('Something went wrong!');
         helpers.setStatus({ success: false });
@@ -112,7 +148,6 @@ export const CreateReport = (props) => {
   function handleChange(event) {
     setFile(event.target.files)
   }
-
 
   return (
     <form
@@ -167,7 +202,27 @@ export const CreateReport = (props) => {
                   value={formik.values.description}
                 />
               </Grid>
-
+              <Grid item>
+                <FormControl fullWidth error={Boolean(formik.touched.cohortId && formik.errors.cohortId)}>
+                  <InputLabel>Cohort</InputLabel>
+                  <Select
+                    name="cohortId"
+                    value={formik.values.cohortId}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    label="Cohort"
+                  >
+                    {cohorts.map((cohort) => (
+                      <MenuItem key={cohort.id} value={cohort.id}>
+                        {cohort.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {formik.touched.cohortId && formik.errors.cohortId && (
+                    <FormHelperText>{formik.errors.cohortId}</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
             </Grid>
           </Grid>
         </CardContent>
@@ -226,6 +281,7 @@ export const CreateReport = (props) => {
         <Button
           sx={{ m: 1 }}
           variant="outlined"
+          onClick={() => router.push('/admin-dashboard/reports')}
         >
           Cancel
         </Button>
@@ -233,6 +289,7 @@ export const CreateReport = (props) => {
           sx={{ m: 1 }}
           type="submit"
           variant="contained"
+          disabled={loading}
         >
           Create
         </Button>

@@ -744,15 +744,23 @@ export default async function handler(
       active_enrollees: active_enrollees.toString(),
       certified_enrollees: certified_enrollees.toString(),
       total_applicants: total_applicants.toString(),
-      enrollment_completion_graph: enrollment_completion_graph.map(item => ({
-        date: item.date,
-        count: item.count.toString(),
-      })),
+      enrollment_completion_graph: enrollment_completion_graph
+        .filter(item => {
+          if (!item.date) return false;
+          if (typeof item.date === 'string') return !isNaN(new Date(item.date).getTime());
+          if (item.date instanceof Date) return !isNaN(item.date.getTime());
+          return false;
+        })
+        .map(item => ({
+          date: (item.date instanceof Date)
+            ? item.date.toISOString().split('T')[0]
+            : (typeof item.date === 'string' && !isNaN(new Date(item.date).getTime()))
+              ? new Date(item.date).toISOString().split('T')[0]
+              : null,
+          count: item.count.toString(),
+        })),
       inactive_enrollments: inactive_enrollments.toString(),
-      courseEnrollmentData: courseEnrollmentData.map(item => ({
-        name: item.course_id,
-        count: item._count.course_id.toString(),
-      })),
+      courseEnrollmentData: courseEnrollmentDataWithNames,
       age_range: age_range.map(item => ({
         ageRange: item.ageRange,
         count: item.count.toString(),

@@ -38,13 +38,23 @@ export default async function handler(
             { title?: string, description?: string, cohortId?: string, files?: string[] }
             = typeof (req.body) === 'object' ? req.body : JSON.parse(req.body)
 
+        console.log('Received report creation request:', { title, description, cohortId, files });
+
         if (!title || !description || !cohortId) {
-            res.status(400).json({ error: 'Missing required fields' })
+            console.error('Missing required fields:', { title, description, cohortId });
+            res.status(400).json({ 
+                error: 'Missing required fields',
+                details: {
+                    title: !title ? 'Title is required' : null,
+                    description: !description ? 'Description is required' : null,
+                    cohortId: !cohortId ? 'Cohort ID is required' : null
+                }
+            })
             return
         }
         try {
             const user_email = token.email!
-            // const safeFilename = title.replace(/\s+/g, '_') + '_' + Date.now() + '_' + name
+            console.log('Creating report for user:', user_email);
 
             const report = await prisma.report.create({
                 data: {
@@ -56,13 +66,20 @@ export default async function handler(
                 }
             })
 
+            console.log('Report created successfully:', report);
             return res.status(201).send({ message: 'success', report })
         } catch (err) {
-            console.error(err)
+            console.error('Error creating report:', err)
             if (err instanceof Error) {
-                return res.status(400).send(err.message)
+                return res.status(400).send({
+                    error: err.message,
+                    details: err
+                })
             }
-            return res.status(400).send('An error occurred')
+            return res.status(400).send({
+                error: 'An error occurred',
+                details: err
+            })
         }
     }
     if (req.method === 'DELETE') {
