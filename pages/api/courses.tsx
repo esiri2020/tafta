@@ -33,57 +33,59 @@ export default async function handler(
                 return res.status(401).json({ error: 'Unauthorized' });
             }
 
-            // First try to get courses from local database
-            const localCourses = await prisma.course.findMany({
-                where: {
-                    active: true
-                }
-            });
-            console.log('Local courses found:', localCourses.length);
-
-            // If we have courses in local database, return them
-            if (localCourses.length > 0) {
-                return res.status(200).json({ courses: bigint_filter(localCourses) });
-            }
-
-            // If no local courses, try to fetch from Thinkific API
+            // Always fetch from Thinkific API and update local DB
             try {
-                const response = await api.get(`/courses?limit=1000`);
-                console.log('Thinkific API response:', response.status, response.data);
-                if (response.status === 200) {
-                    const { data: { items } } = response;
-                    await Promise.all(items.map(async (course: ThinkificCourse) => {
-                        const { 
-                            id,
+                let allCourses: ThinkificCourse[] = [];
+                let page = 1;
+                let hasMore = true;
+                const limit = 250; // Thinkific's max per page is usually 250
+                while (hasMore) {
+                    const response = await api.get(`/courses?limit=${limit}&page=${page}`);
+                    console.log(`Thinkific API response page ${page}:`, response.status, response.data);
+                    if (response.status === 200) {
+                        const { data: { items, meta } } = response;
+                        allCourses = allCourses.concat(items);
+                        // Check if there are more pages
+                        if (items.length < limit) {
+                            hasMore = false;
+                        } else {
+                            page += 1;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                await Promise.all(allCourses.map(async (course: ThinkificCourse) => {
+                    const { 
+                        id,
+                        description,
+                        name,       
+                        slug,
+                        reviews_enabled
+                    } = course;
+                    await prisma.course.upsert({
+                        where: { id: BigInt(id) },
+                        update: {
                             description,
                             name,       
                             slug,
-                            reviews_enabled
-                        } = course;
-                        await prisma.course.upsert({
-                            where: { id: BigInt(id) },
-                            update: {
-                                description,
-                                name,       
-                                slug,
-                                active: reviews_enabled
-                            },
-                            create: {
-                                id: BigInt(id),
-                                description,
-                                name,       
-                                slug,
-                                active: reviews_enabled
-                            }
-                        });
-                    }));
-                    const courses = await prisma.course.findMany({
-                        where: {
-                            active: true
+                            active: reviews_enabled
+                        },
+                        create: {
+                            id: BigInt(id),
+                            description,
+                            name,       
+                            slug,
+                            active: reviews_enabled
                         }
                     });
-                    return res.status(200).json({ courses: bigint_filter(courses) });
-                }
+                }));
+                const courses = await prisma.course.findMany({
+                    where: {
+                        active: true
+                    }
+                });
+                return res.status(200).json({ courses: bigint_filter(courses) });
             } catch (apiError) {
                 if (typeof apiError === 'object' && apiError !== null && 'response' in apiError) {
                     const err = apiError as any;
@@ -94,9 +96,6 @@ export default async function handler(
                 // If API fails, return empty array instead of error
                 return res.status(200).json({ courses: [] });
             }
-
-            // If we get here, return empty array
-            return res.status(200).json({ courses: [] });
         } catch (err) {
             console.error('Error in courses endpoint:', err);
             // Return empty array instead of error
