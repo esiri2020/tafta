@@ -51,6 +51,13 @@ interface StaffAlert {
   updatedAt: string;
 }
 
+interface Staff {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+}
+
 const StaffAlertsPage = () => {
   const [expanded, setExpanded] = useState<string | false>(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -62,8 +69,8 @@ const StaffAlertsPage = () => {
   const [alerts, setAlerts] = useState<StaffAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [staffList, setStaffList] = useState([]);
-  const [selectedStaff, setSelectedStaff] = useState([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [allStaffChecked, setAllStaffChecked] = useState(false);
 
   // Fetch alerts
@@ -93,7 +100,7 @@ const StaffAlertsPage = () => {
       fetch('/api/users?filter=ADMIN')
         .then(res => res.json())
         .then(data => {
-          let staff = data.users || [];
+          let staff: Staff[] = data.users || [];
           // Fetch SUPERADMIN and SUPPORT as well
           Promise.all([
             fetch('/api/users?filter=SUPERADMIN').then(res => res.json()),
@@ -105,7 +112,7 @@ const StaffAlertsPage = () => {
               ...(supports.users || []),
             ];
             // Remove duplicates by id
-            const uniqueStaff = Array.from(new Map(staff.map(s => [s.id, s])).values());
+            const uniqueStaff = Array.from(new Map(staff.map((s: Staff) => [s.id, s])).values());
             setStaffList(uniqueStaff);
           });
         });
@@ -173,7 +180,7 @@ const StaffAlertsPage = () => {
     );
   };
 
-  const handleStaffCheck = (id) => {
+  const handleStaffCheck = (id: string) => {
     setSelectedStaff(prev => {
       if (prev.includes(id)) {
         return prev.filter(sid => sid !== id);
@@ -187,7 +194,7 @@ const StaffAlertsPage = () => {
       setSelectedStaff([]);
       setAllStaffChecked(false);
     } else {
-      setSelectedStaff(staffList.map(s => s.id));
+      setSelectedStaff(staffList.map((s: Staff) => s.id));
       setAllStaffChecked(true);
     }
   };
