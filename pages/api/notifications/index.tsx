@@ -2,6 +2,9 @@ import {getToken} from 'next-auth/jwt';
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../../lib/prismadb';
 import {NotificationStatus, NotificationType} from '@prisma/client';
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 // Debug the prisma client to see what's happening
 console.log('Prisma client in notifications API:', {
@@ -9,6 +12,74 @@ console.log('Prisma client in notifications API:', {
   hasNotificationModel: !!prisma?.notification,
   availableModels: Object.keys(prisma || {}),
 });
+
+// Create a Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_SERVER_HOST,
+  port: Number(process.env.EMAIL_SERVER_PORT),
+  auth: {
+    user: process.env.EMAIL_SERVER_USER,
+    pass: process.env.EMAIL_SERVER_PASSWORD,
+  },
+});
+
+// Function to read email template
+function readEmailTemplate(templateName: string): string {
+  const templatePath = path.join(process.cwd(), 'utils', templateName);
+  return fs.readFileSync(templatePath, 'utf8');
+}
+
+// Function to send notification email
+async function sendNotificationEmail(
+  recipientEmail: string,
+  recipientName: string,
+  notificationType: string,
+  notificationData: any
+) {
+  let template: string;
+  let subject: string;
+
+  // Select template based on notification type
+  switch (notificationType) {
+    case 'APPLICANT':
+      template = readEmailTemplate('applicant-notification.html');
+      subject = 'Application Status Update';
+      break;
+    case 'STAFF':
+      template = readEmailTemplate('staff-alert.html');
+      subject = 'Staff Alert Notification';
+      break;
+    default:
+      template = readEmailTemplate('applicant-notification.html');
+      subject = 'Notification Update';
+  }
+
+  // Replace placeholders in template
+  const emailContent = template
+    .replace('[Company Logo]', process.env.COMPANY_LOGO_URL || '')
+    .replace('[Company Name]', process.env.COMPANY_NAME || 'TAFTA')
+    .replace('[Applicant Name]', recipientName)
+    .replace('[Staff Name]', recipientName)
+    .replace('[Application ID]', notificationData.relatedEntityId || '')
+    .replace('[Status]', notificationData.title || '')
+    .replace('[Date]', new Date().toLocaleDateString())
+    .replace('[Notification Details]', notificationData.message || '')
+    .replace('[Alert Type]', notificationData.title || '')
+    .replace('[Priority Level]', notificationData.priority || 'Normal')
+    .replace('[Date and Time]', new Date().toLocaleString())
+    .replace('[Alert Description]', notificationData.message || '')
+    .replace('[Required Action]', notificationData.action || 'Please review')
+    .replace('[View Application Button]', notificationData.actionUrl || '#')
+    .replace('[View Details Button]', notificationData.actionUrl || '#');
+
+  // Send email
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: recipientEmail,
+    subject: subject,
+    html: emailContent,
+  });
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -208,6 +279,48 @@ export default async function handler(
       }
 
       console.log(`Successfully created ${createdCount} notifications`);
+
+      // Get recipient information
+      const recipient = await prisma.user.findUnique({
+        where: { id: recipientIds[0] },
+        select: { 
+          email: true,
+          firstName: true,
+          lastName: true
+        },
+      });
+
+      if (!recipient) {
+        throw new Error('Recipient not found');
+      }
+
+      // Create notification in database
+      const notification = await prisma.notification.create({
+        data: {
+          title,
+          message,
+          type,
+          senderId: token?.userData?.userId,
+          recipientId: recipientIds[0],
+          cohortId,
+          relatedEntityId,
+          status: 'SENT',
+        },
+      });
+
+      // Send email notification
+      await sendNotificationEmail(
+        recipient.email,
+        `${recipient.firstName || ''} ${recipient.lastName || ''}`.trim() || 'User',
+        type,
+        {
+          title,
+          message,
+          relatedEntityId,
+          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/notifications/${notification.id}`,
+        }
+      );
+
       return res.status(201).json({success: true, count: createdCount});
     } catch (err: any) {
       console.error('Error creating notifications:', err.message);

@@ -3,18 +3,33 @@ import psycopg2
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # Load environment variables
 load_dotenv()
 
 def connect_to_db():
-    """Connect to the PostgreSQL database"""
+    """Connect to the PostgreSQL database using DATABASE_URL"""
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is not set")
+    
+    # Parse the DATABASE_URL
+    url = urlparse(database_url)
+    
+    # Extract connection parameters
+    dbname = url.path[1:]  # Remove leading slash
+    user = url.username
+    password = url.password
+    host = url.hostname
+    port = url.port or 5432  # Default to 5432 if not specified
+    
     return psycopg2.connect(
-        dbname=os.getenv('POSTGRES_DB'),
-        user=os.getenv('POSTGRES_USER'),
-        password=os.getenv('POSTGRES_PASSWORD'),
-        host=os.getenv('POSTGRES_HOST'),
-        port=os.getenv('POSTGRES_PORT')
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
     )
 
 def export_applicant_data():
@@ -28,80 +43,80 @@ def export_applicant_data():
             SELECT 
                 u.id as user_id,
                 u.email,
-                u.firstName,
-                u.lastName,
-                u.middleName,
-                u.createdAt,
+                u."firstName",
+                u."lastName",
+                u."middleName",
+                u."createdAt",
                 u.role,
-                u.thinkific_user_id,
-                p.phoneNumber,
+                u."thinkific_user_id",
+                p."phoneNumber",
                 p.gender,
                 p.dob,
-                p.homeAddress,
-                p.stateOfResidence,
-                p.LGADetails,
-                p.communityArea,
-                p.educationLevel,
-                p.employmentStatus,
-                p.employmentSector,
-                p.selfEmployedType,
-                p.residencyStatus,
+                p."homeAddress",
+                p."stateOfResidence",
+                p."LGADetails",
+                p."communityArea",
+                p."educationLevel",
+                p."employmentStatus",
+                p."employmentSector",
+                p."selfEmployedType",
+                p."residencyStatus",
                 p.disability,
                 p.source,
                 p.type as profile_type,
-                p.registrationMode,
-                p.businessName,
-                p.businessType,
-                p.businessSize,
-                p.businessSector,
-                p.businessPartners,
-                p.companyPhoneNumber,
-                p.additionalPhoneNumber,
-                p.companyEmail,
-                p.revenueRange,
-                p.entrepreneurRegistrationType,
-                p.businessSupportNeeds,
-                a.courseOfStudy,
-                a.enrollmentStatus,
-                a.hadJobBeforeAdmission,
-                a.employmentStatus as assessment_employment_status,
-                a.employmentType,
-                a.workTimeType,
-                a.employedInCreativeSector,
-                a.creativeJobNature,
-                a.nonCreativeJobInfo,
-                a.yearsOfExperienceCreative,
-                a.satisfactionLevel,
-                a.skillRating,
-                a.monthlyIncome,
-                a.hasReliableIncome,
-                a.earningMeetsNeeds,
-                a.workIsDecentAndGood,
-                a.jobGivesPurpose,
-                a.feelRespectedAtWork,
-                a.lmsPlatformRating,
-                a.taftaPreparationRating,
-                a.preparationFeedback,
-                a.qualityOfInteractionRating,
-                a.trainingMaterialsRating,
-                a.topicSequencingRating,
-                a.facilitatorsResponseRating,
-                a.wouldRecommendTafta,
-                a.improvementSuggestions,
-                a.mostStrikingFeature,
-                a.turnOffs,
-                a.practicalClassChallenges,
-                a.onlineClassChallenges,
-                a.completionMotivation,
-                uc.cohortId,
+                p."registrationMode",
+                p."businessName",
+                p."businessType",
+                p."businessSize",
+                p."businessSector",
+                p."businessPartners",
+                p."companyPhoneNumber",
+                p."additionalPhoneNumber",
+                p."companyEmail",
+                p."revenueRange",
+                p."registrationType",
+                p."businessSupportNeeds",
+                a."courseOfStudy",
+                a."enrollmentStatus",
+                a."hadJobBeforeAdmission",
+                a."employmentStatus" as assessment_employment_status,
+                a."employmentType",
+                a."workTimeType",
+                a."employedInCreativeSector",
+                a."creativeJobNature",
+                a."nonCreativeJobInfo",
+                a."yearsOfExperienceCreative",
+                a."satisfactionLevel",
+                a."skillRating",
+                a."monthlyIncome",
+                a."hasReliableIncome",
+                a."earningMeetsNeeds",
+                a."workIsDecentAndGood",
+                a."jobGivesPurpose",
+                a."feelRespectedAtWork",
+                a."lmsPlatformRating",
+                a."taftaPreparationRating",
+                a."preparationFeedback",
+                a."qualityOfInteractionRating",
+                a."trainingMaterialsRating",
+                a."topicSequencingRating",
+                a."facilitatorsResponseRating",
+                a."wouldRecommendTafta",
+                a."improvementSuggestions",
+                a."mostStrikingFeature",
+                a."turnOffs",
+                a."practicalClassChallenges",
+                a."onlineClassChallenges",
+                a."completionMotivation",
+                uc."cohortId",
                 c.name as cohort_name,
-                c.startDate as cohort_start_date,
-                c.endDate as cohort_end_date
+                c."start_date" as cohort_start_date,
+                c."end_date" as cohort_end_date
             FROM "User" u
-            LEFT JOIN "Profile" p ON u.id = p.userId
-            LEFT JOIN "Assessment" a ON u.id = a.userId
-            LEFT JOIN "UserCohort" uc ON u.id = uc.userId
-            LEFT JOIN "Cohort" c ON uc.cohortId = c.id
+            LEFT JOIN "Profile" p ON u.id = p."userId"
+            LEFT JOIN "Assessment" a ON u.id = a."userId"
+            LEFT JOIN "UserCohort" uc ON u.id = uc."userId"
+            LEFT JOIN "Cohort" c ON uc."cohortId" = c.id
             WHERE u.role = 'APPLICANT'
         """)
 
@@ -140,7 +155,7 @@ def export_applicant_data():
             business_info = df[['user_id', 'businessName', 'businessType', 'businessSize',
                               'businessSector', 'businessPartners', 'companyPhoneNumber',
                               'additionalPhoneNumber', 'companyEmail', 'revenueRange',
-                              'entrepreneurRegistrationType', 'businessSupportNeeds']]
+                              'registrationType', 'businessSupportNeeds']]
             business_info.to_excel(writer, sheet_name='Business_Info', index=False)
             
             # 4. Assessment Information

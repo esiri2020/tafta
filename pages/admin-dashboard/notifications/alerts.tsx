@@ -32,6 +32,9 @@ import {
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { DashboardLayout } from '../../../components/dashboard/dashboard-layout';
+import Checkbox from '@mui/material/Checkbox';
+import ListItemText from '@mui/material/ListItemText';
+import toast from 'react-hot-toast';
 
 interface StaffAlert {
   id: string;
@@ -48,6 +51,13 @@ interface StaffAlert {
   updatedAt: string;
 }
 
+interface Staff {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+}
+
 const StaffAlertsPage = () => {
   const [expanded, setExpanded] = useState<string | false>(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -59,6 +69,9 @@ const StaffAlertsPage = () => {
   const [alerts, setAlerts] = useState<StaffAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
+  const [allStaffChecked, setAllStaffChecked] = useState(false);
 
   // Fetch alerts
   React.useEffect(() => {
@@ -81,11 +94,37 @@ const StaffAlertsPage = () => {
     fetchAlerts();
   }, []);
 
+  // Fetch all staff when dialog opens
+  React.useEffect(() => {
+    if (isCreateDialogOpen) {
+      fetch('/api/users?filter=ADMIN')
+        .then(res => res.json())
+        .then(data => {
+          let staff: Staff[] = data.users || [];
+          // Fetch SUPERADMIN and SUPPORT as well
+          Promise.all([
+            fetch('/api/users?filter=SUPERADMIN').then(res => res.json()),
+            fetch('/api/users?filter=SUPPORT').then(res => res.json()),
+          ]).then(([superadmins, supports]) => {
+            staff = [
+              ...staff,
+              ...(superadmins.users || []),
+              ...(supports.users || []),
+            ];
+            // Remove duplicates by id
+            const uniqueStaff = Array.from(new Map(staff.map((s: Staff) => [s.id, s])).values());
+            setStaffList(uniqueStaff);
+          });
+        });
+    }
+  }, [isCreateDialogOpen]);
+
   const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
   };
 
   const handleCreateAlert = async () => {
+    const toastId = toast.loading('Sending alert...');
     try {
       setError(null);
       const response = await fetch('/api/staff-alerts', {
@@ -97,6 +136,7 @@ const StaffAlertsPage = () => {
           title: newAlert.title,
           message: newAlert.message,
           type: newAlert.type,
+          recipientIds: allStaffChecked ? [] : selectedStaff,
         }),
       });
 
@@ -113,9 +153,13 @@ const StaffAlertsPage = () => {
         message: '',
         type: 'ALERT',
       });
+      toast.success('Staff alert sent!');
     } catch (error) {
       console.error('Error creating alert:', error);
       setError(error instanceof Error ? error.message : 'Failed to create alert');
+      toast.error('Failed to send staff alert');
+    } finally {
+      toast.dismiss(toastId);
     }
   };
 
@@ -134,6 +178,25 @@ const StaffAlertsPage = () => {
         size="small"
       />
     );
+  };
+
+  const handleStaffCheck = (id: string) => {
+    setSelectedStaff(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(sid => sid !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+  const handleAllStaffCheck = () => {
+    if (allStaffChecked) {
+      setSelectedStaff([]);
+      setAllStaffChecked(false);
+    } else {
+      setSelectedStaff(staffList.map((s: Staff) => s.id));
+      setAllStaffChecked(true);
+    }
   };
 
   if (isLoading) {
@@ -276,6 +339,35 @@ const StaffAlertsPage = () => {
                 <MenuItem value="INFO">Info</MenuItem>
                 <MenuItem value="WARNING">Warning</MenuItem>
                 <MenuItem value="ALERT">Alert</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Recipients</InputLabel>
+              <Select
+                multiple
+                value={allStaffChecked ? staffList.map(s => s.id) : selectedStaff}
+                renderValue={selected =>
+                  allStaffChecked
+                    ? 'All Staff'
+                    : selected
+                        .map(id => {
+                          const staff = staffList.find(s => s.id === id);
+                          return staff ? `${staff.firstName} ${staff.lastName}` : '';
+                        })
+                        .join(', ')
+                }
+                label="Recipients"
+              >
+                <MenuItem value="all">
+                  <Checkbox checked={allStaffChecked} onChange={handleAllStaffCheck} />
+                  <ListItemText primary="All Staff" />
+                </MenuItem>
+                {staffList.map(staff => (
+                  <MenuItem key={staff.id} value={staff.id} disabled={allStaffChecked}>
+                    <Checkbox checked={selectedStaff.includes(staff.id) || allStaffChecked} onChange={() => handleStaffCheck(staff.id)} />
+                    <ListItemText primary={`${staff.firstName} ${staff.lastName}`} />
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
               </Box>

@@ -4,12 +4,59 @@ import { authOptions } from '../auth/[...nextauth]';
 import { prisma } from '@/lib/prisma';
 import { NotificationType, NotificationStatus, User } from '@prisma/client';
 import type { Session } from 'next-auth';
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 interface CustomSession extends Session {
   userData?: {
     userId: string;
     role: string;
   };
+}
+
+// Create a Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_SERVER_HOST,
+  port: Number(process.env.EMAIL_SERVER_PORT),
+  auth: {
+    user: process.env.EMAIL_SERVER_USER,
+    pass: process.env.EMAIL_SERVER_PASSWORD,
+  },
+});
+
+// Function to read email template
+function readEmailTemplate(templateName: string): string {
+  const templatePath = path.join(process.cwd(), 'utils', templateName);
+  return fs.readFileSync(templatePath, 'utf8');
+}
+
+// Function to send staff alert email
+async function sendStaffAlertEmail(
+  recipientEmail: string,
+  recipientName: string,
+  alertTitle: string,
+  alertMessage: string,
+  alertId: string
+) {
+  const template = readEmailTemplate('staff-alert.html');
+  const subject = 'Staff Alert Notification';
+  const emailContent = template
+    .replace('[Company Logo]', process.env.COMPANY_LOGO_URL || '')
+    .replace('[Company Name]', process.env.COMPANY_NAME || 'TAFTA')
+    .replace('[Staff Name]', recipientName)
+    .replace('[Alert Type]', alertTitle)
+    .replace('[Priority Level]', 'High')
+    .replace('[Date and Time]', new Date().toLocaleString())
+    .replace('[Alert Description]', alertMessage)
+    .replace('[Required Action]', 'Please review and take action')
+    .replace('[View Details Button]', `${process.env.NEXT_PUBLIC_APP_URL}/admin-dashboard/notifications/alerts?id=${alertId}`);
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: recipientEmail,
+    subject,
+    html: emailContent,
+  });
 }
 
 export default async function handler(
@@ -56,13 +103,16 @@ export default async function handler(
       },
       select: {
         id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
       },
     });
 
-    // Create notifications for each staff member
+    // Create notifications and send emails for each staff member
     const notifications = await Promise.all(
-      staffMembers.map((staff: Pick<User, 'id'>) =>
-        prisma.notification.create({
+      staffMembers.map(async (staff) => {
+        const notification = await prisma.notification.create({
           data: {
             title: `Cohort Alert: ${cohort.name}`,
             message,
@@ -73,8 +123,17 @@ export default async function handler(
             recipientId: staff.id,
             cohortId: cohort.id,
           },
-        })
-      )
+        });
+        // Send email
+        await sendStaffAlertEmail(
+          staff.email,
+          `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || 'Staff',
+          `Cohort Alert: ${cohort.name}`,
+          message,
+          notification.id
+        );
+        return notification;
+      })
     );
 
     return res.status(201).json(notifications);
