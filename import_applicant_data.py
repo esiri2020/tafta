@@ -4,18 +4,33 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 import json
+from urllib.parse import urlparse
 
 # Load environment variables
 load_dotenv()
 
 def connect_to_db():
-    """Connect to the PostgreSQL database"""
+    """Connect to the PostgreSQL database using DATABASE_URL"""
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is not set")
+    
+    # Parse the DATABASE_URL
+    url = urlparse(database_url)
+    
+    # Extract connection parameters
+    dbname = url.path[1:]  # Remove leading slash
+    user = url.username
+    password = url.password
+    host = url.hostname
+    port = url.port or 5432  # Default to 5432 if not specified
+    
     return psycopg2.connect(
-        dbname=os.getenv('POSTGRES_DB'),
-        user=os.getenv('POSTGRES_USER'),
-        password=os.getenv('POSTGRES_PASSWORD'),
-        host=os.getenv('POSTGRES_HOST'),
-        port=os.getenv('POSTGRES_PORT')
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
     )
 
 def clean_data(value):
