@@ -1,7 +1,7 @@
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
-from datetime import datetime
+from datetime import datetime, date
 import os
 from dotenv import load_dotenv
 import json
@@ -70,44 +70,70 @@ def clean_data(value):
     return str(value)
 
 def normalize_date(value):
-    """Normalize date values to ISO format with timezone"""
+    """
+    Normalize date values to our standard format (YYYY-MM-DD).
+    Handles various input formats and ensures proper date validation.
+    """
     if not value or pd.isna(value):
         return None
     
-    # First try to parse ISO format with timezone
     try:
-        if isinstance(value, str) and 'T' in value and 'Z' in value:
-            return datetime.fromisoformat(value.replace('Z', '+00:00')).date()
-    except Exception:
-        pass
+        # If it's already a datetime object, convert to date
+        if isinstance(value, datetime):
+            return value.date()
+        
+        # If it's already a date object, return as is
+        if isinstance(value, date):
+            return value
+        
+        # Handle string dates
+        if isinstance(value, str):
+            # Remove any time component if present
+            value = value.split()[0]
+            
+            # Parse the date using pandas
+            parsed_date = pd.to_datetime(value)
+            
+            # Validate the date is reasonable (not in future and not too old)
+            if parsed_date > datetime.now():
+                logger.warning(f"Future date detected: {value}. Setting to None.")
+                return None
+                
+            # For DOB validation (assuming reasonable age range 15-100 years)
+            min_date = datetime.now() - pd.DateOffset(years=100)
+            max_date = datetime.now() - pd.DateOffset(years=15)
+            if parsed_date < min_date or parsed_date > max_date:
+                logger.warning(f"Unreasonable DOB date: {value}. Setting to None.")
+                return None
+            
+            return parsed_date.date()
+            
+    except Exception as e:
+        logger.warning(f"Invalid date format: {value}. Setting to None. Error: {str(e)}")
+        return None
     
-    # Try other common formats
-    for fmt in ("%d-%m-%Y %H:%M:%S", "%d-%m-%Y", "%Y-%m-%d", "%Y/%m/%d"):
-        try:
-            parsed_date = datetime.strptime(str(value), fmt).date()
-            # Convert to ISO format string with timezone
-            return parsed_date
-        except Exception:
-            continue
-    
-    logger.warning(f"Invalid date format: {value}. Setting to None.")
     return None
 
 def validate_row(row: Dict[str, Any]) -> Tuple[bool, str]:
     """Validate a row of data before import"""
-    # Validate email
+    # Only validate email as it's the key identifier
     if not row.get('email') or pd.isna(row['email']) or str(row['email']).strip() == '':
         return False, "Missing or invalid email"
     
-    # Validate firstName
-    if not row.get('firstName') or pd.isna(row['firstName']) or str(row['firstName']).strip() == '':
-        return False, "Missing or invalid firstName"
+    # Clean and validate email format
+    email = str(row['email']).strip().lower()
+    if not '@' in email or not '.' in email:
+        return False, "Invalid email format"
     
-    # Validate lastName
-    if not row.get('lastName') or pd.isna(row['lastName']) or str(row['lastName']).strip() == '':
-        return False, "Missing or invalid lastName"
+    # Clean names if they exist, but don't require them
+    if row.get('firstName'):
+        row['firstName'] = clean_name(row['firstName'])
+    if row.get('lastName'):
+        row['lastName'] = clean_name(row['lastName'])
     
-    # Add more validation as needed
+    # Update the row with cleaned email
+    row['email'] = email
+    
     return True, ""
 
 def clean_name(name: str) -> str:
@@ -142,15 +168,23 @@ def normalize_profile_fields(row):
         'ELEMENTRY_SCHOOL': 'ELEMENTRY_SCHOOL',
     }
     education_level_value = row.get('educationLevel')
-    if education_level_value:
+    if isinstance(education_level_value, bool) or pd.isna(education_level_value):
+        row['educationLevel'] = None
+    elif education_level_value:
         key = str(education_level_value).replace('-', '_').replace(' ', '_').upper()
         mapped = EDUCATION_LEVEL_MAP.get(key)
         if mapped and mapped != education_level_value:
             print(f"[WARNING] Normalized EducationLevel '{education_level_value}' to '{mapped}'")
             row['educationLevel'] = mapped
-        elif not mapped:
-            print(f"[WARNING] Invalid EducationLevel '{education_level_value}', setting to None")
-            row['educationLevel'] = None
+        else:
+            education_level_value = str(education_level_value).strip().upper()
+            if education_level_value not in ['ELEMENTRY_SCHOOL', 'HIGH_SCHOOL', 'BACHELORS', 'MASTERS', 'PHD']:
+                print(f"[WARNING] Invalid educationLevel '{education_level_value}', setting to None")
+                row['educationLevel'] = None
+            else:
+                row['educationLevel'] = education_level_value
+    else:
+        row['educationLevel'] = None
     # Type defaulting
     type_value = row.get('type')
     if not type_value or str(type_value).strip() == '' or str(type_value).lower() == 'nan':
@@ -158,24 +192,143 @@ def normalize_profile_fields(row):
         row['type'] = 'INDIVIDUAL'
     else:
         row['type'] = str(type_value).strip().upper()
+    # Validate gender
+    gender_value = row.get('gender')
+    if gender_value:
+        gender_value = str(gender_value).strip().upper()
+        if gender_value not in ['MALE', 'FEMALE', 'OTHER']:
+            print(f"[WARNING] Invalid gender '{gender_value}', setting to None")
+            row['gender'] = None
+        else:
+            row['gender'] = gender_value
+    # Validate employmentStatus
+    employment_status_value = row.get('employmentStatus')
+    if employment_status_value:
+        employment_status_value = str(employment_status_value).strip().upper()
+        if employment_status_value not in ['EMPLOYED', 'UNEMPLOYED', 'SELF_EMPLOYED']:
+            print(f"[WARNING] Invalid employmentStatus '{employment_status_value}', setting to None")
+            row['employmentStatus'] = None
+        else:
+            row['employmentStatus'] = employment_status_value
+    # Validate employmentSector
+    employment_sector_value = row.get('employmentSector')
+    if employment_sector_value:
+        employment_sector_value = str(employment_sector_value).strip().upper()
+        if employment_sector_value not in ['PRIVATE', 'PUBLIC', 'NON_PROFIT']:
+            print(f"[WARNING] Invalid employmentSector '{employment_sector_value}', setting to None")
+            row['employmentSector'] = None
+        else:
+            row['employmentSector'] = employment_sector_value
+    # Validate selfEmployedType
+    self_employed_type_value = row.get('selfEmployedType')
+    if self_employed_type_value:
+        self_employed_type_value = str(self_employed_type_value).strip().upper()
+        if self_employed_type_value not in ['FREELANCER', 'BUSINESS_OWNER', 'CONTRACTOR']:
+            print(f"[WARNING] Invalid selfEmployedType '{self_employed_type_value}', setting to None")
+            row['selfEmployedType'] = None
+        else:
+            row['selfEmployedType'] = self_employed_type_value
+    # Validate residencyStatus
+    residency_status_value = row.get('residencyStatus')
+    if residency_status_value:
+        residency_status_value = str(residency_status_value).strip().upper()
+        if residency_status_value not in ['CITIZEN', 'RESIDENT', 'NON_RESIDENT']:
+            print(f"[WARNING] Invalid residencyStatus '{residency_status_value}', setting to None")
+            row['residencyStatus'] = None
+        else:
+            row['residencyStatus'] = residency_status_value
+    # Validate disability
+    disability_value = row.get('disability')
+    if disability_value:
+        disability_value = str(disability_value).strip().upper()
+        if disability_value not in ['YES', 'NO']:
+            print(f"[WARNING] Invalid disability '{disability_value}', setting to None")
+            row['disability'] = None
+        else:
+            row['disability'] = disability_value
+    # Validate type
+    type_value = row.get('type')
+    if type_value:
+        type_value = str(type_value).strip().upper()
+        if type_value not in ['INDIVIDUAL', 'BUSINESS']:
+            print(f"[WARNING] Invalid type '{type_value}', setting to 'INDIVIDUAL'")
+            row['type'] = 'INDIVIDUAL'
+        else:
+            row['type'] = type_value
+    # Validate registrationMode
+    registration_mode_value = row.get('registrationMode')
+    if registration_mode_value:
+        registration_mode_value = str(registration_mode_value).strip().upper()
+        if registration_mode_value not in ['ONLINE', 'OFFLINE']:
+            print(f"[WARNING] Invalid registrationMode '{registration_mode_value}', setting to None")
+            row['registrationMode'] = None
+        else:
+            row['registrationMode'] = registration_mode_value
+    # Validate businessType
+    business_type_value = row.get('businessType')
+    if business_type_value:
+        business_type_value = str(business_type_value).strip().upper()
+        if business_type_value not in ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'CORPORATION']:
+            print(f"[WARNING] Invalid businessType '{business_type_value}', setting to None")
+            row['businessType'] = None
+        else:
+            row['businessType'] = business_type_value
+    # Validate businessSize
+    business_size_value = row.get('businessSize')
+    if business_size_value:
+        business_size_value = str(business_size_value).strip().upper()
+        if business_size_value not in ['SMALL', 'MEDIUM', 'LARGE']:
+            print(f"[WARNING] Invalid businessSize '{business_size_value}', setting to None")
+            row['businessSize'] = None
+        else:
+            row['businessSize'] = business_size_value
+    # Validate businessSector
+    business_sector_value = row.get('businessSector')
+    if business_sector_value:
+        business_sector_value = str(business_sector_value).strip().upper()
+        if business_sector_value not in ['TECHNOLOGY', 'HEALTHCARE', 'RETAIL', 'MANUFACTURING']:
+            print(f"[WARNING] Invalid businessSector '{business_sector_value}', setting to None")
+            row['businessSector'] = None
+        else:
+            row['businessSector'] = business_sector_value
+    # Validate revenueRange
+    revenue_range_value = row.get('revenueRange')
+    if revenue_range_value:
+        revenue_range_value = str(revenue_range_value).strip().upper()
+        if revenue_range_value not in ['UNDER_100K', '100K_TO_500K', 'OVER_500K']:
+            print(f"[WARNING] Invalid revenueRange '{revenue_range_value}', setting to None")
+            row['revenueRange'] = None
+        else:
+            row['revenueRange'] = revenue_range_value
+    # Validate registrationType
+    registration_type_value = row.get('registrationType')
+    if registration_type_value:
+        registration_type_value = str(registration_type_value).strip().upper()
+        if registration_type_value not in ['NEW', 'RENEWAL']:
+            print(f"[WARNING] Invalid registrationType '{registration_type_value}', setting to None")
+            row['registrationType'] = None
+        else:
+            row['registrationType'] = registration_type_value
     return row
 
 def batch_create_users(cur, rows):
     """Create multiple users in a single batch and return email->userId mapping"""
     user_map = {}
+    
+    # Get all emails in the batch
+    emails = [clean_data(row['email']) for row in rows]
+    
+    # Bulk check for existing users
+    cur.execute('SELECT id, email FROM "User" WHERE email = ANY(%s)', (emails,))
+    existing_users = {row[1]: row[0] for row in cur.fetchall()}
+    
+    # Prepare new users for insertion
+    new_users = []
     for row in rows:
         email = clean_data(row['email'])
-        # Check if user already exists
-        cur.execute('SELECT id FROM "User" WHERE email = %s', (email,))
-        result = cur.fetchone()
-        if result:
-            user_id = result[0]
-        else:
+        if email not in existing_users:
             user_id = uuid.uuid4().hex
-            cur.execute('''
-                INSERT INTO "User" (id, email, "firstName", "lastName", "middleName", role, password, "createdAt", "thinkific_user_id")
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
+            new_users.append((
                 user_id,
                 email,
                 clean_data(row.get('firstName')),
@@ -186,7 +339,17 @@ def batch_create_users(cur, rows):
                 datetime.now(),
                 clean_data(row.get('thinkific_user_id'))
             ))
-        user_map[email] = user_id
+            user_map[email] = user_id
+        else:
+            user_map[email] = existing_users[email]
+    
+    # Bulk insert new users
+    if new_users:
+        execute_values(cur, '''
+            INSERT INTO "User" (id, email, "firstName", "lastName", "middleName", role, password, "createdAt", "thinkific_user_id")
+            VALUES %s
+        ''', new_users)
+    
     return user_map
 
 def batch_create_profiles(cur, user_map, rows):
@@ -196,13 +359,15 @@ def batch_create_profiles(cur, user_map, rows):
         email = clean_data(row['email'])
         user_id = user_map.get(email)
         if not user_id:
-            print(f"[WARNING] Skipping profile for {email}: userId not found in User table.")
+            logger.warning(f"Skipping profile for {email}: userId not found in User table.")
             continue
+            
         gender_value = row.get('gender')
         if gender_value:
             gender_value = str(gender_value).strip().upper()
         dob_value = normalize_date(row.get('dob'))
         type_value = row.get('type')
+        
         values.append([
             uuid.uuid4().hex,
             user_id,
@@ -234,11 +399,19 @@ def batch_create_profiles(cur, user_map, rows):
             clean_data(row.get('registrationType')),
             clean_data(row.get('businessSupportNeeds'))
         ])
+    
     # Only insert if there are valid profiles
     if values:
         columns = [
-            'id', 'userId', 'phoneNumber', 'gender', 'dob', 'homeAddress', 'stateOfResidence', 'LGADetails', 'communityArea', 'educationLevel', 'employmentStatus', 'employmentSector', 'selfEmployedType', 'residencyStatus', 'disability', 'source', 'type', 'registrationMode', 'businessName', 'businessType', 'businessSize', 'businessSector', 'businessPartners', 'companyPhoneNumber', 'additionalPhoneNumber', 'companyEmail', 'revenueRange', 'registrationType', 'businessSupportNeeds'
+            'id', 'userId', 'phoneNumber', 'gender', 'dob', 'homeAddress', 'stateOfResidence', 
+            'LGADetails', 'communityArea', 'educationLevel', 'employmentStatus', 'employmentSector', 
+            'selfEmployedType', 'residencyStatus', 'disability', 'source', 'type', 'registrationMode', 
+            'businessName', 'businessType', 'businessSize', 'businessSector', 'businessPartners', 
+            'companyPhoneNumber', 'additionalPhoneNumber', 'companyEmail', 'revenueRange', 
+            'registrationType', 'businessSupportNeeds'
         ]
+        
+        # Use UPSERT to handle duplicates
         execute_values(cur, f'''
             INSERT INTO "Profile" ({', '.join('"'+c+'"' for c in columns)})
             VALUES %s
@@ -246,32 +419,29 @@ def batch_create_profiles(cur, user_map, rows):
             {', '.join(f'"{c}" = EXCLUDED."{c}"' for c in columns if c not in ['id', 'userId'])}
         ''', values)
 
-def batch_create_user_cohorts(cur, user_map: Dict[str, str], rows: List[Dict[str, Any]]):
-    """Create multiple user cohort associations in a single batch"""
+def batch_create_user_cohorts(cur, user_map, rows):
     values = []
     for row in rows:
         email = clean_data(row['email'])
         user_id = user_map.get(email)
-        cohort_id = row.get('cohortId')
-        
-        if not user_id or not cohort_id or pd.isna(cohort_id) or str(cohort_id).strip() == '':
+        if not user_id:
+            print(f"[WARNING] Skipping user cohort for {email}: userId not found in User table.")
             continue
-            
-        user_cohort_id = uuid.uuid4().hex
-        values.append((
-            user_cohort_id,
+        cohort_id = row.get('cohortId')
+        if not cohort_id:
+            print(f"[WARNING] Skipping user cohort for {email}: cohortId is missing.")
+            continue
+        values.append([
+            uuid.uuid4().hex,
             user_id,
-            cohort_id,
-            datetime.now()
-        ))
-    
+            cohort_id
+        ])
+    # Only insert if there are valid user cohorts
     if values:
-        execute_values(cur, """
-            INSERT INTO "UserCohort" (
-                id, "userId", "cohortId", "created_at"
-            ) VALUES %s
-            ON CONFLICT ("userId", "cohortId") DO NOTHING
-        """, values)
+        execute_values(cur, '''
+            INSERT INTO "UserCohort" (id, "userId", "cohortId")
+            VALUES %s
+        ''', values)
 
 def process_batch(batch: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """Process a batch of rows"""
@@ -313,7 +483,7 @@ def process_batch(batch: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
     
     return errors
 
-def import_applicant_data(excel_file: str, batch_size: int = 100):
+def import_applicant_data(excel_file: str, batch_size: int = 500):  # Increased batch size
     """Import applicant data from Excel file using batch processing"""
     logger.info(f"Starting import from {excel_file}")
     
@@ -328,7 +498,7 @@ def import_applicant_data(excel_file: str, batch_size: int = 100):
         
         # Process in batches
         all_errors = []
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:  # Keep original worker count
             for i in range(0, len(rows), batch_size):
                 batch = rows[i:i + batch_size]
                 future = executor.submit(process_batch, batch)
@@ -405,5 +575,6 @@ def create_profile(cur, user_id, row):
     """, values)
 
 if __name__ == "__main__":
-    excel_file = "applicant_data_export_20250522_test.xlsx"  # Replace with your file name
-    import_applicant_data(excel_file, batch_size=100) 
+    excel_file = "applicant_data_export_20250522_cohort_10.xlsx"  # Replace with your file name
+ 
+    import_applicant_data(excel_file, batch_size=500) 

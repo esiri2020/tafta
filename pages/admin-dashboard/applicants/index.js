@@ -149,8 +149,8 @@ const FilteredOutApplicantsCard = ({
                       <div className='flex items-center gap-3'>
                         <Avatar>
                           <AvatarFallback>
-                            {applicant.firstName?.charAt(0)}
-                            {applicant.lastName?.charAt(0)}
+                            {applicant.firstName?.charAt(0) || ''}
+                            {applicant.lastName?.charAt(0) || ''}
                           </AvatarFallback>
                         </Avatar>
                         <div className='flex flex-col'>
@@ -1191,8 +1191,8 @@ function ApplicantList() {
                         <div className='flex items-center gap-3'>
                           <Avatar>
                             <AvatarFallback>
-                              {applicant.firstName.charAt(0)}
-                              {applicant.lastName.charAt(0)}
+                              {applicant.firstName?.charAt(0) || ''}
+                              {applicant.lastName?.charAt(0) || ''}
                             </AvatarFallback>
                           </Avatar>
                           <div className='flex flex-col'>

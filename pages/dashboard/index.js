@@ -27,6 +27,10 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Autocomplete,
@@ -260,12 +264,25 @@ export const CourseInformation = ({data}) => {
 
 const Account = () => {
   const [currentTab, setCurrentTab] = useState('general');
+  const [openLMSDialog, setOpenLMSDialog] = useState(false);
   const router = useRouter();
   let {id} = router.query;
   const {data: session, status} = useSession();
 
   const handleTabsChange = (event, value) => {
     setCurrentTab(value);
+  };
+
+  const handleOpenLMSDialog = () => {
+    setOpenLMSDialog(true);
+  };
+
+  const handleCloseLMSDialog = () => {
+    setOpenLMSDialog(false);
+  };
+
+  const handleContinueToLMS = () => {
+    window.location.href = 'https://portal.terraacademyforarts.com/users/sign_in';
   };
 
   const {data, error, isLoading} = useGetApplicantQuery(
@@ -400,13 +417,12 @@ const Account = () => {
                     Complete Assessment
                   </Button>
                 </NextLink>
-                <NextLink
-                  href={`https://portal.terraacademyforarts.com/users/sign_in`}
-                  passHref>
-                  <Button sx={{m: 1}} variant='contained'>
-                    Start Learning
-                  </Button>
-                </NextLink>
+                <Button 
+                  onClick={handleOpenLMSDialog}
+                  sx={{m: 1}} 
+                  variant='contained'>
+                  Start Learning
+                </Button>
               </Grid>
             </Grid>
             <Tabs
@@ -423,6 +439,31 @@ const Account = () => {
             </Tabs>
           </div>
           <Divider sx={{mb: 3}} />
+          
+          {/* LMS Dialog */}
+          <Dialog
+            open={openLMSDialog}
+            onClose={handleCloseLMSDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>TAFTA Learning Management System</DialogTitle>
+            <DialogContent>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                You're about to be redirected to the TAFTA Learning Management System. Ensure you check your email to reset your password.
+              </Typography>
+              <Typography variant="body1">
+                If you have already reset your password and have access to the LMS, click below to continue learning.
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseLMSDialog}>Close</Button>
+              <Button onClick={handleContinueToLMS} variant="contained">
+                Continue Learning
+              </Button>
+            </DialogActions>
+          </Dialog>
+
           {currentTab === 'general' && <General />}
           {currentTab === 'current-enrollment' && (
             <ApplicantEnrollment

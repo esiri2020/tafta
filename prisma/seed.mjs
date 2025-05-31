@@ -77,7 +77,71 @@ async function main() {
     },
   });
 
-  console.log({cohort});
+  // Create sample staff alerts
+  const alert1 = await prisma.staffAlert.create({
+    data: {
+      title: 'System Maintenance',
+      message: 'Scheduled maintenance will occur this weekend. Please plan accordingly.',
+      type: 'INFO',
+      senderId: superAdmin.id,
+      StaffAlertRecipients: {
+        create: [
+          {
+            id: `${Date.now()}-${admin.id}`,
+            userId: admin.id,
+          },
+          {
+            id: `${Date.now()}-${support.id}`,
+            userId: support.id,
+          },
+        ],
+      },
+    },
+  });
+
+  const alert2 = await prisma.staffAlert.create({
+    data: {
+      title: 'Security Update Required',
+      message: 'All staff members must update their passwords by the end of the week.',
+      type: 'WARNING',
+      senderId: admin.id,
+      StaffAlertRecipients: {
+        create: [
+          {
+            id: `${Date.now()}-${superAdmin.id}`,
+            userId: superAdmin.id,
+          },
+          {
+            id: `${Date.now()}-${support.id}`,
+            userId: support.id,
+          },
+        ],
+      },
+    },
+  });
+
+  const alert3 = await prisma.staffAlert.create({
+    data: {
+      title: 'Critical System Issue',
+      message: 'Immediate attention required: Database connection issues detected.',
+      type: 'ALERT',
+      senderId: support.id,
+      StaffAlertRecipients: {
+        create: [
+          {
+            id: `${Date.now()}-${superAdmin.id}`,
+            userId: superAdmin.id,
+          },
+          {
+            id: `${Date.now()}-${admin.id}`,
+            userId: admin.id,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log({cohort, alert1, alert2, alert3});
 }
 
 main()

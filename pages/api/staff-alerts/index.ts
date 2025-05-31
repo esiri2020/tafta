@@ -84,7 +84,13 @@ export default async function handler(
           orderBy: { createdAt: 'desc' },
           where: {
             OR: [
-              { recipients: { some: { id: userId } } },
+              {
+                StaffAlertRecipients: {
+                  some: {
+                    userId: userId
+                  }
+                }
+              },
               { senderId: userId },
             ],
           },
@@ -97,34 +103,45 @@ export default async function handler(
                 image: true,
               },
             },
-            recipients: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
+            StaffAlertRecipients: {
+              include: {
+                User: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
               },
-            },
-            staffAlertReads: {
-              where: { userId },
-              select: { id: true },
             },
           },
         }),
         prisma.staffAlert.count({
           where: {
             OR: [
-              { recipients: { some: { id: userId } } },
+              {
+                StaffAlertRecipients: {
+                  some: {
+                    userId: userId
+                  }
+                }
+              },
               { senderId: userId },
             ],
           },
         }),
       ]);
 
-      // Add read flag
+      // Transform the alerts to match the frontend's expected structure
       const alertsWithRead = alerts.map(alert => ({
-        ...alert,
-        isRead: alert.staffAlertReads.length > 0,
+        id: alert.id,
+        title: alert.title,
+        message: alert.message,
+        type: alert.type,
+        sender: alert.sender,
+        createdAt: alert.createdAt.toISOString(),
+        updatedAt: alert.updatedAt.toISOString(),
       }));
 
       return res.status(200).json({
@@ -154,14 +171,14 @@ export default async function handler(
         return res.status(400).json({ message: 'Missing required fields' });
       }
       // If recipientIds is not provided or is empty, send to all staff
-      let recipients = [];
+      let recipientUsers = [];
       if (!recipientIds || recipientIds.length === 0) {
-        recipients = await prisma.user.findMany({
+        recipientUsers = await prisma.user.findMany({
           where: { role: { in: ['SUPERADMIN', 'ADMIN', 'SUPPORT'] } },
           select: { id: true },
         });
       } else {
-        recipients = await prisma.user.findMany({
+        recipientUsers = await prisma.user.findMany({
           where: {
             id: { in: recipientIds },
             role: { in: ['SUPERADMIN', 'ADMIN', 'SUPPORT'] },
@@ -169,7 +186,7 @@ export default async function handler(
           select: { id: true },
         });
       }
-      if (recipients.length === 0) {
+      if (recipientUsers.length === 0) {
         return res.status(400).json({ message: 'No valid staff recipients found' });
       }
       const alert = await prisma.staffAlert.create({
@@ -178,8 +195,11 @@ export default async function handler(
           message,
           type,
           senderId: userId,
-          recipients: {
-            connect: recipients.map(r => ({ id: r.id })),
+          StaffAlertRecipients: {
+            create: recipientUsers.map(r => ({
+              id: `${Date.now()}-${r.id}`,
+              userId: r.id,
+            })),
           },
         },
         include: {
@@ -191,29 +211,46 @@ export default async function handler(
               image: true,
             },
           },
-          recipients: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
+          StaffAlertRecipients: {
+            include: {
+              User: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
             },
           },
         },
       });
 
+      // Transform the created alert to match the frontend's expected structure
+      const transformedAlert = {
+        id: alert.id,
+        title: alert.title,
+        message: alert.message,
+        type: alert.type,
+        sender: alert.sender,
+        createdAt: alert.createdAt.toISOString(),
+        updatedAt: alert.updatedAt.toISOString(),
+      };
+
       // After creating the alert and connecting recipients
-      for (const staff of alert.recipients) {
-        await sendStaffAlertEmail(
-          staff.email,
-          `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || 'Staff',
-          alert.title,
-          alert.message,
-          alert.id
-        );
+      for (const recipient of (alert as any).StaffAlertRecipients) {
+        if (recipient.User) {
+          await sendStaffAlertEmail(
+            recipient.User.email,
+            `${recipient.User.firstName || ''} ${recipient.User.lastName || ''}`.trim() || 'Staff',
+            alert.title,
+            alert.message,
+            alert.id
+          );
+        }
       }
 
-      return res.status(201).json(alert);
+      return res.status(201).json(transformedAlert);
     } catch (error) {
       console.error('Error creating staff alert:', error);
       return res.status(500).json({ message: 'Internal server error' });

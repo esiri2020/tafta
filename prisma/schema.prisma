@@ -36,30 +36,29 @@ model Session {
 }
 
 model User {
-  id                    String            @id @default(cuid())
-  email                 String            @unique
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
   emailVerified         DateTime?
   image                 String?
   firstName             String?
   lastName              String?
-  createdAt             DateTime          @default(now())
-  role                  Role              @default(APPLICANT)
+  createdAt             DateTime               @default(now())
+  role                  Role                   @default(APPLICANT)
   password              String
   thinkific_user_id     String?
   middleName            String?
   type                  RegistrationType?
   accounts              Account[]
   assessment            Assessment?
-  receivedNotifications Notification[]    @relation("ReceivedNotifications")
-  sentNotifications     Notification[]    @relation("SentNotifications")
+  receivedNotifications Notification[]         @relation("ReceivedNotifications")
+  sentNotifications     Notification[]         @relation("SentNotifications")
   profile               Profile?
   reports               Report[]
   seatBooking           SeatBooking[]
   sessions              Session[]
-  sentStaffAlerts       StaffAlert[]      @relation("SentStaffAlerts")
-  staffAlertReads       StaffAlertRead[]
+  sentStaffAlerts       StaffAlert[]           @relation("SentStaffAlerts")
+  StaffAlertRecipients  StaffAlertRecipients[]
   userCohort            UserCohort[]
-  staffAlerts           StaffAlert[]      @relation("StaffAlertRecipients")
 }
 
 model Profile {
@@ -340,27 +339,32 @@ model CohortToLocation {
 }
 
 model StaffAlert {
-  id              String           @id @default(cuid())
-  title           String
-  message         String
-  type            StaffAlertType
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  senderId        String
-  sender          User             @relation("SentStaffAlerts", fields: [senderId], references: [id])
-  staffAlertReads StaffAlertRead[]
-  recipients      User[]           @relation("StaffAlertRecipients")
+  id                   String                 @id @default(cuid())
+  title                String
+  message              String
+  type                 StaffAlertType
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  senderId             String
+  sender               User                   @relation("SentStaffAlerts", fields: [senderId], references: [id])
+  StaffAlertRecipients StaffAlertRecipients[]
+
+  @@index([createdAt])
+  @@index([senderId])
+  @@index([type])
 }
 
-model StaffAlertRead {
-  id         String     @id @default(cuid())
-  alertId    String
-  userId     String
-  readAt     DateTime   @default(now())
-  staffAlert StaffAlert @relation(fields: [alertId], references: [id])
-  user       User       @relation(fields: [userId], references: [id])
+model StaffAlertRecipients {
+  id           String     @id
+  staffAlertId String
+  userId       String
+  createdAt    DateTime   @default(now())
+  StaffAlert   StaffAlert @relation(fields: [staffAlertId], references: [id], onDelete: Cascade)
+  User         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([alertId, userId])
+  @@unique([staffAlertId, userId])
+  @@index([staffAlertId])
+  @@index([userId])
 }
 
 view EnrollmentCompletionGraph {
@@ -431,13 +435,6 @@ view raster_overviews {
   overview_factor Int?
 
   @@ignore
-}
-
-enum CohortStatus {
-  ACTIVE
-  INACTIVE
-  COMPLETED
-  CANCELLED
 }
 
 enum Role {
