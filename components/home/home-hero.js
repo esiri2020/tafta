@@ -36,8 +36,8 @@ export const HomeHero = props => {
       <img
         alt='header image'
         ahref='/'
-        style={{width: '100%', height: '100%'}}
-        src='/static/images/header-img.png'
+        style={{width: '100%', objectFit: 'cover', height: '400px'}}
+        src='/static/images/header-img.jpg'
       />
 
       <Box>

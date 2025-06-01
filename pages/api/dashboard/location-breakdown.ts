@@ -16,17 +16,17 @@ export default async function handler(
     }
 
     // Get the cohortId from the URL and ensure it's a string
-    const cohortIdParam = req.query.cohortId;
-    const cohortId = Array.isArray(cohortIdParam) ? cohortIdParam[0] : cohortIdParam;
+    const { cohortId } = req.query;
+
+    // Build the where clause
+    const where: any = { completed: true };
+    if (cohortId) {
+      where.userCohort = { cohortId: String(cohortId) };
+    }
 
     // Get all certified enrollments with their user data
     const certifiedEnrollments = await prisma.enrollment.findMany({
-      where: {
-        completed: true,
-        userCohort: {
-          cohortId: cohortId || undefined,
-        },
-      },
+      where,
       include: {
         userCohort: {
           include: {

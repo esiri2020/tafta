@@ -17,6 +17,7 @@ import {DashboardLayout} from '../../../components/dashboard/dashboard-layout';
 import {useAppSelector} from '../../../hooks/rtkHook';
 import {selectCohort} from '../../../services/cohortSlice';
 import { Progress } from "@/components/ui/progress"
+import { LoadingState } from '@/components/ui/loading-state';
 
 export default function EnrollmentsPage() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function EnrollmentsPage() {
   const [rehydrationProgress, setRehydrationProgress] = useState(0);
   const [rehydrationStats, setRehydrationStats] = useState(null);
   const [isRehydrating, setIsRehydrating] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Get the selected cohort from Redux state
   const selectedCohort = useAppSelector(state => selectCohort(state));
@@ -126,7 +128,34 @@ export default function EnrollmentsPage() {
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  useEffect(() => {
+    if (isLoading) {
+      // Simulate progress updates while loading
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
+        });
+      }, 100);
+    } else {
+      setLoadingProgress(100);
+      setTimeout(() => setLoadingProgress(0), 500);
+    }
+  }, [isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <LoadingState 
+          progress={loadingProgress}
+          message="Loading enrollment data..."
+        />
+      </div>
+    );
+  }
 
   if (error) {
     if (error.status === 401) {

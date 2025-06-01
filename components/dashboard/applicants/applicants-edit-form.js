@@ -573,7 +573,7 @@ export const ApplicantEditForm = ({applicant, ...other}) => {
                 value={formik.values.registrationMode}>
                 {registrationModes.map((mode, index) => (
                   <MenuItem key={index} value={mode}>
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    {typeof mode === 'string' && mode.length > 0 ? mode.charAt(0).toUpperCase() + mode.slice(1) : ''}
                   </MenuItem>
                 ))}
               </TextField>

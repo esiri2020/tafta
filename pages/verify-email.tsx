@@ -111,7 +111,7 @@ export default function VerifyEmail() {
             <img
               alt='header image'
               style={{width: '100%', height: '100vh'}}
-              src='/static/images/tafta-login.jpg'
+              src='/static/images/tafta-login.png'
             />
           </Grid>
           <Grid

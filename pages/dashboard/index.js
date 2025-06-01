@@ -95,7 +95,7 @@ export const Profile = () => (
       mt: 5,
     }}>
     <Avatar
-      src='/static/images/tafta-login.jpg'
+      src='/static/images/tafta-login.png'
       sx={{
         height: 64,
         width: 64,

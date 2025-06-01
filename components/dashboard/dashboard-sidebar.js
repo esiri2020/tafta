@@ -28,6 +28,7 @@ import {selectCohort, setCohort} from '../../services/cohortSlice';
 import {useAppDispatch, useAppSelector} from '../../hooks/rtkHook';
 import {useSession} from 'next-auth/react';
 import {Notifications as NotificationsIcon} from '../../icons/notifications';
+import {LoadingState} from '../ui/loading-state';
 
 const getSupportSections = userId => [
   {
@@ -448,12 +449,21 @@ export const DashboardSidebar = props => {
 
   const dispatch = useAppDispatch();
   const cohortId = useAppSelector(state => selectCohort(state));
+  const [isChangingCohort, setIsChangingCohort] = useState(false);
+  const [cohortChangeProgress, setCohortChangeProgress] = useState(0);
 
   useEffect(() => {
-    if (data?.message == 'success') {
-      // Set to null for "All active cohorts" by default
-      setSelectedCohort(null);
-      dispatch(setCohort(null));
+    if (data?.message == 'success' && data?.cohorts?.length > 0) {
+      // Find the latest active cohort
+      const latestActiveCohort = data.cohorts.find(cohort => cohort.active);
+      if (latestActiveCohort) {
+        setSelectedCohort(latestActiveCohort);
+        dispatch(setCohort(latestActiveCohort));
+      } else {
+        // Fallback to null if no active cohorts found
+        setSelectedCohort(null);
+        dispatch(setCohort(null));
+      }
     }
   }, [data, dispatch]);
 
@@ -473,10 +483,37 @@ export const DashboardSidebar = props => {
     [router.isReady, router.asPath],
   );
 
-  const handleChange = cohort => {
-    setSelectedCohort(cohort);
-    dispatch(setCohort(cohort));
-    handleCloseCohortPopover();
+  const handleChange = async (cohort) => {
+    setIsChangingCohort(true);
+    setCohortChangeProgress(0);
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setCohortChangeProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return prev + 10;
+      });
+    }, 100);
+
+    try {
+      setSelectedCohort(cohort);
+      dispatch(setCohort(cohort));
+      handleCloseCohortPopover();
+      
+      // Complete the progress
+      setCohortChangeProgress(100);
+      setTimeout(() => {
+        setIsChangingCohort(false);
+        setCohortChangeProgress(0);
+      }, 500);
+    } catch (error) {
+      console.error('Error changing cohort:', error);
+      setIsChangingCohort(false);
+      setCohortChangeProgress(0);
+    }
   };
 
   const handleOpenCohortPopover = () => {
@@ -489,6 +526,14 @@ export const DashboardSidebar = props => {
 
   const content = (
     <>
+      {isChangingCohort && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <LoadingState 
+            progress={cohortChangeProgress}
+            message="Updating cohort data..."
+          />
+        </div>
+      )}
       <Scrollbar
         sx={{
           height: '100%',

@@ -145,7 +145,7 @@ const IndexPage = () => {
             </Grid>
 
             {/* Course Distribution Chart */}
-            <Grid item lg={8} md={12} xl={9} xs={12}>
+            <Grid item lg={12} md={12} xl={9} xs={12}>
               <CourseDistributionChart
                 data={
                   data.courseEnrollmentData?.map(
@@ -161,7 +161,7 @@ const IndexPage = () => {
             </Grid>
 
             {/* Location Breakdown */}
-            <Grid item lg={4} md={6} xl={3} xs={12}>
+            <Grid item lg={12} md={8} xl={3} xs={12}>
               <LocationBreakdown data={transformedLocationData || []} />
             </Grid>
           </Grid>
