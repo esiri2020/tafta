@@ -100,19 +100,30 @@ export default async function handler(
 
   if (req.method === 'GET') {
     try {
+      // Set up streaming response
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const sendProgress = (progress: number, stats: any) => {
+        res.write(`data: ${JSON.stringify({ progress, stats })}\n\n`);
+      };
+
       console.log('Starting rehydration process...');
-      const limit = 100000
+      
+      // Reduce the limit to prevent timeouts
+      const limit = 1000;
       const last_date = await prisma.rehydrationDate.findFirst({
         orderBy: {
           created_at: 'desc'
         }
-      })
+      });
       
       console.log('Last rehydration date:', last_date?.created_at);
       
       // Force fresh data by adding a timestamp to the URL
       const timestamp = new Date().getTime();
-      const { data } = await api.get(`/enrollments?limit=${limit}&_t=${timestamp}`)
+      const { data } = await api.get(`/enrollments?limit=${limit}&_t=${timestamp}`);
 
       // Log only essential enrollment data
       console.log('\n=== THINKIFIC ENROLLMENTS ===');
@@ -127,7 +138,7 @@ export default async function handler(
       }, {});
       console.log('Completion stats:', completionStats);
 
-      const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase())
+      const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase());
       const users = await prisma.user.findMany({
         where: {
           email: { in: userEmails }
@@ -143,13 +154,13 @@ export default async function handler(
             }
           }
         }
-      })
+      });
 
       console.log('\n=== USER MATCHING ===');
       console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
 
-      // Batching setup
-      const BATCH_SIZE = 100;
+      // Increase batch size for better performance
+      const BATCH_SIZE = 500;
       const enrollmentItems = data.items;
       const totalBatches = Math.ceil(enrollmentItems.length / BATCH_SIZE);
       let processedCount = 0;
@@ -158,16 +169,17 @@ export default async function handler(
       let noCohortCount = 0;
       let allEnrollments: any[] = [];
 
+      // Process in smaller chunks with timeout handling
       for (let batch = 0; batch < totalBatches; batch++) {
         const start = batch * BATCH_SIZE;
         const end = Math.min(start + BATCH_SIZE, enrollmentItems.length);
         const batchItems = enrollmentItems.slice(start, end);
-        console.log(`\n--- Processing batch ${batch + 1} of ${totalBatches} (items ${start} to ${end - 1}) ---`);
-
-        const enrollments: any[] = await Promise.all(batchItems.map(async (item: Data) => {
-          let { user_email, user_name, ...data } = item
-          user_email = user_email.toLowerCase()
-          const user = users.find((user) => user.email.toLowerCase() === user_email)
+        
+        // Set a timeout for each batch
+        const batchPromise = Promise.all(batchItems.map(async (item: Data) => {
+          let { user_email, user_name, ...data } = item;
+          user_email = user_email.toLowerCase();
+          const user = users.find((user) => user.email.toLowerCase() === user_email);
 
           if (!user) {
             skippedCount++;
@@ -177,10 +189,10 @@ export default async function handler(
             roleMismatchCount++;
             return;
           }
-          const userCohortId = user.userCohort.at(-1)?.id
+          const userCohortId = user.userCohort.at(-1)?.id;
           if (!userCohortId) {
             noCohortCount++;
-            return
+            return;
           }
           processedCount++;
 
@@ -196,46 +208,57 @@ export default async function handler(
 
           data.completed = Boolean(data.completed);
 
-          // Log processed values before upsert
-          console.log('\n--- PROCESSED ENROLLMENT DATA BEFORE UPSERT ---');
-          console.log({
-            id: data.id,
-            userCohortId,
-            percentage_completed: data.percentage_completed,
-            completed: data.completed,
-            completed_at: data.completed_at,
-            user_email,
-            course_name: data.course_name,
+          try {
+            const enrollment = await prisma.enrollment.upsert({
+              where: {
+                id: data.id
+              },
+              update: {
+                enrolled: true,
+                ...data,
+                userCohort: {
+                  connect: { id: userCohortId }
+                }
+              },
+              create: {
+                enrolled: true,
+                ...data,
+                userCohort: {
+                  connect: { id: userCohortId }
+                }
+              }
+            });
+            return enrollment;
+          } catch (error) {
+            console.error(`Error processing enrollment for ${user_email}:`, error);
+            return null;
+          }
+        }));
+
+        // Add timeout to each batch
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Batch processing timeout')), 25000)
+        );
+
+        try {
+          const enrollments = await Promise.race([batchPromise, timeoutPromise]) as any[];
+          allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
+          
+          // Calculate and send progress
+          const progress = Math.round(((batch + 1) / totalBatches) * 100);
+          sendProgress(progress, {
+            processed: processedCount,
+            skipped: skippedCount,
+            roleMismatch: roleMismatchCount,
+            noCohort: noCohortCount
           });
-
-          const enrollment = await prisma.enrollment.upsert({
-            where: {
-              id: data.id
-            },
-            update: {
-              enrolled: true,
-              ...data,
-              userCohort: {
-                connect: { id: userCohortId }
-              }
-            },
-            create: {
-              enrolled: true,
-              ...data,
-              userCohort: {
-                connect: { id: userCohortId }
-              }
-            }
-          })
-
-          // Log the upserted enrollment record
-          console.log('\n--- UPSERTED ENROLLMENT RECORD ---');
-          console.log(enrollment);
-
-          return enrollment
-        }))
-        allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
-        console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
+          
+          console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
+        } catch (error) {
+          console.error(`Batch ${batch + 1} timed out or failed:`, error);
+          // Continue with next batch even if this one failed
+          continue;
+        }
       }
 
       console.log('\n=== PROCESSING SUMMARY ===');
@@ -248,20 +271,29 @@ export default async function handler(
         updatedCount: allEnrollments.length,
         completionStats
       });
-      console.log('Rehydration process completed!');
+
       // Create a new RehydrationDate record
       await prisma.rehydrationDate.create({
         data: {
           enrollment_count: allEnrollments.length
         }
       });
-      return res.send({ message: 'Synchronizing', count: allEnrollments.length })
+
+      // Send final progress update
+      sendProgress(100, {
+        processed: processedCount,
+        skipped: skippedCount,
+        roleMismatch: roleMismatchCount,
+        noCohort: noCohortCount
+      });
+
+      res.end();
     } catch (err) {
-      console.error(err)
-      if (err instanceof Error) {
-        return res.send(err.message)
-      }
-      return res.send('An error occurred')
+      console.error('Rehydration error:', err);
+      res.status(500).json({ 
+        message: err instanceof Error ? err.message : 'An error occurred',
+        error: true
+      });
     }
   }
 }

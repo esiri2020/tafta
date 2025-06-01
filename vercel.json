@@ -1,6 +1,6 @@
 {
   "crons": [{
     "path": "/api/rehydrate",
-    "schedule": "0 0 * * *"
+    "schedule": "*/5 * * * *"
   }]
 } 
