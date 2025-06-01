@@ -148,102 +148,114 @@ export default async function handler(
       console.log('\n=== USER MATCHING ===');
       console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
 
-      const user_list: Promise<any>[] = []
+      // Batching setup
+      const BATCH_SIZE = 100;
+      const enrollmentItems = data.items;
+      const totalBatches = Math.ceil(enrollmentItems.length / BATCH_SIZE);
       let processedCount = 0;
       let skippedCount = 0;
       let roleMismatchCount = 0;
       let noCohortCount = 0;
+      let allEnrollments: any[] = [];
 
-      // Log the full raw Thinkific API response
-      console.log('\n=== RAW THINKIFIC API RESPONSE ===');
-      console.log(JSON.stringify(data.items, null, 2));
+      for (let batch = 0; batch < totalBatches; batch++) {
+        const start = batch * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, enrollmentItems.length);
+        const batchItems = enrollmentItems.slice(start, end);
+        console.log(`\n--- Processing batch ${batch + 1} of ${totalBatches} (items ${start} to ${end - 1}) ---`);
 
-      const enrollments: any[] = await Promise.all(data.items.map(async (item: Data) => {
-        let { user_email, user_name, ...data } = item
-        user_email = user_email.toLowerCase()
-        const user = users.find((user) => user.email.toLowerCase() === user_email)
-        
-        if (!user) {
-          skippedCount++;
-          return;
-        }
-        if (user.role !== "APPLICANT") {
-          roleMismatchCount++;
-          return;
-        }
-        const userCohortId = user.userCohort.at(-1)?.id
-        if (!userCohortId) {
-          noCohortCount++;
-          return
-        }
-        processedCount++;
+        const enrollments: any[] = await Promise.all(batchItems.map(async (item: Data) => {
+          let { user_email, user_name, ...data } = item
+          user_email = user_email.toLowerCase()
+          const user = users.find((user) => user.email.toLowerCase() === user_email)
 
-        // Handle percentage_completed
-        if (typeof data.percentage_completed === 'string' || typeof data.percentage_completed === 'number') {
-          const val = typeof data.percentage_completed === 'string' 
-            ? parseFloat(data.percentage_completed)
-            : data.percentage_completed;
-          // Convert to decimal (0-1) if value is greater than 1
-          data.percentage_completed = val > 1 ? val / 100 : val;
-        } else {
-          // If no valid percentage, set based on completion status
-          data.percentage_completed = data.completed ? 1 : 0;
-        }
-
-        // Ensure completed status is boolean
-        data.completed = Boolean(data.completed);
-
-        // Log processed values before upsert
-        console.log('\n--- PROCESSED ENROLLMENT DATA BEFORE UPSERT ---');
-        console.log({
-          id: data.id,
-          userCohortId,
-          percentage_completed: data.percentage_completed,
-          completed: data.completed,
-          completed_at: data.completed_at,
-          user_email,
-          course_name: data.course_name,
-        });
-
-        const enrollment = await prisma.enrollment.upsert({
-          where: {
-            id: data.id
-          },
-          update: {
-            enrolled: true,
-            ...data,
-            userCohort: {
-              connect: { id: userCohortId }
-            }
-          },
-          create: {
-            enrolled: true,
-            ...data,
-            userCohort: {
-              connect: { id: userCohortId }
-            }
+          if (!user) {
+            skippedCount++;
+            return;
           }
-        })
+          if (user.role !== "APPLICANT") {
+            roleMismatchCount++;
+            return;
+          }
+          const userCohortId = user.userCohort.at(-1)?.id
+          if (!userCohortId) {
+            noCohortCount++;
+            return
+          }
+          processedCount++;
 
-        // Log the upserted enrollment record
-        console.log('\n--- UPSERTED ENROLLMENT RECORD ---');
-        console.log(enrollment);
+          // Handle percentage_completed
+          if (typeof data.percentage_completed === 'string' || typeof data.percentage_completed === 'number') {
+            const val = typeof data.percentage_completed === 'string' 
+              ? parseFloat(data.percentage_completed)
+              : data.percentage_completed;
+            data.percentage_completed = val > 1 ? val / 100 : val;
+          } else {
+            data.percentage_completed = data.completed ? 1 : 0;
+          }
 
-        return enrollment
-      }))
+          data.completed = Boolean(data.completed);
+
+          // Log processed values before upsert
+          console.log('\n--- PROCESSED ENROLLMENT DATA BEFORE UPSERT ---');
+          console.log({
+            id: data.id,
+            userCohortId,
+            percentage_completed: data.percentage_completed,
+            completed: data.completed,
+            completed_at: data.completed_at,
+            user_email,
+            course_name: data.course_name,
+          });
+
+          const enrollment = await prisma.enrollment.upsert({
+            where: {
+              id: data.id
+            },
+            update: {
+              enrolled: true,
+              ...data,
+              userCohort: {
+                connect: { id: userCohortId }
+              }
+            },
+            create: {
+              enrolled: true,
+              ...data,
+              userCohort: {
+                connect: { id: userCohortId }
+              }
+            }
+          })
+
+          // Log the upserted enrollment record
+          console.log('\n--- UPSERTED ENROLLMENT RECORD ---');
+          console.log(enrollment);
+
+          return enrollment
+        }))
+        allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
+        console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
+      }
 
       console.log('\n=== PROCESSING SUMMARY ===');
       console.log({
-        totalEnrollments: data.items.length,
+        totalEnrollments: enrollmentItems.length,
         processedCount,
         skippedCount,
         roleMismatchCount,
         noCohortCount,
-        updatedCount: enrollments.length,
+        updatedCount: allEnrollments.length,
         completionStats
       });
-      
-      return res.send({ message: 'Synchronizing', count: enrollments.length })
+      console.log('Rehydration process completed!');
+      // Create a new RehydrationDate record
+      await prisma.rehydrationDate.create({
+        data: {
+          enrollment_count: allEnrollments.length
+        }
+      });
+      return res.send({ message: 'Synchronizing', count: allEnrollments.length })
     } catch (err) {
       console.error(err)
       if (err instanceof Error) {
