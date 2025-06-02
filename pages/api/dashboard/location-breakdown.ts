@@ -19,7 +19,7 @@ export default async function handler(
     const { cohortId } = req.query;
 
     // Build the where clause
-    const where: any = { completed: true };
+    const where: any = {};
     if (cohortId) {
       where.userCohort = { cohortId: String(cohortId) };
     }

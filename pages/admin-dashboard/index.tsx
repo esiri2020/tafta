@@ -152,8 +152,8 @@ const IndexPage = () => {
                     (course: CourseEnrollment) => ({
                       course_name: course.name,
                       total_enrollments: Number(course.count),
-                      male_enrollments: 0, // TODO: Update when API provides gender breakdown
-                      female_enrollments: 0, // TODO: Update when API provides gender breakdown
+                      male_enrollments: Number(course.male_count || 0),
+                      female_enrollments: Number(course.female_count || 0),
                     }),
                   ) || []
                 }
