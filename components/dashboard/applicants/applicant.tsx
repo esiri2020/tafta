@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {useRouter} from 'next/router';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import {toast} from 'sonner';
 import {useFormik, FormikHelpers, FormikProps} from 'formik';
 import * as Yup from 'yup';
 import {Button} from '@/components/ui/button';
@@ -166,6 +166,7 @@ interface LocalFormValues {
   cohortId: string;
   businessName: string;
   selectedCourseName?: string;
+  actualCourseId: string;
 }
 
 // Type for form section components
@@ -299,6 +300,7 @@ const initialValues: LocalFormValues = {
   courseId: '',
   cohortId: '',
   businessName: '',
+  actualCourseId: '',
 };
 
 const ApplicantCreateForm: React.FC = () => {
@@ -340,7 +342,6 @@ const ApplicantCreateForm: React.FC = () => {
     initialValues,
     validationSchema,
     onSubmit: async (values, helpers: FormikHelpers<LocalFormValues>) => {
-      console.log('Form values before submission:', values);
       if (isSubmitting) return;
       setIsSubmitting(true);
 
@@ -411,7 +412,7 @@ const ApplicantCreateForm: React.FC = () => {
           lastName: values.lastName,
           middleName: values.middleName || '',
           email: values.email,
-          password: 'tafta1234', // Default password
+          password: 'tafta1234',
           type: values.applicantType,
           cohortId: values.cohortId,
           selectedCourseId: values.courseId,
@@ -421,19 +422,42 @@ const ApplicantCreateForm: React.FC = () => {
           autoEnroll: true,
         };
 
-        console.log(
-          'API request payload:',
-          JSON.stringify(requestPayload, null, 2),
-        );
-
         // Make API request to create applicant
         const response = await createApplicant({
           body: requestPayload,
         }).unwrap();
 
-        console.log('API response:', response);
-
         if (response) {
+          // Create enrollment after successful applicant creation
+          try {
+            const enrollmentPayload = {
+              userCohortId: values.cohortId,
+              course_id: parseInt(values.actualCourseId),
+              course_name: values.selectedCourseName,
+              user_email: values.email.toLowerCase(),
+            };
+
+            const enrollmentResponse = await fetch('/api/enrollments', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(enrollmentPayload),
+            });
+
+            if (!enrollmentResponse.ok) {
+              const errorText = await enrollmentResponse.text();
+              throw new Error(`Failed to create enrollment: ${errorText}`);
+            }
+
+            await enrollmentResponse.json();
+          } catch (enrollError) {
+            console.error('Enrollment creation failed:', enrollError);
+            toast.error(
+              'Applicant created but enrollment failed. Please try enrolling manually.',
+            );
+          }
+
           helpers.setStatus({success: true});
           helpers.setSubmitting(false);
           toast.success('Applicant Created and Enrolled Successfully!');
@@ -444,7 +468,6 @@ const ApplicantCreateForm: React.FC = () => {
         console.error('Form submission error:', apiError);
         toast.error(apiError.data?.message || 'Something went wrong!');
         helpers.setStatus({success: false});
-        // No need to set form-level errors for API issues
         helpers.setSubmitting(false);
       } finally {
         setIsSubmitting(false);
@@ -535,9 +558,11 @@ const ApplicantCreateForm: React.FC = () => {
               if (course) {
                 formik.setFieldValue('courseId', e.target.value);
                 formik.setFieldValue('selectedCourseName', course.name);
+                formik.setFieldValue('actualCourseId', course.courseId);
               } else {
                 formik.setFieldValue('courseId', e.target.value);
                 formik.setFieldValue('selectedCourseName', '');
+                formik.setFieldValue('actualCourseId', '');
               }
             }}
             onBlur={formik.handleBlur}
