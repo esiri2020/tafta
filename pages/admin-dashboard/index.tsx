@@ -4,6 +4,7 @@ import {Box, Container, Grid} from '@mui/material';
 import dynamic from 'next/dynamic';
 import {DashboardLayout} from '@/components/dashboard/dashboard-layout';
 import {SplashScreen} from '@/components/splash-screen';
+import {LoadingState} from '@/components/ui/loading-state';
 import {
   useGetDashboardDataQuery,
   useGetLocationBreakdownQuery,
@@ -63,30 +64,42 @@ const LocationMetrics = dynamic(
 );
 
 const IndexPage = () => {
-  const isInitialLoad = useRef(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const cohort = useAppSelector(state => selectCohort(state));
 
+  // Reset initial load when cohort changes
+  useEffect(() => {
+    if (cohort) {
+      setIsInitialLoad(true);
+    }
+  }, [cohort]);
+
   const {data, error, isLoading} = useGetDashboardDataQuery(
-    {cohortId: cohort?.id},
-    {skip: !cohort?.id},
+    {cohortId: cohort?.id || 'all'},
+    {skip: false},
   );
   const {data: locationData, isLoading: locationLoading} =
-    useGetLocationBreakdownQuery({cohortId: cohort?.id}, {skip: !cohort?.id});
+    useGetLocationBreakdownQuery({cohortId: cohort?.id || 'all'}, {skip: false});
 
-  // Only show loading screen on initial load
-  if (isInitialLoad.current && (isLoading || locationLoading)) {
+  // Update initial load state when data is loaded
+  useEffect(() => {
+    if (!isLoading && !locationLoading && data && locationData) {
+      setIsInitialLoad(false);
+    }
+  }, [isLoading, locationLoading, data, locationData]);
+
+  // Show SplashScreen only on initial load
+  if (isInitialLoad && (isLoading || locationLoading)) {
     return <SplashScreen />;
   }
 
-  // After first load, set initial load to false
-  useEffect(() => {
-    if (!isLoading && !locationLoading) {
-      isInitialLoad.current = false;
-    }
-  }, [isLoading, locationLoading]);
+  // Show LoadingState for subsequent loads
+  if (isLoading || locationLoading) {
+    return <LoadingState message="Loading dashboard data..." fullScreen />;
+  }
 
   if (error) return <div>An error occurred.</div>;
-  if (!data) return null;
+  if (!data || !locationData) return null;
 
   // Transform location data to match the expected format
   const transformedLocationData = locationData?.states.map(

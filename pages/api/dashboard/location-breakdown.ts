@@ -6,6 +6,10 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
+
   try {
     // Get the token from the request
     const token = await getToken({ req });
@@ -15,111 +19,100 @@ export default async function handler(
       });
     }
 
-    // Get the cohortId from the URL and ensure it's a string
     const { cohortId } = req.query;
 
-    // Build the where clause
-    let where: any = {};
-    if (cohortId) {
-      where = { userCohort: { cohortId: String(cohortId) } };
-    }
-    
+    // If cohortId is 'all', we'll aggregate data from all cohorts
+    const whereClause = cohortId === 'all'
+      ? {}
+      : { userCohort: { cohortId: cohortId as string } };
 
-    // Use groupBy for fast aggregation
-    const grouped = await prisma.enrollment.groupBy({
-      by: [
-        'course_name',
-        'userCohortId',
-      ],
-      _count: true,
-      where,
-    });
-
-    // Fetch user profiles for the userCohortIds in the grouped result
-    const userCohortIds = Array.from(new Set(grouped.map(g => g.userCohortId)));
-    const userCohorts = await prisma.userCohort.findMany({
-      where: { id: { in: userCohortIds } },
+    // Get all enrollments with location data
+    const enrollments = await prisma.enrollment.findMany({
+      where: whereClause,
       include: {
-        user: {
-          select: {
-            profile: {
-              select: {
-                stateOfResidence: true,
-                gender: true,
+        userCohort: {
+          include: {
+            user: {
+              include: {
+                profile: true,
               },
             },
           },
         },
-        cohort: true,
       },
     });
-    const userCohortMap = Object.fromEntries(
-      userCohorts.map(uc => [uc.id, uc])
-    );
 
-    // Aggregate by state and course
-    const locationBreakdown = new Map();
-    grouped.forEach(g => {
-      const userCohort = userCohortMap[g.userCohortId];
-      const userProfile = userCohort?.user?.profile;
-      if (!userProfile) return;
-      const state = userProfile.stateOfResidence || 'Unknown';
-      const course = g.course_name;
-      const gender = userProfile.gender || 'Unknown';
-      if (!locationBreakdown.has(state)) {
-        locationBreakdown.set(state, {
-          courses: new Map(),
+    // Group data by state and course
+    const stateData = new Map();
+
+    enrollments.forEach(enrollment => {
+      const userCohort = enrollment.userCohort;
+      const state = userCohort?.user?.profile?.stateOfResidence || 'Unknown';
+      const course = enrollment.course_name;
+      const gender = userCohort?.user?.profile?.gender || 'Unknown';
+
+      if (!stateData.has(state)) {
+        stateData.set(state, new Map());
+      }
+
+      const courseData = stateData.get(state);
+      if (!courseData.has(course)) {
+        courseData.set(course, {
+          male: 0,
+          female: 0,
           total: 0,
         });
       }
-      const stateData = locationBreakdown.get(state);
-      if (!stateData.courses.has(course)) {
-        stateData.courses.set(course, { female: 0, male: 0, total: 0 });
+
+      const data = courseData.get(course);
+      if (gender === 'MALE') {
+        data.male++;
+      } else if (gender === 'FEMALE') {
+        data.female++;
       }
-      const courseData = stateData.courses.get(course);
-      courseData.total += g._count;
-      stateData.total += g._count;
-      if (gender === 'FEMALE') {
-        courseData.female += g._count;
-      } else if (gender === 'MALE') {
-        courseData.male += g._count;
-      }
+      data.total++;
     });
 
-    // Convert to the required format
-    const formattedData = Array.from(locationBreakdown.entries()).map(([state, data]: [string, any]) => ({
-      state,
-      courses: (Array.from(data.courses.entries()) as [string, any][]).map(([course, stats]) => ({
-        course,
-        female: stats.female,
-        male: stats.male,
-        total: stats.total,
-      })),
-      total: data.total,
-    }));
+    // Transform data for the frontend
+    const states: any[] = [];
+    stateData.forEach((courseData: Map<string, any>, state: string) => {
+      const courses: any[] = [];
+      courseData.forEach((data: any, course: string) => {
+        courses.push({
+          course,
+          ...data,
+        });
+      });
+
+      states.push({
+        state,
+        courses,
+        total: courses.reduce((sum, course) => sum + course.total, 0),
+      });
+    });
 
     // Sort states by total count (descending)
-    formattedData.sort((a: any, b: any) => b.total - a.total);
+    states.sort((a: any, b: any) => b.total - a.total);
     // Sort courses within each state by total count (descending)
-    formattedData.forEach(state => {
+    states.forEach(state => {
       state.courses.sort((a: any, b: any) => b.total - a.total);
     });
 
     // For all cohorts, cohortName is 'All Cohorts', otherwise use the cohort name
     let cohortName = 'All Cohorts';
-    if (cohortId && userCohorts[0]?.cohort?.name) {
-      cohortName = userCohorts[0].cohort.name;
+    if (cohortId && states[0]?.courses[0]?.course) {
+      cohortName = states[0].courses[0].course;
     }
-    const totalCompletion = formattedData.reduce((sum, state) => sum + state.total, 0);
+    const totalCompletion = states.reduce((sum, state) => sum + state.total, 0);
 
-    return res.json({
-      states: formattedData,
+    return res.status(200).json({
+      states,
       totalCompletion,
       cohortName,
       date: new Date().toLocaleDateString(),
     });
   } catch (error) {
     console.error('Error fetching location breakdown:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 } 
