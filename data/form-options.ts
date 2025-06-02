@@ -283,16 +283,7 @@ export const mobilizer = [
   'LOWAN',
   'GOD1',
   'AAALA',
-  'NYCN Ibeju',
-  'NYCN Lekki',
-  'NYCN Lagos',
-  'NYCN Ogun',
-  'NYCN Kano',
-  'NYCN Abuja',
-  'NYCN Rivers',
-  'NYCN Delta',
-  
-
+  'NYCN Ibeju'
 ];
 
 export const business_types = [
