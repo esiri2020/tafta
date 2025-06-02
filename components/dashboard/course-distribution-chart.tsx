@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -43,31 +43,49 @@ const generateCourseColors = (courses: string[]) => {
   }, {} as Record<string, string>);
 };
 
-const colors = {
-  gender: {
-    male: '#0ea5e9',
-    female: '#d946ef',
-  },
-};
-
 const formatNumber = (num: number): string => {
   return num.toLocaleString();
 };
 
 export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = ({ data }) => {
-  if (!data) return null;
+  if (!data?.length) return null;
 
-  // Generate course colors
-  const courseColors = generateCourseColors(data.map(d => d.course_name));
+  // Memoize chart data transformation
+  const chartData = useMemo(() => {
+    return data.map(course => ({
+      name: course.course_name,
+      total: course.total_enrollments,
+      male: course.male_enrollments,
+      female: course.female_enrollments,
+    }));
+  }, [data]);
 
-  // Transform data for the chart
-  const chartData = data.map(course => ({
-    name: course.course_name,
-    total: course.total_enrollments,
-    male: course.male_enrollments,
-    female: course.female_enrollments,
-    color: courseColors[course.course_name],
-  }));
+  // Memoize the custom tooltip component
+  const CustomTooltip = useMemo(() => {
+    return ({ active, payload, label }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="bg-white p-3 border border-gray-200 shadow-md rounded-md">
+            <p className="font-semibold">{label}</p>
+            <p className="text-sm">
+              Total: <span className="font-medium">{formatNumber(payload[0].value)}</span>
+            </p>
+            {payload[0].payload.male > 0 && (
+              <p className="text-sm">
+                Male: <span className="font-medium">{formatNumber(payload[0].payload.male)}</span>
+              </p>
+            )}
+            {payload[0].payload.female > 0 && (
+              <p className="text-sm">
+                Female: <span className="font-medium">{formatNumber(payload[0].payload.female)}</span>
+              </p>
+            )}
+          </div>
+        );
+      }
+      return null;
+    };
+  }, []);
 
   return (
     <Card className="w-full">
@@ -83,9 +101,9 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
                 top: 20,
                 right: 30,
                 left: 20,
-                bottom: 100, // Increased bottom margin for legend
+                bottom: 100,
               }}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="name"
                 angle={-45}
@@ -93,25 +111,20 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
                 height={100}
                 interval={0}
                 tick={{fontSize: 12}}
+                tickLine={false}
+                axisLine={false}
               />
-              <YAxis tickFormatter={formatNumber} />
-              <Tooltip
-                formatter={(value: number) => formatNumber(value)}
-                labelFormatter={(label) => `Course: ${label}`}
+              <YAxis 
+                tickFormatter={formatNumber}
+                tickLine={false}
+                axisLine={false}
               />
+              <Tooltip content={CustomTooltip} />
               <Bar
-                dataKey="male"
-                name="Male"
-                fill={colors.gender.male}
+                dataKey="total"
+                name="Total Enrollments"
+                fill="#8884d8"
                 radius={[4, 4, 0, 0]}
-                stackId="a"
-              />
-              <Bar
-                dataKey="female"
-                name="Female"
-                fill={colors.gender.female}
-                radius={[4, 4, 0, 0]}
-                stackId="a"
               />
             </BarChart>
           </ResponsiveContainer>
@@ -123,10 +136,10 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
             <div key={course.course_name} className="flex items-center space-x-2 text-sm">
               <div
                 className="w-3 h-3 rounded-full"
-                style={{backgroundColor: courseColors[course.course_name]}}
+                style={{backgroundColor: generateCourseColors([course.course_name])[course.course_name]}}
               />
               <span className="truncate" title={course.course_name}>
-                {`${index + 1}. ${course.course_name}`}
+                {course.course_name}
               </span>
             </div>
           ))}
@@ -134,4 +147,4 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
       </CardContent>
     </Card>
   );
-}; 
+};

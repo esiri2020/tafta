@@ -3,8 +3,6 @@ import { UseQueryHookResult } from '@reduxjs/toolkit/dist/query/react/buildHooks
 export interface CourseEnrollment {
   name: string;
   count: string;
-  male_count?: string;
-  female_count?: string;
 }
 
 export interface DashboardData {

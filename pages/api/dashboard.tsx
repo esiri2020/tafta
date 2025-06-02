@@ -539,7 +539,7 @@ export default async function handler(
       },
     });
 
-    // Get course names and gender breakdown for the enrollment data
+    // Get course names for the enrollment data
     const courseEnrollmentDataWithNames = await Promise.all(
       courseEnrollmentData.map(async (enrollment: { course_id: bigint; _count?: { course_id?: number } }) => {
         const course = await prisma.course.findUnique({
@@ -550,35 +550,9 @@ export default async function handler(
             name: true,
           },
         });
-
-        // Get gender breakdown for this course
-        const enrollments = await prisma.enrollment.findMany({
-          where: {
-            course_id: enrollment.course_id,
-            userCohort: cohortId ? {cohortId} : undefined,
-          },
-          include: {
-            userCohort: {
-              include: {
-                user: {
-                  include: {
-                    profile: true
-                  }
-                }
-              }
-            }
-          }
-        });
-
-        // Calculate gender counts
-        const maleCount = enrollments.filter(e => e.userCohort.user.profile?.gender === 'MALE').length;
-        const femaleCount = enrollments.filter(e => e.userCohort.user.profile?.gender === 'FEMALE').length;
-
         return {
           name: course?.name || 'Unknown Course',
           count: enrollment._count?.course_id?.toString() || '0',
-          male_count: maleCount.toString(),
-          female_count: femaleCount.toString()
         };
       })
     );
