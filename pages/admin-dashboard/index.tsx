@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import Head from 'next/head';
 import {Box, Container, Grid} from '@mui/material';
 import dynamic from 'next/dynamic';
@@ -63,23 +63,28 @@ const LocationMetrics = dynamic(
 );
 
 const IndexPage = () => {
-  const [skip, setSkip] = useState(true);
+  const isInitialLoad = useRef(true);
   const cohort = useAppSelector(state => selectCohort(state));
-
-  useEffect(() => {
-    if (cohort?.id) setSkip(false);
-  }, [cohort]);
 
   const {data, error, isLoading} = useGetDashboardDataQuery(
     {cohortId: cohort?.id},
-    {skip},
+    {skip: !cohort?.id},
   );
   const {data: locationData, isLoading: locationLoading} =
-    useGetLocationBreakdownQuery({cohortId: cohort?.id}, {skip});
+    useGetLocationBreakdownQuery({cohortId: cohort?.id}, {skip: !cohort?.id});
 
-  if (isLoading || locationLoading) {
+  // Only show loading screen on initial load
+  if (isInitialLoad.current && (isLoading || locationLoading)) {
     return <SplashScreen />;
   }
+
+  // After first load, set initial load to false
+  useEffect(() => {
+    if (!isLoading && !locationLoading) {
+      isInitialLoad.current = false;
+    }
+  }, [isLoading, locationLoading]);
+
   if (error) return <div>An error occurred.</div>;
   if (!data) return null;
 

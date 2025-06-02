@@ -19,71 +19,77 @@ export default async function handler(
     const { cohortId } = req.query;
 
     // Build the where clause
-    const where: any = {};
+    let where: any = {};
     if (cohortId) {
-      where.userCohort = { cohortId: String(cohortId) };
+      where = { userCohort: { cohortId: String(cohortId) } };
     }
-    // If no cohortId, where is empty and all enrollments are included
+    
 
-    // Get all certified enrollments with their user data
-    const certifiedEnrollments = await prisma.enrollment.findMany({
+    // Use groupBy for fast aggregation
+    const grouped = await prisma.enrollment.groupBy({
+      by: [
+        'course_name',
+        'userCohortId',
+      ],
+      _count: true,
       where,
-      include: {
-        userCohort: {
-          include: {
-            user: {
-              include: {
-                profile: true,
-              },
-            },
-            cohort: true,
-          },
-        },
-      },
     });
 
-    // Group enrollments by state and course
-    const locationBreakdown = new Map<string, {
-      courses: Map<string, { female: number; male: number; total: number }>;
-      total: number;
-    }>();
+    // Fetch user profiles for the userCohortIds in the grouped result
+    const userCohortIds = Array.from(new Set(grouped.map(g => g.userCohortId)));
+    const userCohorts = await prisma.userCohort.findMany({
+      where: { id: { in: userCohortIds } },
+      include: {
+        user: {
+          select: {
+            profile: {
+              select: {
+                stateOfResidence: true,
+                gender: true,
+              },
+            },
+          },
+        },
+        cohort: true,
+      },
+    });
+    const userCohortMap = Object.fromEntries(
+      userCohorts.map(uc => [uc.id, uc])
+    );
 
-    certifiedEnrollments.forEach((enrollment) => {
-      // Get the user's profile data
-      const userProfile = enrollment.userCohort.user.profile;
+    // Aggregate by state and course
+    const locationBreakdown = new Map();
+    grouped.forEach(g => {
+      const userCohort = userCohortMap[g.userCohortId];
+      const userProfile = userCohort?.user?.profile;
       if (!userProfile) return;
-
       const state = userProfile.stateOfResidence || 'Unknown';
-      const course = enrollment.course_name;
+      const course = g.course_name;
       const gender = userProfile.gender || 'Unknown';
-
       if (!locationBreakdown.has(state)) {
         locationBreakdown.set(state, {
           courses: new Map(),
           total: 0,
         });
       }
-
-      const stateData = locationBreakdown.get(state)!;
+      const stateData = locationBreakdown.get(state);
       if (!stateData.courses.has(course)) {
         stateData.courses.set(course, { female: 0, male: 0, total: 0 });
       }
-
-      const courseData = stateData.courses.get(course)!;
-      courseData.total++;
-      stateData.total++;
-
+      const courseData = stateData.courses.get(course);
+      courseData.total += g._count;
+      stateData.total += g._count;
       if (gender === 'FEMALE') {
-        courseData.female++;
+        courseData.female += g._count;
       } else if (gender === 'MALE') {
-        courseData.male++;
+        courseData.male += g._count;
       }
     });
 
     // Convert to the required format
-    const formattedData = Array.from(locationBreakdown.entries()).map(([state, data]) => ({
+    const formattedData = Array.from(locationBreakdown.entries()).map(([state, data]: [string, any]) => ({
       state,
-      courses: Array.from(data.courses.entries()).map(([course, stats]) => ({
+      courses: (Array.from(data.courses.entries()) as [string, any][]).map(([course, stats]) => ({
         course,
         female: stats.female,
         male: stats.male,
@@ -93,14 +99,17 @@ export default async function handler(
     }));
 
     // Sort states by total count (descending)
-    formattedData.sort((a, b) => b.total - a.total);
-
+    formattedData.sort((a: any, b: any) => b.total - a.total);
     // Sort courses within each state by total count (descending)
     formattedData.forEach(state => {
-      state.courses.sort((a, b) => b.total - a.total);
+      state.courses.sort((a: any, b: any) => b.total - a.total);
     });
 
-    const cohortName = certifiedEnrollments[0]?.userCohort.cohort?.name || 'Unknown Cohort';
+    // For all cohorts, cohortName is 'All Cohorts', otherwise use the cohort name
+    let cohortName = 'All Cohorts';
+    if (cohortId && userCohorts[0]?.cohort?.name) {
+      cohortName = userCohorts[0].cohort.name;
+    }
     const totalCompletion = formattedData.reduce((sum, state) => sum + state.total, 0);
 
     return res.json({
