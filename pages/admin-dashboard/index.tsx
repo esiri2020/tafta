@@ -1,9 +1,10 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import Head from 'next/head';
 import {Box, Container, Grid} from '@mui/material';
 import dynamic from 'next/dynamic';
 import {DashboardLayout} from '@/components/dashboard/dashboard-layout';
 import {SplashScreen} from '@/components/splash-screen';
+import {LoadingState} from '@/components/ui/loading-state';
 import {
   useGetDashboardDataQuery,
   useGetLocationBreakdownQuery,
@@ -63,24 +64,42 @@ const LocationMetrics = dynamic(
 );
 
 const IndexPage = () => {
-  const [skip, setSkip] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const cohort = useAppSelector(state => selectCohort(state));
-  const {data, error, isLoading} = useGetDashboardDataQuery(
-    {cohortId: cohort?.id},
-    {skip},
-  );
-  const {data: locationData, isLoading: locationLoading} =
-    useGetLocationBreakdownQuery({cohortId: cohort?.id}, {skip});
 
+  // Reset initial load when cohort changes
   useEffect(() => {
-    setSkip(false);
+    if (cohort) {
+      setIsInitialLoad(true);
+    }
   }, [cohort]);
 
-  if (isLoading || locationLoading) {
+  const {data, error, isLoading} = useGetDashboardDataQuery(
+    {cohortId: cohort?.id || 'all'},
+    {skip: false},
+  );
+  const {data: locationData, isLoading: locationLoading} =
+    useGetLocationBreakdownQuery({cohortId: cohort?.id || 'all'}, {skip: false});
+
+  // Update initial load state when data is loaded
+  useEffect(() => {
+    if (!isLoading && !locationLoading && data && locationData) {
+      setIsInitialLoad(false);
+    }
+  }, [isLoading, locationLoading, data, locationData]);
+
+  // Show SplashScreen only on initial load
+  if (isInitialLoad && (isLoading || locationLoading)) {
     return <SplashScreen />;
   }
+
+  // Show LoadingState for subsequent loads
+  if (isLoading || locationLoading) {
+    return <LoadingState message="Loading dashboard data..." fullScreen />;
+  }
+
   if (error) return <div>An error occurred.</div>;
-  if (!data) return null;
+  if (!data || !locationData) return null;
 
   // Transform location data to match the expected format
   const transformedLocationData = locationData?.states.map(
@@ -145,15 +164,15 @@ const IndexPage = () => {
             </Grid>
 
             {/* Course Distribution Chart */}
-            <Grid item lg={8} md={12} xl={9} xs={12}>
+            <Grid item lg={12} md={12} xl={9} xs={12}>
               <CourseDistributionChart
                 data={
                   data.courseEnrollmentData?.map(
                     (course: CourseEnrollment) => ({
                       course_name: course.name,
                       total_enrollments: Number(course.count),
-                      male_enrollments: 0, // TODO: Update when API provides gender breakdown
-                      female_enrollments: 0, // TODO: Update when API provides gender breakdown
+                      male_enrollments: Number(course.male_count || 0),
+                      female_enrollments: Number(course.female_count || 0),
                     }),
                   ) || []
                 }
@@ -161,7 +180,7 @@ const IndexPage = () => {
             </Grid>
 
             {/* Location Breakdown */}
-            <Grid item lg={4} md={6} xl={3} xs={12}>
+            <Grid item lg={12} md={8} xl={3} xs={12}>
               <LocationBreakdown data={transformedLocationData || []} />
             </Grid>
           </Grid>

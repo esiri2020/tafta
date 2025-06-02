@@ -65,6 +65,7 @@ import {
 } from '../../../services/api';
 import {NotificationDialog} from '../../../components/dashboard/notifications/notification-dialog';
 import {CSVDownload, CSVLink} from 'react-csv';
+import {ExportProgressDialog} from '@/components/dashboard/applicants/export-progress-dialog';
 
 // Mock delete mutation
 const useDeleteApplicantsMutation = () => {
@@ -149,8 +150,8 @@ const FilteredOutApplicantsCard = ({
                       <div className='flex items-center gap-3'>
                         <Avatar>
                           <AvatarFallback>
-                            {applicant.firstName?.charAt(0) || ''}
-                            {applicant.lastName?.charAt(0) || ''}
+                            {applicant.firstName && typeof applicant.firstName === 'string' ? applicant.firstName.charAt(0) : ''}
+                            {applicant.lastName && typeof applicant.lastName === 'string' ? applicant.lastName.charAt(0) : ''}
                           </AvatarFallback>
                         </Avatar>
                         <div className='flex flex-col'>
@@ -254,6 +255,7 @@ function ApplicantList() {
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [showFilteredOut, setShowFilteredOut] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Get the selected cohort from redux state
   const selectedCohort = useAppSelector(selectCohort);
@@ -634,22 +636,10 @@ function ApplicantList() {
             </Button>
             <Button
               variant='outline'
-              onClick={() => {
-                // Trigger CSV download
-                const csvContent = formatDataForExport();
-                console.log('Exporting data:', csvContent);
-                // In a real app, this would trigger a CSV download
-              }}>
+              onClick={() => setExportDialogOpen(true)}
+            >
               <Download className='mr-2 h-4 w-4' />
-              <CSVLink
-                data={formatDataForExport()}
-                filename={'applicants.csv'}
-                target='_blank'
-                // style={{textDecoration: 'none', color: 'white'}}
-                // className="MuiButtonBase-root MuiButton-root MuiButton-contained"
-              >
-                Export Data
-              </CSVLink>
+              Export Data
             </Button>
           </div>
         </div>
@@ -1191,8 +1181,8 @@ function ApplicantList() {
                         <div className='flex items-center gap-3'>
                           <Avatar>
                             <AvatarFallback>
-                              {applicant.firstName?.charAt(0) || ''}
-                              {applicant.lastName?.charAt(0) || ''}
+                              {applicant.firstName && typeof applicant.firstName === 'string' ? applicant.firstName.charAt(0) : ''}
+                              {applicant.lastName && typeof applicant.lastName === 'string' ? applicant.lastName.charAt(0) : ''}
                             </AvatarFallback>
                           </Avatar>
                           <div className='flex flex-col'>
@@ -1384,6 +1374,7 @@ function ApplicantList() {
           />
         )}
       </div>
+      <ExportProgressDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
     </>
   );
 }

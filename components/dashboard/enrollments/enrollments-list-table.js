@@ -136,8 +136,8 @@ export function EnrollmentListTable({
                                 ? 'bg-blue-100'
                                 : 'bg-pink-100'
                             }>
-                            {enrollment.userCohort.user.firstName.charAt(0)}
-                            {enrollment.userCohort.user.lastName.charAt(0)}
+                            {enrollment.userCohort?.user?.firstName && typeof enrollment.userCohort.user.firstName === 'string' ? enrollment.userCohort.user.firstName.charAt(0) : ''}
+                            {enrollment.userCohort?.user?.lastName && typeof enrollment.userCohort.user.lastName === 'string' ? enrollment.userCohort.user.lastName.charAt(0) : ''}
                           </AvatarFallback>
                         </Avatar>
                         <div>

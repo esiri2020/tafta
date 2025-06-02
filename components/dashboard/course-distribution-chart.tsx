@@ -43,6 +43,13 @@ const generateCourseColors = (courses: string[]) => {
   }, {} as Record<string, string>);
 };
 
+const colors = {
+  gender: {
+    male: '#0ea5e9',
+    female: '#d946ef',
+  },
+};
+
 const formatNumber = (num: number): string => {
   return num.toLocaleString();
 };
@@ -93,10 +100,18 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
                 labelFormatter={(label) => `Course: ${label}`}
               />
               <Bar
-                dataKey="total"
-                name="Total Enrollments"
-                fill="#8884d8"
+                dataKey="male"
+                name="Male"
+                fill={colors.gender.male}
                 radius={[4, 4, 0, 0]}
+                stackId="a"
+              />
+              <Bar
+                dataKey="female"
+                name="Female"
+                fill={colors.gender.female}
+                radius={[4, 4, 0, 0]}
+                stackId="a"
               />
             </BarChart>
           </ResponsiveContainer>
