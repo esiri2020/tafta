@@ -86,15 +86,53 @@ export const MainSidebar = (props) => {
       </NextLink>
       {
         session?.userData ? 
+        // (
+        //   <Button
+        //     size="medium"
+        //     sx={{ ml: 2 }}
+        //     variant="contained"
+        //     onClick={handleSignout}
+        //   >
+        //     Logout
+        //   </Button>
+        // ) :
+        // (
+        //   <Button
+        //     component="a"
+        //     href="/api/auth/signin?callbackUrl=%2Frole"
+        //     size="medium"
+        //     sx={{ ml: 2 }}
+        //     variant="contained"
+        //   >
+        //     Login
+        //   </Button>
+        // )
         (
-          <Button
-            size="medium"
-            sx={{ ml: 2 }}
-            variant="contained"
-            onClick={handleSignout}
-          >
-            Logout
-          </Button>
+          <>
+            <MainSidebarLink
+              href="/role"
+              passHref
+            >
+              <Link
+                color="textSecondary"
+                component="a"
+                sx={{ ml: 2 }}
+                underline="none"
+                variant="subtitle2"
+              >
+                Dashboard
+              </Link>
+            </MainSidebarLink>
+            <br/>
+            <Button
+              size="medium"
+              sx={{ ml: 2 }}
+              variant="contained"
+              onClick={handleSignout}
+            >
+              Logout
+            </Button>
+          </>
         ) :
         (
           <Button

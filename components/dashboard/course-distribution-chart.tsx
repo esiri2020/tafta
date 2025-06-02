@@ -60,6 +60,9 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
     }));
   }, [data]);
 
+  // Generate color palette for all courses
+  const courseColors = useMemo(() => generateCourseColors(data.map(c => c.course_name)), [data]);
+
   // Memoize the custom tooltip component
   const CustomTooltip = useMemo(() => {
     return ({ active, payload, label }: any) => {
@@ -68,18 +71,14 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
           <div className="bg-white p-3 border border-gray-200 shadow-md rounded-md">
             <p className="font-semibold">{label}</p>
             <p className="text-sm">
-              Total: <span className="font-medium">{formatNumber(payload[0].value)}</span>
+              Total: <span className="font-medium">{formatNumber(payload[0].payload.total)}</span>
             </p>
-            {payload[0].payload.male > 0 && (
-              <p className="text-sm">
-                Male: <span className="font-medium">{formatNumber(payload[0].payload.male)}</span>
-              </p>
-            )}
-            {payload[0].payload.female > 0 && (
-              <p className="text-sm">
-                Female: <span className="font-medium">{formatNumber(payload[0].payload.female)}</span>
-              </p>
-            )}
+            <p className="text-sm">
+              Male: <span className="font-medium">{formatNumber(payload[0].payload.male)}</span>
+            </p>
+            <p className="text-sm">
+              Female: <span className="font-medium">{formatNumber(payload[0].payload.female)}</span>
+            </p>
           </div>
         );
       }
@@ -120,23 +119,22 @@ export const CourseDistributionChart: React.FC<CourseDistributionChartProps> = (
                 axisLine={false}
               />
               <Tooltip content={CustomTooltip} />
-              <Bar
-                dataKey="total"
-                name="Total Enrollments"
-                fill="#8884d8"
-                radius={[4, 4, 0, 0]}
-              />
+              <Legend />
+              <Bar dataKey="male" name="Male" stackId="a" fill="#8884d8" />
+              <Bar dataKey="female" name="Female" stackId="a" fill="#ff69b4" />
+              {/* Optionally, show total as a separate bar:
+              <Bar dataKey="total" name="Total Enrollments" fill="#82ca9d" />
+              */}
             </BarChart>
           </ResponsiveContainer>
         </div>
-        
         {/* Custom Legend */}
         <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {data.map((course, index) => (
             <div key={course.course_name} className="flex items-center space-x-2 text-sm">
               <div
                 className="w-3 h-3 rounded-full"
-                style={{backgroundColor: generateCourseColors([course.course_name])[course.course_name]}}
+                style={{backgroundColor: courseColors[course.course_name]}}
               />
               <span className="truncate" title={course.course_name}>
                 {course.course_name}

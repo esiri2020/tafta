@@ -149,11 +149,11 @@ const IndexPage = () => {
               <CourseDistributionChart
                 data={
                   data.courseEnrollmentData?.map(
-                    (course: CourseEnrollment) => ({
+                    (course: any) => ({
                       course_name: course.name,
                       total_enrollments: Number(course.count),
-                      male_enrollments: 0, // TODO: Update when API provides gender breakdown
-                      female_enrollments: 0, // TODO: Update when API provides gender breakdown
+                      male_enrollments: Number(course.male_enrollments),
+                      female_enrollments: Number(course.female_enrollments),
                     }),
                   ) || []
                 }
