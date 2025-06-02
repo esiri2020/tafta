@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export default async function handler(
   req: NextApiRequest,
@@ -18,66 +19,109 @@ export default async function handler(
         ? {}
         : { userCohort: { cohortId: cohortId as string } };
 
-    // Get all enrollments for the cohort(s)
-    const enrollments = await prisma.enrollment.findMany({
-      where: enrollmentWhere,
-      include: {
+    // Total enrollments
+    const totalEnrollments = await prisma.enrollment.count({ where: enrollmentWhere });
+
+    // Active enrollments
+    const activeEnrollments = await prisma.enrollment.count({
+      where: {
+        ...enrollmentWhere,
+        enrolled: true,
+        completed: false,
+        expired: false,
+      },
+    });
+
+    // Completed enrollments
+    const completedEnrollments = await prisma.enrollment.count({
+      where: {
+        ...enrollmentWhere,
+        completed: true,
+      },
+    });
+
+    // Certified enrollments (completed and percentage_completed === 100)
+    const certifiedEnrollments = await prisma.enrollment.count({
+      where: {
+        ...enrollmentWhere,
+        completed: true,
+        percentage_completed: 100,
+      },
+    });
+
+    // Male enrollments
+    const maleEnrollments = await prisma.enrollment.count({
+      where: {
+        ...enrollmentWhere,
         userCohort: {
-          include: {
-            user: {
-              include: {
-                profile: true,
-              },
+          ...(enrollmentWhere.userCohort || {}),
+          user: {
+            profile: {
+              gender: 'MALE',
             },
           },
         },
       },
     });
 
-    // Get all userCohorts for the cohort(s) to count applicants
+    // Female enrollments
+    const femaleEnrollments = await prisma.enrollment.count({
+      where: {
+        ...enrollmentWhere,
+        userCohort: {
+          ...(enrollmentWhere.userCohort || {}),
+          user: {
+            profile: {
+              gender: 'FEMALE',
+            },
+          },
+        },
+      },
+    });
+
+    // Total applicants (userCohort count)
     const userCohortWhere =
       cohortId === 'all'
         ? {}
         : { cohortId: cohortId as string };
-    const userCohorts = await prisma.userCohort.findMany({
-      where: userCohortWhere,
-      include: { user: true },
-    });
+    const totalApplicants = await prisma.userCohort.count({ where: userCohortWhere });
 
-    // Calculate metrics
-    const totalEnrollments = enrollments.length;
-    const activeEnrollments = enrollments.filter(e => e.enrolled && !e.completed && !e.expired).length;
-    const completedEnrollments = enrollments.filter(e => e.completed).length;
-    const certifiedEnrollments = enrollments.filter(e => e.completed && e.percentage_completed === 100).length;
-    const maleEnrollments = enrollments.filter(e => e.userCohort?.user?.profile?.gender === 'MALE').length;
-    const femaleEnrollments = enrollments.filter(e => e.userCohort?.user?.profile?.gender === 'FEMALE').length;
-    const totalApplicants = userCohorts.length;
+    // Course distribution and gender breakdown per course using a single raw SQL query
+    const courseGenderCounts = await prisma.$queryRaw(Prisma.sql`
+      SELECT e.course_name, p.gender, COUNT(*) as count
+      FROM "Enrollment" e
+      JOIN "UserCohort" uc ON e."userCohortId" = uc.id
+      JOIN "User" u ON uc."userId" = u.id
+      JOIN "Profile" p ON u.id = p."userId"
+      ${cohortId === 'all' ? Prisma.empty : Prisma.sql`WHERE uc."cohortId" = ${cohortId}`}
+      GROUP BY e.course_name, p.gender
+    `);
 
-    // Course distribution
+    // Aggregate course distribution and gender counts
     const courseMap = new Map();
-    enrollments.forEach(e => {
-      const courseName = e.course_name || 'Unknown';
-      if (!courseMap.has(courseName)) {
-        courseMap.set(courseName, { name: courseName, count: 0, male_count: 0, female_count: 0 });
+    for (const row of courseGenderCounts as any[]) {
+      const course = row.course_name || 'Unknown';
+      if (!courseMap.has(course)) {
+        courseMap.set(course, { name: course, count: 0, male_count: 0, female_count: 0 });
       }
-      const courseData = courseMap.get(courseName);
-      courseData.count++;
-      const gender = e.userCohort?.user?.profile?.gender;
-      if (gender === 'MALE') courseData.male_count++;
-      if (gender === 'FEMALE') courseData.female_count++;
-    });
+      const courseData = courseMap.get(course);
+      courseData.count += Number(row.count);
+      if (row.gender === 'MALE') courseData.male_count += Number(row.count);
+      if (row.gender === 'FEMALE') courseData.female_count += Number(row.count);
+    }
     const courseEnrollmentData = Array.from(courseMap.values());
 
     // Enrollment over time (by created_at date)
-    const enrollmentGraphMap = new Map();
-    enrollments.forEach(e => {
-      const date = e.created_at.toISOString().split('T')[0];
-      if (!enrollmentGraphMap.has(date)) {
-        enrollmentGraphMap.set(date, { date, count: 0 });
-      }
-      enrollmentGraphMap.get(date).count++;
+    const enrollmentOverTime = await prisma.enrollment.groupBy({
+      by: ['created_at'],
+      where: enrollmentWhere,
+      _count: { _all: true },
+      orderBy: { created_at: 'asc' },
     });
-    const enrollment_completion_graph = Array.from(enrollmentGraphMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    const enrollment_completion_graph = enrollmentOverTime.map(eot => ({
+      date: eot.created_at.toISOString().split('T')[0],
+      count: eot._count._all,
+    }));
 
     // Response
     const response = {
