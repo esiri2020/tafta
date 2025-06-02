@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import Head from 'next/head';
 import {Box, Container, Grid} from '@mui/material';
 import dynamic from 'next/dynamic';
@@ -63,18 +63,19 @@ const LocationMetrics = dynamic(
 );
 
 const IndexPage = () => {
-  const [skip, setSkip] = useState(false);
+  const [skip, setSkip] = useState(true);
   const cohort = useAppSelector(state => selectCohort(state));
+
+  useEffect(() => {
+    if (cohort?.id) setSkip(false);
+  }, [cohort]);
+
   const {data, error, isLoading} = useGetDashboardDataQuery(
     {cohortId: cohort?.id},
     {skip},
   );
   const {data: locationData, isLoading: locationLoading} =
     useGetLocationBreakdownQuery({cohortId: cohort?.id}, {skip});
-
-  useEffect(() => {
-    setSkip(false);
-  }, [cohort]);
 
   if (isLoading || locationLoading) {
     return <SplashScreen />;

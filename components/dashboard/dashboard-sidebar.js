@@ -450,10 +450,14 @@ export const DashboardSidebar = props => {
   const cohortId = useAppSelector(state => selectCohort(state));
 
   useEffect(() => {
-    if (data?.message == 'success') {
-      // Set to null for "All active cohorts" by default
-      setSelectedCohort(null);
-      dispatch(setCohort(null));
+    if (data?.cohorts?.length) {
+      // Sort cohorts by start_date descending (most recent first)
+      const sortedCohorts = [...data.cohorts].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+      // Find the most recent active cohort
+      const activeCohorts = sortedCohorts.filter(c => c.active);
+      const defaultCohort = activeCohorts.length > 0 ? activeCohorts[0] : sortedCohorts[0];
+      setSelectedCohort(defaultCohort);
+      dispatch(setCohort(defaultCohort));
     }
   }, [data, dispatch]);
 

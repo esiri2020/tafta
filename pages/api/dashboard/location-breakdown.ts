@@ -23,6 +23,7 @@ export default async function handler(
     if (cohortId) {
       where.userCohort = { cohortId: String(cohortId) };
     }
+    // If no cohortId, where is empty and all enrollments are included
 
     // Get all certified enrollments with their user data
     const certifiedEnrollments = await prisma.enrollment.findMany({
