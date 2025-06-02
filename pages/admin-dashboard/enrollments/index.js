@@ -16,6 +16,7 @@ import {LoadingSpinner} from '@/components/ui/loading-spinner';
 import {DashboardLayout} from '../../../components/dashboard/dashboard-layout';
 import {useAppSelector} from '../../../hooks/rtkHook';
 import {selectCohort} from '../../../services/cohortSlice';
+import { Progress } from "@/components/ui/progress"
 
 export default function EnrollmentsPage() {
   const router = useRouter();
@@ -27,6 +28,9 @@ export default function EnrollmentsPage() {
   const [gender, setGender] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState({from: null, to: null});
+  const [rehydrationProgress, setRehydrationProgress] = useState(0);
+  const [rehydrationStats, setRehydrationStats] = useState(null);
+  const [isRehydrating, setIsRehydrating] = useState(false);
 
   // Get the selected cohort from Redux state
   const selectedCohort = useAppSelector(state => selectCohort(state));
@@ -86,19 +90,40 @@ export default function EnrollmentsPage() {
   };
 
   const rehydrate = async () => {
-    toast.promise(
-      fetch('/api/rehydrate').then(res => {
-        if (!res.ok) {
-          throw new Error('Failed to rehydrate');
+    setIsRehydrating(true);
+    setRehydrationProgress(0);
+    setRehydrationStats(null);
+
+    try {
+      const response = await fetch('/api/rehydrate');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        try {
+          const data = JSON.parse(chunk);
+          if (data.progress) {
+            setRehydrationProgress(data.progress);
+          }
+          if (data.stats) {
+            setRehydrationStats(data.stats);
+          }
+        } catch (e) {
+          console.error('Error parsing chunk:', e);
         }
-        return res.json();
-      }),
-      {
-        loading: 'Updating enrollments...',
-        success: data => `${data?.count || 0} enrollments updated successfully`,
-        error: 'Failed to update enrollments',
-      },
-    );
+      }
+
+      toast.success('Enrollments updated successfully');
+    } catch (error) {
+      toast.error('Failed to update enrollments');
+      console.error('Rehydration error:', error);
+    } finally {
+      setIsRehydrating(false);
+    }
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -152,10 +177,30 @@ export default function EnrollmentsPage() {
             : 'Enrollments across all cohorts'
         }
         actions={
-          <Button onClick={rehydrate} className='ml-auto'>
-            <RefreshCcw className='mr-2 h-4 w-4' />
-            Rehydrate
-          </Button>
+          <div className="flex items-center gap-4">
+            {isRehydrating && (
+              <div className="w-64">
+                <Progress value={rehydrationProgress} className="mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Updating enrollments... {rehydrationProgress}%
+                </p>
+                {rehydrationStats && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <p>Processed: {rehydrationStats.processed}</p>
+                    <p>Skipped: {rehydrationStats.skipped}</p>
+                    <p>Role Mismatch: {rehydrationStats.roleMismatch}</p>
+                    <p>No Cohort: {rehydrationStats.noCohort}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            <Button 
+              onClick={rehydrate} 
+              disabled={isRehydrating}
+            >
+              {isRehydrating ? 'Updating...' : 'Update Enrollments'}
+            </Button>
+          </div>
         }
       />
 

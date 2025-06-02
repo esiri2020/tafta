@@ -31,11 +31,17 @@ export default async function handler(
     if (!Array.isArray(alertIds) || alertIds.length === 0) {
       return res.status(400).json({ message: 'No alert IDs provided' });
     }
-    // Create StaffAlertRead records for each alertId (ignore duplicates)
-    const data = alertIds.map((alertId: string) => ({ alertId, userId }));
-    await prisma.staffAlertRead.createMany({
-      data,
-      skipDuplicates: true,
+    // Update StaffAlertRecipients records for each alertId
+    await prisma.staffAlertRecipients.updateMany({
+      where: {
+        AND: [
+          { staffAlertId: { in: alertIds } },
+          { userId }
+        ]
+      },
+      data: {
+        createdAt: new Date() // This will update the timestamp to now
+      }
     });
     return res.status(200).json({ message: 'Alerts marked as read' });
   } catch (error) {
