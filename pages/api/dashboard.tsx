@@ -61,9 +61,9 @@ export default async function handler(
       });
     }
 
+    const userRole = token.userData.role || '';
     if (
-      token.userData.role !== 'SUPERADMIN' &&
-      token.userData.role !== 'ADMIN'
+      !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)
     ) {
       return res.status(403).json({error: 'Unauthorized.'});
     }

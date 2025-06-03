@@ -69,39 +69,35 @@ const getSupportSections = userId => [
         ],
       },
       {
-        title: 'Cohorts',
-        path: '/admin-dashboard/cohorts',
-        icon: <LanIcon fontSize='small' />,
+        title: 'Assessment',
+        path: '/admin-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
         children: [
           {
-            title: 'View Cohorts',
-            path: '/admin-dashboard/cohorts',
-          },
-          {
-            title: 'Create Cohorts',
-            path: '/admin-dashboard/cohorts/create',
+            title: 'Assessment Overview',
+            path: '/admin-dashboard/assessment/overview',
           },
         ],
       },
     ],
   },
 
-  {
-    title: 'Scheduler',
-    items: [
-      {
-        title: 'Bookings ',
-        path: '/admin-dashboard/scheduler',
-        icon: <ChairAltIcon fontSize='small' />,
-        children: [
-          {
-            title: 'Manage Bookings',
-            path: '/admin-dashboard/scheduler',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Scheduler',
+  //   items: [
+  //     {
+  //       title: 'Bookings ',
+  //       path: '/admin-dashboard/scheduler',
+  //       icon: <ChairAltIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'Manage Bookings',
+  //           path: '/admin-dashboard/scheduler',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Manage Support',
     items: [
@@ -112,26 +108,26 @@ const getSupportSections = userId => [
       },
     ],
   },
-  {
-    title: 'Manage Users',
-    items: [
-      {
-        title: 'Users',
-        path: '/admin-dashboard/users',
-        icon: <UsersIcon fontSize='small' />,
-        children: [
-          {
-            title: 'View Users',
-            path: '/admin-dashboard/users/',
-          },
-          {
-            title: 'Create Users',
-            path: '/admin-dashboard/users/create-user',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Manage Users',
+  //   items: [
+  //     {
+  //       title: 'Users',
+  //       path: '/admin-dashboard/users',
+  //       icon: <UsersIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'View Users',
+  //           path: '/admin-dashboard/users/',
+  //         },
+  //         {
+  //           title: 'Create Users',
+  //           path: '/admin-dashboard/users/create-user',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Account',
     items: [
