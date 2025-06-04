@@ -22,7 +22,7 @@ import {
   Container,
   Typography,
 } from '@mui/material';
-import Image from '../../public/static/images/info.png';
+import Image from '../../public/static/images/info.jpg';
 import * as React from 'react';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -228,7 +228,7 @@ function completeRegistration() {
             justifyContent: 'center',
             alignItems: 'center',
             backgroundImage: `url(${Image.src})`,
-            height: { xs: '200px', md: '292px' },
+            height: { xs: '100%', md: '292px' },
             width: '100%',
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
@@ -243,7 +243,6 @@ function completeRegistration() {
               fontSize: { xs: '2rem', md: '3rem' },
               px: 2
             }}>
-            Registration Form
           </Typography>
         </Box>
 

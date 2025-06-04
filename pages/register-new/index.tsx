@@ -23,7 +23,7 @@ import {
   Container,
   Typography,
 } from '@mui/material';
-import Image from '../../public/static/images/info.png';
+import Image from '../../public/static/images/info.jpg';
 import * as React from 'react';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -267,23 +267,31 @@ function RegisterNew() {
             justifyContent: 'center',
             alignItems: 'center',
             backgroundImage: `url(${Image.src})`,
-            height: '292px',
             width: '100%',
-            backgroundSize: 'cover',
+            backgroundSize: 'contain',
+            backgroundColor: '#FF8500',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
+            minHeight: '400px', // Minimum height to ensure visibility
           }}>
-          <Typography
+
+        </Box>
+
+        <Box sx={{display: 'flex', backgroundColor: '#000', justifyContent: 'center'}}> 
+        <Typography
             variant='h2'
             color='#fff'
             align='center'
+            display='flex'
+            justifyContent='bottom'
             sx={{
-              marginBottom: '50px',
+              margin: '20px',
             }}>
             {activeStep === 3
               ? `${applicant?.profile?.selectedCourseName} Registration form`
               : 'Registration Form'}
           </Typography>
+
         </Box>
 
         <Box sx={{display: 'flex', justifyContent: 'center'}}>
