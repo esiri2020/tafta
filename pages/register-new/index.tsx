@@ -261,21 +261,7 @@ function RegisterNew() {
         <title>Register | TAFTA</title>
       </Head>
       <main>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundImage: `url(${Image.src})`,
-            width: '100%',
-            backgroundSize: 'contain',
-            backgroundColor: '#FF8500',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
-            minHeight: '400px', // Minimum height to ensure visibility
-          }}>
-
-        </Box>
+        <img src="/static/images/info.jpg" alt="Info" style={{ width: '100%', height: 'auto' }} />
 
         <Box sx={{display: 'flex', backgroundColor: '#000', justifyContent: 'center'}}> 
         <Typography
