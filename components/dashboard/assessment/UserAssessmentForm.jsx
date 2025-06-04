@@ -666,6 +666,14 @@ export const UserAssessmentForm = ({userId}) => {
               value={formik.values.improvementSuggestions}
               multiline
               rows={3}
+              sx={{
+                '& .MuiInputLabel-root': {
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.2,
+                  maxWidth: '100%',
+                },
+              }}
             />
 
             <TextField
@@ -678,6 +686,14 @@ export const UserAssessmentForm = ({userId}) => {
               value={formik.values.mostStrikingFeature}
               multiline
               rows={3}
+              sx={{
+                '& .MuiInputLabel-root': {
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.2,
+                  maxWidth: '100%',
+                },
+              }}
             />
 
             <TextField
@@ -690,6 +706,14 @@ export const UserAssessmentForm = ({userId}) => {
               value={formik.values.turnOffs}
               multiline
               rows={3}
+              sx={{
+                '& .MuiInputLabel-root': {
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.2,
+                  maxWidth: '100%',
+                },
+              }}
             />
           </Paper>
 
