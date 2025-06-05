@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { spawn } from 'child_process';
+import { Worker } from 'worker_threads';
 import path from 'path';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -12,30 +12,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  const scriptPath = path.join(process.cwd(), 'export_applicant_data.py');
-  const pythonProcess = spawn('python', [scriptPath]);
+  const worker = new Worker(path.join(process.cwd(), 'workers/export-worker.js'));
 
-  let downloadLink = '';
-
-  pythonProcess.stdout.on('data', (data) => {
-    const text = data.toString();
-    res.write(`data: ${JSON.stringify({ log: text })}\n\n`);
-    // Try to extract the file name from the output
-    const match = text.match(/Data exported successfully to (.+\.xlsx)/);
-    if (match) {
-      let filePath = match[1];
-      // Remove 'public/exports/' or 'public\\exports\\' from the path if present
-      filePath = filePath.replace(/^public[\\\/]exports[\\\/]/, '');
-      downloadLink = `/exports/${filePath}`;
+  worker.on('message', (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (data.done) {
+      worker.terminate();
+      res.end();
     }
   });
 
-  pythonProcess.stderr.on('data', (data) => {
-    res.write(`data: ${JSON.stringify({ log: data.toString(), error: true })}\n\n`);
-  });
-
-  pythonProcess.on('close', (code) => {
-    res.write(`data: ${JSON.stringify({ done: true, downloadLink })}\n\n`);
+  worker.on('error', (err) => {
+    res.write(`data: ${JSON.stringify({ log: err.message, error: true })}\n\n`);
+    worker.terminate();
     res.end();
   });
+
+  worker.postMessage({ start: true });
 } 
