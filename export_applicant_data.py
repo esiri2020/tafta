@@ -131,7 +131,9 @@ def export_applicant_data():
         
         # Create Excel writer
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        excel_file = f'applicant_data_export_{timestamp}.xlsx'
+        exports_dir = os.path.join('public', 'exports')
+        os.makedirs(exports_dir, exist_ok=True)  # Ensure the directory exists
+        excel_file = os.path.join(exports_dir, f'applicant_data_export_{timestamp}.xlsx')
         
         with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
             # Main applicant data sheet

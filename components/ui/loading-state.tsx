@@ -1,42 +1,26 @@
-import React from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { cn } from '@/lib/utils';
+import { LoadingSpinner } from './loading-spinner';
+import { Progress } from './progress';
 
 interface LoadingStateProps {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  progress?: number;
   message?: string;
-  fullScreen?: boolean;
 }
 
-export const LoadingState: React.FC<LoadingStateProps> = ({ 
-  message = 'Loading...', 
-  fullScreen = false 
-}) => {
+export function LoadingState({ size = 'md', className, progress, message }: LoadingStateProps) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 2,
-        ...(fullScreen ? {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          zIndex: 2000,
-        } : {
-          padding: 4,
-        })
-      }}
-    >
-      <CircularProgress size={40} />
-      {message && (
-        <Typography variant="body1" color="text.secondary">
-          {message}
-        </Typography>
+    <div className={cn('flex flex-col items-center justify-center p-4 gap-4', className)}>
+      <LoadingSpinner size={size} />
+      {progress !== undefined && (
+        <div className="w-full max-w-xs">
+          <Progress value={progress} className="h-2" />
+        </div>
       )}
-    </Box>
+      {message && (
+        <p className="text-sm text-muted-foreground">{message}</p>
+      )}
+    </div>
   );
-}; 
+} 

@@ -61,9 +61,9 @@ export default async function handler(
       });
     }
 
+    const userRole = token.userData.role || '';
     if (
-      token.userData.role !== 'SUPERADMIN' &&
-      token.userData.role !== 'ADMIN'
+      !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)
     ) {
       return res.status(403).json({error: 'Unauthorized.'});
     }
@@ -550,35 +550,38 @@ export default async function handler(
             name: true,
           },
         });
-
-        // Get gender breakdown for this course
-        const enrollments = await prisma.enrollment.findMany({
+        // Count male and female enrollments for this course
+        const male_enrollments = await prisma.enrollment.count({
           where: {
             course_id: enrollment.course_id,
-            userCohort: cohortId ? {cohortId} : undefined,
-          },
-          include: {
             userCohort: {
-              include: {
-                user: {
-                  include: {
-                    profile: true
-                  }
-                }
-              }
-            }
-          }
+              cohortId: cohortId || undefined,
+              user: {
+                profile: {
+                  gender: 'MALE',
+                },
+              },
+            },
+          },
         });
-
-        // Calculate gender counts
-        const maleCount = enrollments.filter(e => e.userCohort.user.profile?.gender === 'MALE').length;
-        const femaleCount = enrollments.filter(e => e.userCohort.user.profile?.gender === 'FEMALE').length;
-
+        const female_enrollments = await prisma.enrollment.count({
+          where: {
+            course_id: enrollment.course_id,
+            userCohort: {
+              cohortId: cohortId || undefined,
+              user: {
+                profile: {
+                  gender: 'FEMALE',
+                },
+              },
+            },
+          },
+        });
         return {
           name: course?.name || 'Unknown Course',
           count: enrollment._count?.course_id?.toString() || '0',
-          male_count: maleCount.toString(),
-          female_count: femaleCount.toString()
+          male_enrollments: male_enrollments.toString(),
+          female_enrollments: female_enrollments.toString(),
         };
       })
     );

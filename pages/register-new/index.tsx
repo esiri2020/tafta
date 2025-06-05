@@ -23,7 +23,7 @@ import {
   Container,
   Typography,
 } from '@mui/material';
-import Image from '../../public/static/images/info.png';
+import Image from '../../public/static/images/info.jpg';
 import * as React from 'react';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -261,29 +261,23 @@ function RegisterNew() {
         <title>Register | TAFTA</title>
       </Head>
       <main>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundImage: `url(${Image.src})`,
-            height: '292px',
-            width: '100%',
-            backgroundSize: 'cover',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
-          }}>
-          <Typography
+        <img src="/static/images/info.jpg" alt="Info" style={{ width: '100%', height: 'auto' }} />
+
+        <Box sx={{display: 'flex', backgroundColor: '#000', justifyContent: 'center'}}> 
+        <Typography
             variant='h2'
             color='#fff'
             align='center'
+            display='flex'
+            justifyContent='bottom'
             sx={{
-              marginBottom: '50px',
+              margin: '20px',
             }}>
             {activeStep === 3
               ? `${applicant?.profile?.selectedCourseName} Registration form`
               : 'Registration Form'}
           </Typography>
+
         </Box>
 
         <Box sx={{display: 'flex', justifyContent: 'center'}}>

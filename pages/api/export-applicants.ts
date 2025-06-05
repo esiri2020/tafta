@@ -23,7 +23,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Try to extract the file name from the output
     const match = text.match(/Data exported successfully to (.+\.xlsx)/);
     if (match) {
-      downloadLink = `/exports/${match[1]}`;
+      let filePath = match[1];
+      // Remove 'public/exports/' or 'public\\exports\\' from the path if present
+      filePath = filePath.replace(/^public[\\\/]exports[\\\/]/, '');
+      downloadLink = `/exports/${filePath}`;
     }
   });
 

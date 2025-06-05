@@ -22,7 +22,7 @@ import {
   Container,
   Typography,
 } from '@mui/material';
-import Image from '../../public/static/images/info.png';
+import Image from '../../public/static/images/info.jpg';
 import * as React from 'react';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -222,30 +222,28 @@ function completeRegistration() {
         <title>Register</title>
       </Head>
       <main>
-        <Box
+        
+      <img src="/static/images/info.jpg" alt="Info" style={{ width: '100%', height: 'auto' }} />
+
+      <Box sx={{display: 'flex', backgroundColor: '#000', justifyContent: 'center'}}> 
+      <Typography
+          variant='h2'
+          color='#fff'
+          align='center'
+          display='flex'
+          justifyContent='bottom'
           sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundImage: `url(${Image.src})`,
-            height: { xs: '200px', md: '292px' },
-            width: '100%',
-            backgroundSize: 'cover',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
+            margin: '20px',
           }}>
-          <Typography
-            variant='h2'
-            color='#fff'
-            align='center'
-            sx={{
-              marginBottom: { xs: '20px', md: '50px' },
-              fontSize: { xs: '2rem', md: '3rem' },
-              px: 2
-            }}>
-            Registration Form
-          </Typography>
-        </Box>
+          {activeStep === 3
+            ? `${applicant?.profile?.selectedCourseName} Registration form`
+            : 'Registration Form'}
+        </Typography>
+
+      </Box>
+
+
+        <img src="/static/images/info.jpg" alt="Info" style={{ maxWidth: '100%', height: 'auto' }} />
 
         <Box sx={{display: 'flex', justifyContent: 'center'}}>
           <Paper elevation={3} sx={{

@@ -100,15 +100,6 @@ export default async function handler(
 
   if (req.method === 'GET') {
     try {
-      // Set up streaming response
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
-      const sendProgress = (progress: number, stats: any) => {
-        res.write(`data: ${JSON.stringify({ progress, stats })}\n\n`);
-      };
-
       console.log('Starting rehydration process...');
       
       // Reduce the limit to prevent timeouts
@@ -209,24 +200,24 @@ export default async function handler(
           data.completed = Boolean(data.completed);
 
           try {
-            const enrollment = await prisma.enrollment.upsert({
-              where: {
-                id: data.id
-              },
-              update: {
-                enrolled: true,
-                ...data,
-                userCohort: {
-                  connect: { id: userCohortId }
-                }
-              },
-              create: {
-                enrolled: true,
-                ...data,
-                userCohort: {
-                  connect: { id: userCohortId }
-                }
+          const enrollment = await prisma.enrollment.upsert({
+            where: {
+              id: data.id
+            },
+            update: {
+              enrolled: true,
+              ...data,
+              userCohort: {
+                connect: { id: userCohortId }
               }
+            },
+            create: {
+              enrolled: true,
+              ...data,
+              userCohort: {
+                connect: { id: userCohortId }
+              }
+            }
             });
             return enrollment;
           } catch (error) {
@@ -242,18 +233,8 @@ export default async function handler(
 
         try {
           const enrollments = await Promise.race([batchPromise, timeoutPromise]) as any[];
-          allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
-          
-          // Calculate and send progress
-          const progress = Math.round(((batch + 1) / totalBatches) * 100);
-          sendProgress(progress, {
-            processed: processedCount,
-            skipped: skippedCount,
-            roleMismatch: roleMismatchCount,
-            noCohort: noCohortCount
-          });
-          
-          console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
+        allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
+        console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
         } catch (error) {
           console.error(`Batch ${batch + 1} timed out or failed:`, error);
           // Continue with next batch even if this one failed
@@ -279,18 +260,19 @@ export default async function handler(
         }
       });
 
-      // Send final progress update
-      sendProgress(100, {
-        processed: processedCount,
-        skipped: skippedCount,
-        roleMismatch: roleMismatchCount,
-        noCohort: noCohortCount
+      return res.status(200).json({ 
+        message: 'Synchronizing', 
+        count: allEnrollments.length,
+        stats: {
+          processed: processedCount,
+          skipped: skippedCount,
+          roleMismatch: roleMismatchCount,
+          noCohort: noCohortCount
+        }
       });
-
-      res.end();
     } catch (err) {
       console.error('Rehydration error:', err);
-      res.status(500).json({ 
+      return res.status(500).json({ 
         message: err instanceof Error ? err.message : 'An error occurred',
         error: true
       });

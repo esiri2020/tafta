@@ -1,10 +1,9 @@
-import React, {useState, useEffect, useMemo, useRef} from 'react';
+import React, {useState, useEffect} from 'react';
 import Head from 'next/head';
 import {Box, Container, Grid} from '@mui/material';
 import dynamic from 'next/dynamic';
 import {DashboardLayout} from '@/components/dashboard/dashboard-layout';
 import {SplashScreen} from '@/components/splash-screen';
-import {LoadingState} from '@/components/ui/loading-state';
 import {
   useGetDashboardDataQuery,
   useGetLocationBreakdownQuery,
@@ -64,42 +63,24 @@ const LocationMetrics = dynamic(
 );
 
 const IndexPage = () => {
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [skip, setSkip] = useState(false);
   const cohort = useAppSelector(state => selectCohort(state));
-
-  // Reset initial load when cohort changes
-  useEffect(() => {
-    if (cohort) {
-      setIsInitialLoad(true);
-    }
-  }, [cohort]);
-
   const {data, error, isLoading} = useGetDashboardDataQuery(
-    {cohortId: cohort?.id || 'all'},
-    {skip: false},
+    {cohortId: cohort?.id},
+    {skip},
   );
   const {data: locationData, isLoading: locationLoading} =
-    useGetLocationBreakdownQuery({cohortId: cohort?.id || 'all'}, {skip: false});
+    useGetLocationBreakdownQuery({cohortId: cohort?.id}, {skip});
 
-  // Update initial load state when data is loaded
   useEffect(() => {
-    if (!isLoading && !locationLoading && data && locationData) {
-      setIsInitialLoad(false);
-    }
-  }, [isLoading, locationLoading, data, locationData]);
+    setSkip(false);
+  }, [cohort]);
 
-  // Show SplashScreen only on initial load
-  if (isInitialLoad && (isLoading || locationLoading)) {
+  if (isLoading || locationLoading) {
     return <SplashScreen />;
   }
-
-  // Show LoadingState for subsequent loads
-  if (isLoading || locationLoading) {
-    return <LoadingState message="Loading dashboard data..." fullScreen />;
-  }
-
   if (error) return <div>An error occurred.</div>;
-  if (!data || !locationData) return null;
+  if (!data) return null;
 
   // Transform location data to match the expected format
   const transformedLocationData = locationData?.states.map(
@@ -145,7 +126,7 @@ const IndexPage = () => {
             <Grid item lg={8} md={12} xl={9} xs={12}>
               <EnrollmentOverTimeChart
                 data={data.enrollment_completion_graph.map(item => ({
-                  date: item.date,
+                  date: typeof item.date === 'string' ? item.date : (item.date ? String(item.date) : ''),
                   male_count: Number(item.count),
                   female_count: Number(item.count), // TODO: Update when API provides gender breakdown
                 }))}
@@ -168,11 +149,11 @@ const IndexPage = () => {
               <CourseDistributionChart
                 data={
                   data.courseEnrollmentData?.map(
-                    (course: CourseEnrollment) => ({
+                    (course: any) => ({
                       course_name: course.name,
                       total_enrollments: Number(course.count),
-                      male_enrollments: Number(course.male_count || 0),
-                      female_enrollments: Number(course.female_count || 0),
+                      male_enrollments: Number(course.male_enrollments),
+                      female_enrollments: Number(course.female_enrollments),
                     }),
                   ) || []
                 }

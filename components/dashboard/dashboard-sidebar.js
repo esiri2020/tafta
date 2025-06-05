@@ -28,6 +28,7 @@ import {selectCohort, setCohort} from '../../services/cohortSlice';
 import {useAppDispatch, useAppSelector} from '../../hooks/rtkHook';
 import {useSession} from 'next-auth/react';
 import {Notifications as NotificationsIcon} from '../../icons/notifications';
+import {LoadingState} from '../ui/loading-state';
 
 const getSupportSections = userId => [
   {
@@ -68,39 +69,35 @@ const getSupportSections = userId => [
         ],
       },
       {
-        title: 'Cohorts',
-        path: '/admin-dashboard/cohorts',
-        icon: <LanIcon fontSize='small' />,
+        title: 'Assessment',
+        path: '/admin-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
         children: [
           {
-            title: 'View Cohorts',
-            path: '/admin-dashboard/cohorts',
-          },
-          {
-            title: 'Create Cohorts',
-            path: '/admin-dashboard/cohorts/create',
+            title: 'Assessment Overview',
+            path: '/admin-dashboard/assessment/overview',
           },
         ],
       },
     ],
   },
 
-  {
-    title: 'Scheduler',
-    items: [
-      {
-        title: 'Bookings ',
-        path: '/admin-dashboard/scheduler',
-        icon: <ChairAltIcon fontSize='small' />,
-        children: [
-          {
-            title: 'Manage Bookings',
-            path: '/admin-dashboard/scheduler',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Scheduler',
+  //   items: [
+  //     {
+  //       title: 'Bookings ',
+  //       path: '/admin-dashboard/scheduler',
+  //       icon: <ChairAltIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'Manage Bookings',
+  //           path: '/admin-dashboard/scheduler',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Manage Support',
     items: [
@@ -111,26 +108,26 @@ const getSupportSections = userId => [
       },
     ],
   },
-  {
-    title: 'Manage Users',
-    items: [
-      {
-        title: 'Users',
-        path: '/admin-dashboard/users',
-        icon: <UsersIcon fontSize='small' />,
-        children: [
-          {
-            title: 'View Users',
-            path: '/admin-dashboard/users/',
-          },
-          {
-            title: 'Create Users',
-            path: '/admin-dashboard/users/create-user',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Manage Users',
+  //   items: [
+  //     {
+  //       title: 'Users',
+  //       path: '/admin-dashboard/users',
+  //       icon: <UsersIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'View Users',
+  //           path: '/admin-dashboard/users/',
+  //         },
+  //         {
+  //           title: 'Create Users',
+  //           path: '/admin-dashboard/users/create-user',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Account',
     items: [
@@ -448,16 +445,15 @@ export const DashboardSidebar = props => {
 
   const dispatch = useAppDispatch();
   const cohortId = useAppSelector(state => selectCohort(state));
+  const [isChangingCohort, setIsChangingCohort] = useState(false);
+  const [cohortChangeProgress, setCohortChangeProgress] = useState(0);
 
   useEffect(() => {
-    if (data?.cohorts?.length) {
-      // Sort cohorts by start_date descending (most recent first)
-      const sortedCohorts = [...data.cohorts].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
-      // Find the most recent active cohort
-      const activeCohorts = sortedCohorts.filter(c => c.active);
-      const defaultCohort = activeCohorts.length > 0 ? activeCohorts[0] : sortedCohorts[0];
-      setSelectedCohort(defaultCohort);
-      dispatch(setCohort(defaultCohort));
+    if (data?.message == 'success') {
+      // Get the latest active cohort (first in the array since they're ordered by start_date desc)
+      const latestActiveCohort = data.cohorts?.find(cohort => cohort.active);
+      setSelectedCohort(latestActiveCohort || null);
+      dispatch(setCohort(latestActiveCohort || null));
     }
   }, [data, dispatch]);
 
@@ -477,10 +473,37 @@ export const DashboardSidebar = props => {
     [router.isReady, router.asPath],
   );
 
-  const handleChange = cohort => {
-    setSelectedCohort(cohort);
-    dispatch(setCohort(cohort));
-    handleCloseCohortPopover();
+  const handleChange = async (cohort) => {
+    setIsChangingCohort(true);
+    setCohortChangeProgress(0);
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setCohortChangeProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return prev + 10;
+      });
+    }, 100);
+
+    try {
+      setSelectedCohort(cohort);
+      dispatch(setCohort(cohort));
+      handleCloseCohortPopover();
+      
+      // Complete the progress
+      setCohortChangeProgress(100);
+      setTimeout(() => {
+        setIsChangingCohort(false);
+        setCohortChangeProgress(0);
+      }, 500);
+    } catch (error) {
+      console.error('Error changing cohort:', error);
+      setIsChangingCohort(false);
+      setCohortChangeProgress(0);
+    }
   };
 
   const handleOpenCohortPopover = () => {
@@ -493,6 +516,14 @@ export const DashboardSidebar = props => {
 
   const content = (
     <>
+      {isChangingCohort && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <LoadingState 
+            progress={cohortChangeProgress}
+            message="Updating cohort data..."
+          />
+        </div>
+      )}
       <Scrollbar
         sx={{
           height: '100%',

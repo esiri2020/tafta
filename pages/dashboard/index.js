@@ -187,10 +187,12 @@ export const General = () => (
             padding: '50px',
           }}>
           Thank you for Registering You can start your course here
+
+          Your application was successful. Check your email to reset your password to gain access to the learning management system and start learning.
         </Typography>
-        <NextLink href='#' passHref>
+        {/* <NextLink href='#' passHref>
           <Button>Learning Portal</Button>
-        </NextLink>
+        </NextLink> */}
       </CardContent>
     </Card>
   </Box>

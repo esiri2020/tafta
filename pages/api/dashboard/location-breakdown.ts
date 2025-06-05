@@ -6,10 +6,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
   try {
     // Get the token from the request
     const token = await getToken({ req });
@@ -19,16 +15,18 @@ export default async function handler(
       });
     }
 
+    // Get the cohortId from the URL and ensure it's a string
     const { cohortId } = req.query;
 
-    // If cohortId is 'all', we'll aggregate data from all cohorts
-    const whereClause = cohortId === 'all'
-      ? {}
-      : { userCohort: { cohortId: cohortId as string } };
+    // Build the where clause
+    const where: any = { completed: true };
+    if (cohortId) {
+      where.userCohort = { cohortId: String(cohortId) };
+    }
 
-    // Get all enrollments with location data
-    const enrollments = await prisma.enrollment.findMany({
-      where: whereClause,
+    // Get all certified enrollments with their user data
+    const certifiedEnrollments = await prisma.enrollment.findMany({
+      where,
       include: {
         userCohort: {
           include: {
@@ -37,82 +35,81 @@ export default async function handler(
                 profile: true,
               },
             },
+            cohort: true,
           },
         },
       },
     });
 
-    // Group data by state and course
-    const stateData = new Map();
+    // Group enrollments by state and course
+    const locationBreakdown = new Map<string, {
+      courses: Map<string, { female: number; male: number; total: number }>;
+      total: number;
+    }>();
 
-    enrollments.forEach(enrollment => {
-      const userCohort = enrollment.userCohort;
-      const state = userCohort?.user?.profile?.stateOfResidence || 'Unknown';
+    certifiedEnrollments.forEach((enrollment) => {
+      // Get the user's profile data
+      const userProfile = enrollment.userCohort.user.profile;
+      if (!userProfile) return;
+
+      const state = userProfile.stateOfResidence || 'Unknown';
       const course = enrollment.course_name;
-      const gender = userCohort?.user?.profile?.gender || 'Unknown';
+      const gender = userProfile.gender || 'Unknown';
 
-      if (!stateData.has(state)) {
-        stateData.set(state, new Map());
-      }
-
-      const courseData = stateData.get(state);
-      if (!courseData.has(course)) {
-        courseData.set(course, {
-          male: 0,
-          female: 0,
+      if (!locationBreakdown.has(state)) {
+        locationBreakdown.set(state, {
+          courses: new Map(),
           total: 0,
         });
       }
 
-      const data = courseData.get(course);
-      if (gender === 'MALE') {
-        data.male++;
-      } else if (gender === 'FEMALE') {
-        data.female++;
+      const stateData = locationBreakdown.get(state)!;
+      if (!stateData.courses.has(course)) {
+        stateData.courses.set(course, { female: 0, male: 0, total: 0 });
       }
-      data.total++;
+
+      const courseData = stateData.courses.get(course)!;
+      courseData.total++;
+      stateData.total++;
+
+      if (gender === 'FEMALE') {
+        courseData.female++;
+      } else if (gender === 'MALE') {
+        courseData.male++;
+      }
     });
 
-    // Transform data for the frontend
-    const states: any[] = [];
-    stateData.forEach((courseData: Map<string, any>, state: string) => {
-      const courses: any[] = [];
-      courseData.forEach((data: any, course: string) => {
-        courses.push({
-          course,
-          ...data,
-        });
-      });
-
-      states.push({
-        state,
-        courses,
-        total: courses.reduce((sum, course) => sum + course.total, 0),
-      });
-    });
+    // Convert to the required format
+    const formattedData = Array.from(locationBreakdown.entries()).map(([state, data]) => ({
+      state,
+      courses: Array.from(data.courses.entries()).map(([course, stats]) => ({
+        course,
+        female: stats.female,
+        male: stats.male,
+        total: stats.total,
+      })),
+      total: data.total,
+    }));
 
     // Sort states by total count (descending)
-    states.sort((a: any, b: any) => b.total - a.total);
+    formattedData.sort((a, b) => b.total - a.total);
+
     // Sort courses within each state by total count (descending)
-    states.forEach(state => {
-      state.courses.sort((a: any, b: any) => b.total - a.total);
+    formattedData.forEach(state => {
+      state.courses.sort((a, b) => b.total - a.total);
     });
 
-    // For all cohorts, cohortName is 'All Cohorts', otherwise use the cohort name
-    let cohortName = 'All Cohorts';
-    if (cohortId && states[0]?.courses[0]?.course) {
-      cohortName = states[0].courses[0].course;
-    }
-    const totalCompletion = states.reduce((sum, state) => sum + state.total, 0);
+    const cohortName = certifiedEnrollments[0]?.userCohort.cohort?.name || 'Unknown Cohort';
+    const totalCompletion = formattedData.reduce((sum, state) => sum + state.total, 0);
 
-    return res.status(200).json({
-      states,
+    return res.json({
+      states: formattedData,
       totalCompletion,
       cohortName,
       date: new Date().toLocaleDateString(),
     });
   } catch (error) {
     console.error('Error fetching location breakdown:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 } 

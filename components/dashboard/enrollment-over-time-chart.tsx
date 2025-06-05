@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -13,114 +13,103 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Legend,
 } from 'recharts';
 
-const colors = {
-  primary: '#0ea5e9',
-  secondary: '#f97316',
-  tertiary: '#8b5cf6',
-  success: '#10b981',
-  warning: '#f59e0b',
-  danger: '#ef4444',
-  info: '#3b82f6',
-  gender: {
-    male: '#0ea5e9',
-    female: '#d946ef',
-  },
-};
-
-const formatNumber = (num: number): string => {
-  return Number(num).toLocaleString();
-};
-
-interface EnrollmentOverTimeChartProps {
-  data: {
-    date: Date | null;
-    male_count: number;
-    female_count: number;
-  }[];
+interface EnrollmentData {
+  date: string;
+  male_count: number;
+  female_count: number;
 }
 
-export const EnrollmentOverTimeChart: React.FC<EnrollmentOverTimeChartProps> = ({ data }) => {
-  if (!data) return null;
+interface EnrollmentOverTimeChartProps {
+  data: EnrollmentData[];
+}
 
-  const chartData = data.map(item => ({
-    date: item.date ? new Date(item.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }) : '',
-    male: Number(item.male_count),
-    female: Number(item.female_count),
-  }));
+const formatNumber = (num: number): string => {
+  return num.toLocaleString();
+};
+
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+export const EnrollmentOverTimeChart: React.FC<EnrollmentOverTimeChartProps> = ({ data }) => {
+  if (!data?.length) return null;
+
+  // Memoize chart data transformation
+  const chartData = useMemo(() => {
+    return data.map(item => ({
+      date: formatDate(item.date),
+      male: item.male_count,
+      female: item.female_count,
+      total: item.male_count + item.female_count,
+    }));
+  }, [data]);
+
+  // Memoize the custom tooltip component
+  const CustomTooltip = useMemo(() => {
+    return ({ active, payload, label }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="bg-white p-3 border border-gray-200 shadow-md rounded-md">
+            <p className="font-semibold">{label}</p>
+            <p className="text-sm">
+              Total: <span className="font-medium">{formatNumber(payload[0].value)}</span>
+            </p>
+            {payload[0].payload.male > 0 && (
+              <p className="text-sm">
+                Male: <span className="font-medium">{formatNumber(payload[0].payload.male)}</span>
+              </p>
+            )}
+            {payload[0].payload.female > 0 && (
+              <p className="text-sm">
+                Female: <span className="font-medium">{formatNumber(payload[0].payload.female)}</span>
+              </p>
+            )}
+          </div>
+        );
+      }
+      return null;
+    };
+  }, []);
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Enrollment Completion Trend</CardTitle>
+        <CardTitle>Enrollment Over Time</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="w-full h-[300px] min-h-[300px]">
+        <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={chartData}
               margin={{
-                top: 10,
+                top: 20,
                 right: 30,
-                left: 0,
-                bottom: 0,
-              }}
-            >
-              <defs>
-                <linearGradient id="colorMale" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.gender.male} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={colors.gender.male} stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorFemale" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.gender.female} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={colors.gender.female} stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
+                left: 20,
+                bottom: 5,
+              }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
                 dataKey="date"
-                tick={{ fontSize: 12 }}
+                tick={{fontSize: 12}}
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
+              <YAxis
                 tickFormatter={formatNumber}
+                tickLine={false}
+                axisLine={false}
               />
-              <Tooltip 
-                formatter={value => formatNumber(value as number)}
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '6px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                }}
-              />
-              <Legend />
+              <Tooltip content={CustomTooltip} />
               <Area
                 type="monotone"
-                dataKey="male"
-                name="Male"
-                stroke={colors.gender.male}
-                fillOpacity={1}
-                fill="url(#colorMale)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="female"
-                name="Female"
-                stroke={colors.gender.female}
-                fillOpacity={1}
-                fill="url(#colorFemale)"
-                strokeWidth={2}
+                dataKey="total"
+                name="Total Enrollments"
+                stroke="#8884d8"
+                fill="#8884d8"
+                fillOpacity={0.3}
               />
             </AreaChart>
           </ResponsiveContainer>
