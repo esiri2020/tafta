@@ -6,7 +6,7 @@ parentPort.on('message', (data) => {
   if (data.start) {
     const scriptPath = path.join(process.cwd(), 'export_applicant_data.py');
     // Use the full path to the Python executable
-    const pythonExecutable = process.platform === 'win32' ? 'python' : 'python3';
+    const pythonExecutable = process.platform === 'win32' ? 'python' : '/usr/bin/python3';
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
 
     let downloadLink = '';
