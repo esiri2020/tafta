@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {useFormik} from 'formik';
+import {useFormik, FormikHelpers} from 'formik';
 import {useRouter} from 'next/router';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
@@ -66,6 +66,78 @@ const PersonalInformation = ({
   const {editApplicant} = state;
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Add utility function to scroll to first error
+  const scrollToFirstError = (errors: Record<string, any>) => {
+    const firstErrorField = Object.keys(errors)[0];
+
+    if (firstErrorField) {
+      // Try multiple selectors to find the error field
+      const errorElement =
+        document.querySelector(`[data-field="${firstErrorField}"]`) || // Try by data-field
+        document.querySelector(`[name="${firstErrorField}"]`) || // Try by name
+        document.querySelector(`#${firstErrorField}`); // Try by id
+
+      if (errorElement) {
+        // Add a small delay to ensure the DOM is ready
+        setTimeout(() => {
+          // Scroll the element into view
+          errorElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+
+          // Add temporary highlight effect
+          errorElement.classList.add('error-highlight');
+          setTimeout(() => {
+            errorElement.classList.remove('error-highlight');
+          }, 2000);
+
+          // Try to focus the first input/select element
+          const input = errorElement.querySelector('input, select, textarea');
+          if (input) {
+            (input as HTMLElement).focus();
+          }
+        }, 100);
+      } else {
+        // If we can't find the exact field, try scrolling to the form section
+        const formSection = document.querySelector(
+          `[data-section="${firstErrorField.split('.')[0]}"]`,
+        );
+        if (formSection) {
+          formSection.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+      }
+    }
+  };
+
+  // Add CSS for error highlight effect
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .error-highlight {
+        animation: errorPulse 2s ease-out;
+      }
+      @keyframes errorPulse {
+        0% { 
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+          transform: scale(1);
+        }
+        50% {
+          box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+          transform: scale(1.02);
+        }
+        100% { 
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+          transform: scale(1);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // Check if applicant is enterprise type
   const isEnterpriseType = applicant?.profile?.type === 'ENTERPRISE';
@@ -153,8 +225,13 @@ const PersonalInformation = ({
   const formik = useFormik({
     initialValues,
     validationSchema,
-    validate: validateForm,
-    onSubmit: async (values, helpers) => {
+    validateOnChange: false, // Only validate on submit and blur
+    validateOnBlur: true,
+    validate: values => {
+      const errors = validateForm(values);
+      return errors;
+    },
+    onSubmit: async (values, helpers: FormikHelpers<FormValues>) => {
       setIsSubmitting(true);
 
       try {
@@ -165,17 +242,27 @@ const PersonalInformation = ({
         } else {
           helpers.setStatus({success: false});
           helpers.setErrors({submit: 'Failed to update profile'});
+          // Scroll to first error if submission fails
+          scrollToFirstError(formik.errors);
         }
       } catch (error) {
-        console.error('Error in form submission:', error);
         helpers.setStatus({success: false});
         helpers.setErrors({submit: 'An unexpected error occurred'});
+        // Scroll to first error if submission fails
+        scrollToFirstError(formik.errors);
       } finally {
         helpers.setSubmitting(false);
         setIsSubmitting(false);
       }
     },
   });
+
+  // Add effect to handle validation errors
+  useEffect(() => {
+    if (Object.keys(formik.errors).length > 0 && formik.submitCount > 0) {
+      scrollToFirstError(formik.errors);
+    }
+  }, [formik.submitCount, formik.errors]);
 
   // Initialize date from form value when component mounts
   useEffect(() => {
