@@ -301,14 +301,20 @@ export default async function handler(
                 try {
                   const groupRes = await api.post('/group_users', {
                     group_names: [groupName],
-                    user_id: thinkificUserId
+                    user_id: thinkificUserId,
                   });
                   console.log('User added to Thinkific group:', groupRes.data);
                 } catch (err) {
                   if (err instanceof Error) {
-                    console.error('Failed to add user to Thinkific group:', err.message);
+                    console.error(
+                      'Failed to add user to Thinkific group:',
+                      err.message,
+                    );
                   } else {
-                    console.error('Failed to add user to Thinkific group:', err);
+                    console.error(
+                      'Failed to add user to Thinkific group:',
+                      err,
+                    );
                   }
                 }
               }
@@ -352,12 +358,15 @@ export default async function handler(
               try {
                 const groupRes = await api.post('/group_users', {
                   group_names: [groupName],
-                  user_id: thinkificUserId
+                  user_id: thinkificUserId,
                 });
                 console.log('User added to Thinkific group:', groupRes.data);
               } catch (err) {
                 if (err instanceof Error) {
-                  console.error('Failed to add user to Thinkific group:', err.message);
+                  console.error(
+                    'Failed to add user to Thinkific group:',
+                    err.message,
+                  );
                 } else {
                   console.error('Failed to add user to Thinkific group:', err);
                 }
@@ -705,7 +714,7 @@ export default async function handler(
     console.log(count, maleCount, femaleCount);
 
     // Always count over all enrollments matching the filters, NOT paginated
-    const allWhere = { ...whereCondition };
+    const allWhere = {...whereCondition};
 
     const activeCount = await prisma.enrollment.count({
       where: {
@@ -747,7 +756,7 @@ export default async function handler(
   } catch (err) {
     console.error(err);
     if (err instanceof Error) {
-    return res.status(400).send(err.message);
+      return res.status(400).send(err.message);
     }
     return res.status(400).send('An error occurred');
   }

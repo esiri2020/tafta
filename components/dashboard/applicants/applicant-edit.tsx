@@ -81,8 +81,8 @@ interface LocalFormValues {
 
   // Additional fields for form
   type: string;
-  projectType: string;
-  internshipProgram: string;
+  projectType: string | null;
+  internshipProgram: string | null;
 }
 
 interface Profile {
@@ -193,10 +193,9 @@ const validationSchema = Yup.object().shape({
     then: schema => schema.required('Business sector is required'),
     otherwise: schema => schema.notRequired(),
   }),
-  type: Yup.string()
-    .oneOf(['INDIVIDUAL', 'ENTERPRISE'])
-    .required('Type is required'),
   registrationMode: Yup.string().required('Registration mode is required'),
+  projectType: Yup.string().nullable(),
+  internshipProgram: Yup.string().nullable(),
 });
 
 export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
@@ -237,8 +236,8 @@ export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
     selfEmployedType: applicant.profile?.selfEmployedType || '',
     type: applicant.profile?.type || 'INDIVIDUAL',
     registrationMode: applicant.profile?.registrationMode || 'online',
-    projectType: applicant.profile?.projectType || '',
-    internshipProgram: applicant.profile?.internshipProgram || '',
+    projectType: applicant.profile?.projectType || null,
+    internshipProgram: applicant.profile?.internshipProgram || null,
     talpParticipation: applicant.profile?.talpParticipation || false,
     talpType: applicant.profile?.talpType || '',
     talpOther: applicant.profile?.talpOther || '',
@@ -285,7 +284,7 @@ export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
       try {
         // Prepare profile data
         const profileData = {
-          type: values.type,
+          type: applicant.profile?.type || 'INDIVIDUAL',
           registrationMode: values.registrationMode,
           phoneNumber: values.phoneNumber,
           gender: values.gender,
@@ -318,8 +317,8 @@ export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
           businessSupportNeeds: values.businessSupportNeeds,
           source: values.source,
           salaryRange: values.salaryRange || null,
-          projectType: values.projectType,
-          internshipProgram: values.internshipProgram,
+          projectType: values.projectType || null,
+          internshipProgram: values.internshipProgram || null,
         };
 
         // Add enterprise specific data if type is ENTERPRISE
@@ -397,19 +396,35 @@ export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
         </CardHeader>
         <Separator />
         <CardContent>
-          <Tabs
-            value={activeTab}
-            onValueChange={value => {
-              setActiveTab(value);
-              formik.setFieldValue(
-                'type',
-                value === 'individual' ? 'INDIVIDUAL' : 'ENTERPRISE',
-              );
-            }}>
+          <Tabs value={activeTab} defaultValue={activeTab} className='relative'>
             <TabsList className='grid grid-cols-2 w-full max-w-md'>
-              <TabsTrigger value='individual'>Individual</TabsTrigger>
-              <TabsTrigger value='enterprise'>Enterprise</TabsTrigger>
+              <TabsTrigger
+                value='individual'
+                disabled={applicant.profile?.type !== 'INDIVIDUAL'}
+                className={
+                  applicant.profile?.type !== 'INDIVIDUAL'
+                    ? 'cursor-not-allowed opacity-50'
+                    : ''
+                }>
+                Individual
+              </TabsTrigger>
+              <TabsTrigger
+                value='enterprise'
+                disabled={applicant.profile?.type !== 'ENTERPRISE'}
+                className={
+                  applicant.profile?.type !== 'ENTERPRISE'
+                    ? 'cursor-not-allowed opacity-50'
+                    : ''
+                }>
+                Enterprise
+              </TabsTrigger>
             </TabsList>
+            {applicant.profile?.type !== 'INDIVIDUAL' &&
+              applicant.profile?.type !== 'ENTERPRISE' && (
+                <div className='absolute top-[-30px] left-0 text-sm text-red-500'>
+                  * Type cannot be changed after creation
+                </div>
+              )}
 
             <TabsContent value='individual' className='space-y-6 mt-6'>
               <BasicInformation

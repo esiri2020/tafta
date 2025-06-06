@@ -15,6 +15,7 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
       .required('Email is required'),
     firstName: Yup.string().max(255).required('First Name is required'),
     lastName: Yup.string().max(255).required('Last Name is required'),
+    middleName: Yup.string().max(255).required('Middle Name is required'),
     dob: Yup.date()
       .max(
         new Date(new Date().setFullYear(new Date().getFullYear() - 15)),
@@ -23,40 +24,121 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
       .nullable()
       .required('Date of Birth is required'),
 
-    // Optional fields with simple validation
-    homeAddress: Yup.string().max(255),
-    LGADetails: Yup.string().max(255),
-    phoneNumber: Yup.string().max(15),
-    stateOfResidence: Yup.string().max(255),
+    // Location fields
+    homeAddress: Yup.string().required('Home Address is required'),
+    LGADetails: Yup.string().max(255).required('LGA Details is required'),
+    phoneNumber: Yup.string().max(15).required('Phone Number is required'),
+    stateOfResidence: Yup.string()
+      .max(255)
+      .required('State of Residence is required'),
     gender: Yup.string().max(6).required('Gender is required'),
     ageRange: Yup.string().max(255).required('Age Range is required'),
     communityArea: Yup.string().required('Community Area is required'),
-    disability: Yup.string().max(128),
 
-    // Required fields
+    // Education fields
+    educationLevel: Yup.string().required('Education Level is required'),
+
+    // Disability fields
+    _disability: Yup.boolean().required(
+      'Please indicate if you have any disabilities',
+    ),
+    disability: Yup.string().when('_disability', {
+      is: true,
+      then: schema => schema.required('Please specify your disability'),
+      otherwise: schema => schema.notRequired(),
+    }),
+
+    // Source/Referral fields
+    source: Yup.string().required('Please specify how you heard about us'),
+    referrer_fullName: Yup.string().when('source', {
+      is: 'by_referral',
+      then: schema => schema.required('Mobilizer name is required'),
+      otherwise: schema => schema.notRequired(),
+    }),
+    referrer_phoneNumber: Yup.string().when('source', {
+      is: 'by_referral',
+      then: schema => schema.required('Mobilizer phone number is required'),
+      otherwise: schema => schema.notRequired(),
+    }),
+
+    // Employment fields
     employmentStatus: Yup.string().required('Employment Status is required'),
-
-    // Employment sector validation - only required for employed status
     employmentSector: Yup.string().when('employmentStatus', {
       is: 'employed',
       then: schema => schema.required('Employment Sector is required'),
       otherwise: schema => schema.notRequired(),
     }),
-
     residencyStatus: Yup.string().required('Residency Status is required'),
+    selfEmployedType: Yup.string().when('employmentStatus', {
+      is: 'self-employed',
+      then: schema => schema.required('Self-Employed Type is required'),
+      otherwise: schema => schema.notRequired(),
+    }),
 
-    // Simple conditional validation
-    selfEmployedType: Yup.string().max(255),
-    referrer_fullName: Yup.string().max(64),
-    referrer_phoneNumber: Yup.string().max(16),
+    // Job Readiness Indicators
+    jobReadiness: Yup.array()
+      .of(Yup.string())
+      .min(1, 'Please select at least one job readiness indicator')
+      .required('Please select your job readiness indicators'),
 
-    // Enterprise fields - simple validation without conditionals
-    businessType: Yup.string().max(255),
-    businessSize: Yup.string().max(255),
-    businessPartners: Yup.string().max(255),
-    companyPhoneNumber: Yup.string().max(15),
-    additionalPhoneNumber: Yup.string().max(15),
-    companyEmail: Yup.string().email('Must be a valid email').max(255),
+    // Registration fields
+    registrationMode: Yup.string().required('Registration Mode is required'),
+    talpParticipation: Yup.boolean().required(
+      'Please indicate TALP participation',
+    ),
+    talpType: Yup.string().when('talpParticipation', {
+      is: true,
+      then: schema => schema.required('TALP Type is required'),
+      otherwise: schema => schema.notRequired(),
+    }),
+    talpOther: Yup.string().when(['talpParticipation', 'talpType'], {
+      is: (participation: boolean, type: string) =>
+        participation && type === 'other',
+      then: schema => schema.required('Please specify other TALP type'),
+      otherwise: schema => schema.notRequired(),
+    }),
+
+    // Enterprise-specific fields (only required if isEnterpriseType is true)
+    ...(isEnterpriseType
+      ? {
+          entrepreneurBusinessName: Yup.string().required(
+            'Business Name is required',
+          ),
+          entrepreneurBusinessType: Yup.string().required(
+            'Business Type is required',
+          ),
+          entrepreneurBusinessSize: Yup.string().required(
+            'Business Size is required',
+          ),
+          entrepreneurBusinessSector: Yup.string().required(
+            'Business Sector is required',
+          ),
+          entrepreneurCompanyPhoneNumber: Yup.string()
+            .matches(/^[0-9]+$/, 'Phone number must contain only digits')
+            .required('Company Phone Number is required'),
+          entrepreneurAdditionalPhoneNumber: Yup.string()
+            .matches(/^[0-9]+$/, 'Phone number must contain only digits')
+            .required('Additional Phone Number is required'),
+          entrepreneurCompanyEmail: Yup.string()
+            .email('Invalid email format')
+            .required('Company Email is required'),
+          entrepreneurBusinessPartners: Yup.string()
+            .max(255, 'Business partners must be at most 255 characters')
+            .required('Business Partners information is required'),
+          entrepreneurRevenueRange: Yup.string().required(
+            'Revenue Range is required',
+          ),
+          entrepreneurRegistrationType: Yup.array()
+            .min(1, 'At least one registration type must be selected')
+            .required('Registration Type is required'),
+          businessSupport: Yup.array()
+            .min(1, 'At least one business support option must be selected')
+            .required('Business Support is required'),
+          businessSupportNeeds: Yup.array()
+            .min(1, 'At least one business support need must be selected')
+            .required('Business Support Needs are required'),
+        }
+      : {}),
   });
 
   // Custom validation function for form submission
@@ -75,8 +157,13 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
     }
 
     // Validate referrer if source is by_referral
-    if (values.source === 'by_referral' && !values.referrer_fullName) {
-      errors.referrer_fullName = 'Mobilizer is required';
+    if (values.source === 'by_referral') {
+      if (!values.referrer_fullName) {
+        errors.referrer_fullName = 'Mobilizer name is required';
+      }
+      if (!values.referrer_phoneNumber) {
+        errors.referrer_phoneNumber = 'Mobilizer phone number is required';
+      }
     }
 
     // Validate enterprise fields if applicant type is ENTERPRISE
