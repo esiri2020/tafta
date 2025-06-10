@@ -10,6 +10,7 @@ import {
   Search,
   UserPlus,
   Bell,
+  Loader2,
 } from 'lucide-react';
 import {nigeria_states, LGAs} from '@/data/form-options';
 
@@ -65,7 +66,6 @@ import {
 } from '../../../services/api';
 import {NotificationDialog} from '../../../components/dashboard/notifications/notification-dialog';
 import {CSVDownload, CSVLink} from 'react-csv';
-import {ExportProgressDialog} from '@/components/dashboard/applicants/export-progress-dialog';
 
 // Mock delete mutation
 const useDeleteApplicantsMutation = () => {
@@ -150,8 +150,14 @@ const FilteredOutApplicantsCard = ({
                       <div className='flex items-center gap-3'>
                         <Avatar>
                           <AvatarFallback>
-                            {applicant.firstName && typeof applicant.firstName === 'string' ? applicant.firstName.charAt(0) : ''}
-                            {applicant.lastName && typeof applicant.lastName === 'string' ? applicant.lastName.charAt(0) : ''}
+                            {applicant.firstName &&
+                            typeof applicant.firstName === 'string'
+                              ? applicant.firstName.charAt(0)
+                              : ''}
+                            {applicant.lastName &&
+                            typeof applicant.lastName === 'string'
+                              ? applicant.lastName.charAt(0)
+                              : ''}
                           </AvatarFallback>
                         </Avatar>
                         <div className='flex flex-col'>
@@ -255,7 +261,6 @@ function ApplicantList() {
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [showFilteredOut, setShowFilteredOut] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Get the selected cohort from redux state
   const selectedCohort = useAppSelector(selectCohort);
@@ -333,7 +338,7 @@ function ApplicantList() {
     }
   }, [filters, filterParams]);
 
-  // Get applicants data
+  // Get paginated applicants data for display
   const {data, error, isLoading} = useGetApplicantsQuery({
     page,
     limit,
@@ -342,16 +347,26 @@ function ApplicantList() {
     cohortId,
   });
 
-  // Log API response for debugging
-  useEffect(() => {
-    if (data) {
-      console.log('API response:', data);
-      console.log('Current cohortId:', cohortId);
-    }
-    if (error) {
-      console.error('API error:', error);
-    }
-  }, [data, error, cohortId]);
+  // Get all filtered data for export (without pagination)
+  const {
+    data: exportData,
+    isLoading: isExportLoading,
+    isFetching: isExportFetching,
+  } = useGetApplicantsQuery(
+    {
+      page: 0,
+      limit: 100000, // Very large number to get all records
+      filter: filterParams,
+      query: searchQuery,
+      cohortId,
+    },
+    {
+      skip: !data, // Only fetch after main data is loaded
+    },
+  );
+
+  // Determine if export is loading
+  const isExporting = isExportLoading || isExportFetching;
 
   const [deleteApplicants] = useDeleteApplicantsMutation();
   const [approveApplicants] = useApproveApplicantsMutation();
@@ -359,8 +374,6 @@ function ApplicantList() {
 
   // Handle filter changes
   const handleFilterChange = (filterType, value) => {
-    console.log(`Changing filter ${filterType} with value:`, value);
-
     setFilters(prev => {
       const newFilters = {...prev};
 
@@ -376,7 +389,6 @@ function ApplicantList() {
         newFilters[filterType] = value;
       }
 
-      console.log('Updated filters:', newFilters);
       return newFilters;
     });
   };
@@ -490,39 +502,59 @@ function ApplicantList() {
     }
   };
 
-  // Format data for export
-  const formatDataForExport = () => {
-    if (!data?.applicants) return [];
+  // Format data for CSV export using exportData instead of data
+  const csvData = React.useMemo(() => {
+    if (!exportData?.applicants) return [];
 
-    return data.applicants.map(applicant => {
-      const {firstName, lastName, email, profile, userCohort} = applicant;
-      const userCohortData = userCohort?.[0];
-
-      return {
-        Name: `${firstName} ${lastName}`,
-        Email: email,
-        Gender: profile?.gender || 'N/A',
-        'Age Range': profile?.ageRange || 'N/A',
-        'Education Level': profile?.educationLevel || 'N/A',
-        'Employment Status': profile?.employmentStatus || 'N/A',
-        'Residency Status': profile?.residencyStatus || 'N/A',
-        'Community Area': profile?.communityArea || 'N/A',
-        'TALP Participation': profile?.talpParticipation ? 'Yes' : 'No',
-        Cohort: userCohortData?.cohort?.name || 'N/A',
-        'Application Status': profile
-          ? userCohortData?.enrollments?.[0]?.enrolled
+    return [
+      // Headers
+      [
+        'Name',
+        'Email',
+        'Business Name',
+        'Gender',
+        'Age Range',
+        'Education Level',
+        'Employment Status',
+        'Residency Status',
+        'Community Area',
+        'TALP Participation',
+        'State of Residence',
+        'LGA',
+        'Course',
+        'Application Status',
+        'Enrollment Status',
+      ],
+      // Data rows
+      ...exportData.applicants.map(applicant => [
+        `${applicant.firstName} ${applicant.lastName}`,
+        applicant.email,
+        applicant.profile?.businessName || 'Not a business',
+        applicant.profile?.gender || 'N/A',
+        applicant.profile?.ageRange || 'N/A',
+        applicant.profile?.educationLevel || 'N/A',
+        applicant.profile?.employmentStatus || 'N/A',
+        applicant.profile?.residencyStatus || 'N/A',
+        applicant.profile?.communityArea || 'N/A',
+        applicant.profile?.talpParticipation ? 'Yes' : 'No',
+        applicant.profile?.stateOfResidence || 'N/A',
+        applicant.profile?.LGADetails || 'N/A',
+        applicant.userCohort?.[0]?.enrollments
+          ?.map(e => e.course_name)
+          .join(', ') || 'No Enrollments',
+        applicant.profile
+          ? applicant.userCohort?.[0]?.enrollments?.[0]?.enrolled
             ? 'Approved'
             : 'Completed'
           : 'Pending',
-        'Enrollment Status':
-          userCohortData?.enrollments?.length > 0
-            ? userCohortData.enrollments[0].enrolled
-              ? 'Enrolled'
-              : 'Pending'
-            : 'None',
-      };
-    });
-  };
+        applicant.userCohort?.[0]?.enrollments?.length > 0
+          ? applicant.userCohort[0].enrollments[0].enrolled
+            ? 'Enrolled'
+            : 'Pending'
+          : 'None',
+      ]),
+    ];
+  }, [exportData?.applicants]);
 
   // Check if all applicants are selected
   const allApplicantsSelected =
@@ -634,13 +666,28 @@ function ApplicantList() {
                 </a>
               </Link>
             </Button>
-            <Button
-              variant='outline'
-              onClick={() => setExportDialogOpen(true)}
-            >
-              <Download className='mr-2 h-4 w-4' />
-              Export Data
-            </Button>
+            <CSVLink
+              data={csvData}
+              filename={`applicants-export-${
+                new Date().toISOString().split('T')[0]
+              }.csv`}
+              className={`inline-flex items-center ${
+                isExporting ? 'pointer-events-none' : ''
+              }`}>
+              <Button variant='outline' disabled={isExporting}>
+                {isExporting ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Preparing Export...
+                  </>
+                ) : (
+                  <>
+                    <Download className='mr-2 h-4 w-4' />
+                    Export Data ({exportData?.count || 0} records)
+                  </>
+                )}
+              </Button>
+            </CSVLink>
           </div>
         </div>
 
@@ -1181,8 +1228,14 @@ function ApplicantList() {
                         <div className='flex items-center gap-3'>
                           <Avatar>
                             <AvatarFallback>
-                              {applicant.firstName && typeof applicant.firstName === 'string' ? applicant.firstName.charAt(0) : ''}
-                              {applicant.lastName && typeof applicant.lastName === 'string' ? applicant.lastName.charAt(0) : ''}
+                              {applicant.firstName &&
+                              typeof applicant.firstName === 'string'
+                                ? applicant.firstName.charAt(0)
+                                : ''}
+                              {applicant.lastName &&
+                              typeof applicant.lastName === 'string'
+                                ? applicant.lastName.charAt(0)
+                                : ''}
                             </AvatarFallback>
                           </Avatar>
                           <div className='flex flex-col'>
@@ -1374,7 +1427,6 @@ function ApplicantList() {
           />
         )}
       </div>
-      <ExportProgressDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
     </>
   );
 }
