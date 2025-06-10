@@ -236,9 +236,12 @@ model Report {
 }
 
 model RehydrationDate {
-  id               String   @id @default(cuid())
-  created_at       DateTime @default(now())
-  enrollment_count Int?
+  id              String   @id @default(cuid())
+  created_at      DateTime @default(now())
+  enrollment_count Int
+  error           String?
+  status          String   @default("completed")
+  duration        Int?     // Duration in milliseconds
 }
 
 model VerificationToken {
