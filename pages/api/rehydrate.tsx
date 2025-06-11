@@ -302,32 +302,22 @@ export default async function handler(
       }
 
       console.log('Starting rehydration process...');
-      const startTime = Date.now();
       
-      // Get last sync time for incremental updates
-      const lastSync = await getLastSyncTime();
-      console.log('Last sync time:', lastSync);
-
-      // Get enrollments with pagination
-      let allEnrollments: Data[] = [];
-      let page = 1;
-      const limit = 1000;
-      const timestamp = new Date().getTime();
-
-      while (true) {
-        if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-          console.log('Time limit reached, stopping enrollment fetch');
-          break;
+      // Reduce the limit to prevent timeouts
+      const limit = 50;
+      const last_date = await prisma.rehydrationDate.findFirst({
+        orderBy: {
+          created_at: 'desc'
         }
+      });
+      
+      console.log('Last rehydration date:', last_date?.created_at);
+      
+      // Force fresh data by adding a timestamp to the URL
+      const timestamp = new Date().getTime();
+      const { data } = await api.get(`/enrollments?limit=${limit}&_t=${timestamp}`);
 
-        console.log(`Fetching page ${page} of enrollments...`);
-        const { data } = await api.get(`/enrollments?limit=${limit}&page=${page}&_t=${timestamp}`);
-        if (!data.items.length) break;
-        allEnrollments = allEnrollments.concat(data.items);
-        console.log(`Fetched ${data.items.length} enrollments from page ${page}`);
-        page++;
-      }
-
+      // Log only essential enrollment data
       console.log('\n=== THINKIFIC ENROLLMENTS ===');
       console.log('Total enrollments:', allEnrollments.length);
       
@@ -364,8 +354,10 @@ export default async function handler(
       console.log('\n=== USER MATCHING ===');
       console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
 
-      // Process enrollments in batches
-      const totalBatches = Math.ceil(allEnrollments.length / BATCH_SIZE);
+      // Increase batch size for better performance
+      const BATCH_SIZE = 10;
+      const enrollmentItems = data.items;
+      const totalBatches = Math.ceil(enrollmentItems.length / BATCH_SIZE);
       let processedCount = 0;
       let skippedCount = 0;
       let roleMismatchCount = 0;
