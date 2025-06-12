@@ -286,6 +286,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const startTime = Date.now(); // Declare startTime here
   // Add cache control headers
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -319,10 +320,10 @@ export default async function handler(
 
       // Log only essential enrollment data
       console.log('\n=== THINKIFIC ENROLLMENTS ===');
-      console.log('Total enrollments:', allEnrollments.length);
+      console.log('Total enrollments:', data.items.length);
       
       // Log completion statistics
-      const completionStats = allEnrollments.reduce((acc: any, item: Data) => {
+      const completionStats = data.items.reduce((acc: any, item: Data) => {
         const status = item.completed ? 'completed' : 
                       item.percentage_completed > 0 ? 'in_progress' : 'not_started';
         acc[status] = (acc[status] || 0) + 1;
@@ -331,7 +332,7 @@ export default async function handler(
       console.log('Completion stats:', completionStats);
 
       // Get all users in one query
-      const userEmails = allEnrollments.map((item: Data) => item.user_email.toLowerCase());
+      const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase());
       console.log(`Fetching ${userEmails.length} users...`);
       
       const users = await prisma.user.findMany({
@@ -365,8 +366,9 @@ export default async function handler(
       let errorCount = 0;
       let completedSkippedCount = 0;
       let noUserFoundCount = 0;
-      let updatedEnrollments: any[] = [];
+      let allEnrollments: any[] = [];
 
+      // Process in smaller chunks with timeout handling
       for (let batch = 0; batch < totalBatches; batch++) {
         if (Date.now() - startTime > MAX_EXECUTION_TIME) {
           console.log('Time limit reached, stopping batch processing');
@@ -374,13 +376,13 @@ export default async function handler(
         }
 
         const start = batch * BATCH_SIZE;
-        const end = Math.min(start + BATCH_SIZE, allEnrollments.length);
-        const batchItems = allEnrollments.slice(start, end);
+        const end = Math.min(start + BATCH_SIZE, enrollmentItems.length);
+        const batchItems = enrollmentItems.slice(start, end);
         
         console.log(`\nProcessing batch ${batch + 1} of ${totalBatches}...`);
-        console.log(`Items ${start + 1} to ${end} of ${allEnrollments.length}`);
+        console.log(`Items ${start + 1} to ${end} of ${enrollmentItems.length}`);
         
-        const batchResults = await Promise.allSettled(
+        const batchPromise = Promise.allSettled(
           batchItems.map(async (item: Data) => {
             if (!validateEnrollment(item)) {
               console.warn(`Skipping invalid enrollment: ${item.id}`);
@@ -424,69 +426,67 @@ export default async function handler(
           })
         );
 
-        const successfulUpdates = batchResults
-          .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-          .map(result => result.value)
-          .filter(Boolean);
+        // Add timeout to each batch
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Batch processing timeout')), 25000)
+        );
 
-        updatedEnrollments = updatedEnrollments.concat(successfulUpdates);
-        
-        console.log(`Batch ${batch + 1} complete. Processed: ${successfulUpdates.length}`);
-        console.log('Current stats:', {
-          processed: processedCount,
-          skipped: skippedCount,
-          roleMismatch: roleMismatchCount,
-          noCohort: noCohortCount,
-          errors: errorCount,
-          completedSkipped: completedSkippedCount,
-          noUserFound: noUserFoundCount
-        });
+        try {
+          const settledBatchResults = await Promise.race([batchPromise, timeoutPromise]) as PromiseSettledResult<any>[]; // Await batchPromise here
+          const successfulUpdates = settledBatchResults
+            .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+            .map(result => result.value)
+            .filter(Boolean);
+
+          allEnrollments = allEnrollments.concat(successfulUpdates);
+          console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
+        } catch (error) {
+          console.error(`Batch ${batch + 1} timed out or failed:`, error);
+          // Continue with next batch even if this one failed
+          continue;
+        }
       }
 
       console.log('\n=== PROCESSING SUMMARY ===');
       console.log({
-        totalEnrollments: allEnrollments.length,
+        totalEnrollments: enrollmentItems.length,
         processedCount,
         skippedCount,
         roleMismatchCount,
         noCohortCount,
-        errorCount,
-        completedSkippedCount,
-        noUserFoundCount,
-        updatedCount: updatedEnrollments.length,
+        updatedCount: allEnrollments.length,
         completionStats,
-        duration: `${(Date.now() - startTime) / 1000}s`
+        duration: `${(Date.now() - startTime) / 1000}s` // Add duration here
       });
 
       // Create a new RehydrationDate record
       await prisma.rehydrationDate.create({
         data: {
-          enrollment_count: updatedEnrollments.length,
-          status: 'completed',
-          duration: Date.now() - startTime
+          enrollment_count: allEnrollments.length,
+          status: "completed",
+          duration: Date.now() - startTime, // Corrected duration calculation
+          error: null
         }
       });
 
       return res.status(200).json({ 
-        message: 'Synchronization complete', 
-        count: updatedEnrollments.length,
+        message: 'Synchronizing', 
+        count: allEnrollments.length,
         stats: {
           processed: processedCount,
           skipped: skippedCount,
           roleMismatch: roleMismatchCount,
           noCohort: noCohortCount,
-          errors: errorCount,
-          completedSkipped: completedSkippedCount,
-          noUserFound: noUserFoundCount,
-          duration: `${(Date.now() - startTime) / 1000}s`
+          duration: `${(Date.now() - startTime) / 1000}s` // Add duration here
         }
       });
     } catch (err) {
       console.error('Rehydration error:', err);
-      await handleError(err);
       return res.status(500).json({ 
         message: err instanceof Error ? err.message : 'An error occurred',
-        error: true
+        error: true,
+        status: "failed",
+        duration: Date.now() - startTime // Add duration here for errors
       });
     }
   }
