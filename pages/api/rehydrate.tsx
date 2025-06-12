@@ -57,12 +57,6 @@ interface Enrollment {
   expiry_date: Date | null;
 }
 
-async function asyncForEach(array: any[], callback: (arg0: any, arg1: number, arg2: any) => any) {
-  for (let index = 0; index < array.length; index++) {
-    await callback(array[index], index, array);
-  }
-}
-
 interface Data {
   user_email: string;
   user_name: string;
@@ -117,7 +111,7 @@ const processEnrollment = async (item: Data, userCohortId: string, retries = 3) 
     try {
       // Check if enrollment already exists and is completed
       const existingEnrollment = await prisma.enrollment.findUnique({
-        where: { id: item.id },
+        where: { id: BigInt(item.id) },
         select: {
           id: true,
           completed: true,
@@ -126,10 +120,10 @@ const processEnrollment = async (item: Data, userCohortId: string, retries = 3) 
       });
 
       // Skip if enrollment exists and is completed
-      if (existingEnrollment?.completed) {
-        console.log(`Skipping completed enrollment ${item.id} for ${item.user_email}`);
-        return existingEnrollment;
-      }
+      // if (existingEnrollment?.completed) {
+      //   console.log(`Skipping completed enrollment ${item.id} for ${item.user_email}`);
+      //   return existingEnrollment;
+      // }
 
       const percentage = calculatePercentage(item);
       console.log(`Processing enrollment ${item.id} for ${item.user_email}:`, {
@@ -140,7 +134,7 @@ const processEnrollment = async (item: Data, userCohortId: string, retries = 3) 
       });
 
       const enrollment = await prisma.enrollment.upsert({
-        where: { id: item.id },
+        where: { id: BigInt(item.id) },
         update: {
           enrolled: true,
           percentage_completed: percentage,
@@ -153,13 +147,13 @@ const processEnrollment = async (item: Data, userCohortId: string, retries = 3) 
           updated_at: item.updated_at,
           expiry_date: item.expiry_date,
           course_name: item.course_name,
-          course_id: Number(item.course_id),
+          course_id: BigInt(item.course_id),
           userCohort: {
             connect: { id: userCohortId }
           }
         },
         create: {
-          id: item.id,
+          id: BigInt(item.id),
           enrolled: true,
           percentage_completed: percentage,
           completed: Boolean(item.completed),
@@ -171,7 +165,7 @@ const processEnrollment = async (item: Data, userCohortId: string, retries = 3) 
           updated_at: item.updated_at,
           expiry_date: item.expiry_date,
           course_name: item.course_name,
-          course_id: Number(item.course_id),
+          course_id: BigInt(item.course_id),
           userCohort: {
             connect: { id: userCohortId }
           }
@@ -180,7 +174,7 @@ const processEnrollment = async (item: Data, userCohortId: string, retries = 3) 
 
       // Verify the update
       const verified = await prisma.enrollment.findUnique({
-        where: { id: item.id },
+        where: { id: BigInt(item.id) },
         select: {
           id: true,
           percentage_completed: true,
@@ -208,7 +202,7 @@ export const config = {
 };
 
 // Constants
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 10;
 const MAX_EXECUTION_TIME = 55 * 1000; // 55 seconds to allow for cleanup
 const LOCK_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
@@ -232,52 +226,15 @@ async function getLastSyncTime() {
   return lastSync?.created_at || new Date(0);
 }
 
-// Process a batch of enrollments
-async function processBatch(enrollments: Data[], startTime: number) {
-  if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-    return { processed: 0, remaining: enrollments.length };
-  }
-
-  const updates = [];
-  for (const item of enrollments) {
-    if (!validateEnrollment(item)) continue;
-    
-    const percentage = calculatePercentage(item);
-    updates.push({
-      where: { id: item.id },
-      data: {
-        enrolled: true,
-        percentage_completed: percentage,
-        completed: Boolean(item.completed),
-        expired: Boolean(item.expired),
-        is_free_trial: Boolean(item.is_free_trial),
-        started_at: item.started_at,
-        activated_at: item.activated_at,
-        completed_at: item.completed_at,
-        updated_at: item.updated_at,
-        expiry_date: item.expiry_date,
-        course_name: item.course_name,
-        course_id: Number(item.course_id)
-      }
-    });
-  }
-
-  if (updates.length > 0) {
-    await prisma.enrollment.updateMany({
-      data: updates
-    });
-  }
-
-  return { processed: updates.length, remaining: enrollments.length - updates.length };
-}
-
 // Error handling
 async function handleError(error: any) {
+  console.error("Handling error during rehydration:", error);
   await prisma.rehydrationDate.create({
     data: {
-      error: error.message,
-      status: 'failed',
-      enrollment_count: 0
+      enrollment_count: 0,
+      status: "failed",
+      error: error.message || "Unknown error",
+      duration: 0 // Duration will be 0 as the process failed
     }
   });
 }
@@ -356,7 +313,6 @@ export default async function handler(
       console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
 
       // Increase batch size for better performance
-      const BATCH_SIZE = 10;
       const enrollmentItems = data.items;
       const totalBatches = Math.ceil(enrollmentItems.length / BATCH_SIZE);
       let processedCount = 0;
@@ -411,13 +367,14 @@ export default async function handler(
             }
 
             try {
-              const { processed, remaining } = await processBatch([item], startTime);
-              if (processed > 0) {
+              const processedEnrollment = await processEnrollment(item, userCohortId);
+              if (processedEnrollment) {
                 processedCount++;
+                return processedEnrollment;
               } else {
                 completedSkippedCount++;
+                return null;
               }
-              return { processed, remaining };
             } catch (error) {
               console.error(`Error processing enrollment for ${item.user_email}:`, error);
               errorCount++;
@@ -432,7 +389,7 @@ export default async function handler(
         );
 
         try {
-          const settledBatchResults = await Promise.race([batchPromise, timeoutPromise]) as PromiseSettledResult<any>[]; // Await batchPromise here
+          const settledBatchResults = await Promise.race([batchPromise, timeoutPromise]) as PromiseSettledResult<any>[];
           const successfulUpdates = settledBatchResults
             .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
             .map(result => result.value)
@@ -442,7 +399,6 @@ export default async function handler(
           console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
         } catch (error) {
           console.error(`Batch ${batch + 1} timed out or failed:`, error);
-          // Continue with next batch even if this one failed
           continue;
         }
       }
@@ -454,9 +410,12 @@ export default async function handler(
         skippedCount,
         roleMismatchCount,
         noCohortCount,
+        errorCount,
+        completedSkippedCount,
+        noUserFoundCount,
         updatedCount: allEnrollments.length,
         completionStats,
-        duration: `${(Date.now() - startTime) / 1000}s` // Add duration here
+        duration: `${(Date.now() - startTime) / 1000}s`
       });
 
       // Create a new RehydrationDate record
@@ -464,7 +423,7 @@ export default async function handler(
         data: {
           enrollment_count: allEnrollments.length,
           status: "completed",
-          duration: Date.now() - startTime, // Corrected duration calculation
+          duration: Date.now() - startTime,
           error: null
         }
       });
@@ -477,16 +436,20 @@ export default async function handler(
           skipped: skippedCount,
           roleMismatch: roleMismatchCount,
           noCohort: noCohortCount,
-          duration: `${(Date.now() - startTime) / 1000}s` // Add duration here
+          errorCount,
+          completedSkipped: completedSkippedCount,
+          noUserFound: noUserFoundCount,
+          duration: `${(Date.now() - startTime) / 1000}s`
         }
       });
     } catch (err) {
       console.error('Rehydration error:', err);
+      await handleError(err);
       return res.status(500).json({ 
         message: err instanceof Error ? err.message : 'An error occurred',
         error: true,
         status: "failed",
-        duration: Date.now() - startTime // Add duration here for errors
+        duration: Date.now() - startTime
       });
     }
   }
