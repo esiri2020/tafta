@@ -57,7 +57,7 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
     }),
     referrer_phoneNumber: Yup.string().when('source', {
       is: 'by_referral',
-      then: schema => schema.required('Mobilizer phone number is required'),
+      then: schema => schema.notRequired(),
       otherwise: schema => schema.notRequired(),
     }),
 
@@ -160,9 +160,6 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
     if (values.source === 'by_referral') {
       if (!values.referrer_fullName) {
         errors.referrer_fullName = 'Mobilizer name is required';
-      }
-      if (!values.referrer_phoneNumber) {
-        errors.referrer_phoneNumber = 'Mobilizer phone number is required';
       }
     }
 
