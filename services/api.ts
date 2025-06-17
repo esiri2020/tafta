@@ -162,10 +162,18 @@ export const apiService = createApi({
         result ? [{type: 'Enrollments', id: result.id}] : ['Enrollments'],
     }),
     getApplicants: builder.query({
-      query: ({page, limit, filter, query, cohortId}) =>
-        cohortId
-          ? `applicants?page=${page}&limit=${limit}&filter=${filter}&query=${query}&cohortId=${cohortId}`
-          : `applicants?page=${page}&limit=${limit}&filter=${filter}&query=${query}`,
+      query: ({page, limit, filter, query, cohortId}) => {
+        // Build query parameters dynamically
+        const params = new URLSearchParams();
+        
+        if (page !== undefined) params.append('page', page.toString());
+        if (limit !== undefined) params.append('limit', limit.toString());
+        if (filter !== undefined && filter !== null) params.append('filter', filter);
+        if (query !== undefined && query !== null) params.append('query', query);
+        if (cohortId !== undefined && cohortId !== null) params.append('cohortId', cohortId);
+        
+        return `applicants?${params.toString()}`;
+      },
       providesTags: (result, args, error) =>
         result
           ? [
@@ -227,8 +235,17 @@ export const apiService = createApi({
         result ? [{type: 'Applicants', id: result.user?.id}] : ['Applicants'],
     }),
     getUsers: builder.query({
-      query: ({page, limit, filter, query}) =>
-        `users?page=${page}&limit=${limit}&filter=${filter}&query=${query}`,
+      query: ({page, limit, filter, query}) => {
+        // Build query parameters dynamically
+        const params = new URLSearchParams();
+        
+        if (page !== undefined) params.append('page', page.toString());
+        if (limit !== undefined) params.append('limit', limit.toString());
+        if (filter !== undefined && filter !== null) params.append('filter', filter);
+        if (query !== undefined && query !== null) params.append('query', query);
+        
+        return `users?${params.toString()}`;
+      },
       providesTags: result =>
         result
           ? [
@@ -272,8 +289,17 @@ export const apiService = createApi({
         result ? [{type: 'Users', id: 'PARTIAL-LIST'}] : ['Users'],
     }),
     getCohorts: builder.query({
-      query: ({page = 0, limit = 100, filter = 'undefined', query}) =>
-        `cohort?page=${page}&limit=${limit}&filter=${filter}&query=${query}`,
+      query: ({page = 0, limit = 100, filter, query}) => {
+        // Build query parameters dynamically
+        const params = new URLSearchParams();
+        
+        if (page !== undefined) params.append('page', page.toString());
+        if (limit !== undefined) params.append('limit', limit.toString());
+        if (filter !== undefined && filter !== null && filter !== 'undefined') params.append('filter', filter);
+        if (query !== undefined && query !== null) params.append('query', query);
+        
+        return `cohort?${params.toString()}`;
+      },
       providesTags: result =>
         result
           ? [

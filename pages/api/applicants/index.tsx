@@ -3,6 +3,7 @@ import api from '../../../lib/axios.setup';
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../../lib/prismadb';
 import {Enrollment, User} from '@prisma/client';
+import {bigint_filter} from '../enrollments';
 
 export default async function handler(
   req: NextApiRequest,
@@ -77,18 +78,19 @@ export default async function handler(
                 thinkific_user_id: `${response?.data.id}`,
               },
               include: {
-                profile: true,
+                profile: {
+                  include: {
+                    referrer: true
+                  }
+                },
                 userCohort: {
-                  select: {
-                    enrollments: {
-                      select: {
-                        enrolled: true,
-                        course_name: true,
-                        course_id: true,
-                      },
-                    },
+                  include: {
+                    enrollments: true,
+                    cohort: true,
+                    location: true
                   },
                 },
+                assessment: true,
               },
             });
             promises.push(updatedUser);
@@ -262,12 +264,15 @@ export default async function handler(
   let parsedFilter: string | FilterParams | undefined = filter;
 
   try {
-    if (filter && filter !== 'undefined' && filter !== '[object Object]') {
+    if (filter && filter !== 'undefined' && filter !== '[object Object]' && filter !== '{}') {
       parsedFilter = JSON.parse(filter) as FilterParams;
+    } else {
+      parsedFilter = undefined;
     }
   } catch (e) {
     console.log('Filter parsing error:', e);
     // Keep the original filter value if parsing fails
+    parsedFilter = undefined;
   }
 
   try {
@@ -295,18 +300,19 @@ export default async function handler(
             },
           },
           include: {
-            profile: true,
+            profile: {
+              include: {
+                referrer: true
+              }
+            },
             userCohort: {
-              select: {
-                enrollments: {
-                  select: {
-                    enrolled: true,
-                    course_name: true,
-                  },
-                },
+              include: {
+                enrollments: true,
                 cohort: true,
+                location: true
               },
             },
+            assessment: true,
           },
           take,
           skip,
@@ -342,18 +348,19 @@ export default async function handler(
             ],
           },
           include: {
-            profile: true,
+            profile: {
+              include: {
+                referrer: true
+              }
+            },
             userCohort: {
-              select: {
-                enrollments: {
-                  select: {
-                    enrolled: true,
-                    course_name: true,
-                  },
-                },
+              include: {
+                enrollments: true,
                 cohort: true,
+                location: true
               },
             },
+            assessment: true,
           },
           take,
           skip,
@@ -480,18 +487,51 @@ export default async function handler(
       applicants = await prisma.user.findMany({
         where: filterConditions,
         include: {
-          profile: true,
+          profile: {
+            include: {
+              referrer: true
+            }
+          },
           userCohort: {
-            select: {
-              enrollments: {
-                select: {
-                  enrolled: true,
-                  course_name: true,
-                },
-              },
+            include: {
+              enrollments: true,
               cohort: true,
+              location: true
             },
           },
+          assessment: true,
+        },
+        take,
+        skip,
+      });
+    }
+    // Handle case when no filters are applied (parsedFilter is undefined)
+    else if (parsedFilter === undefined) {
+      count = await prisma.user.count({
+        where: {
+          role: 'APPLICANT',
+          userCohort: userCohortFilter,
+        },
+      });
+      applicants = await prisma.user.findMany({
+        where: {
+          role: 'APPLICANT',
+          userCohort: userCohortFilter,
+        },
+        include: {
+          profile: {
+            include: {
+              referrer: true
+            }
+          },
+          userCohort: {
+            include: {
+              enrollments: true,
+              cohort: true,
+              location: true
+            },
+          },
+          assessment: true,
         },
         take,
         skip,
@@ -517,18 +557,19 @@ export default async function handler(
           userCohort: userCohortFilter,
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              referrer: true
+            }
+          },
           userCohort: {
-            select: {
-              enrollments: {
-                select: {
-                  enrolled: true,
-                  course_name: true,
-                },
-              },
+            include: {
+              enrollments: true,
               cohort: true,
+              location: true
             },
           },
+          assessment: true,
         },
         take,
         skip,
@@ -566,18 +607,19 @@ export default async function handler(
           },
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              referrer: true
+            }
+          },
           userCohort: {
-            select: {
-              enrollments: {
-                select: {
-                  enrolled: true,
-                  course_name: true,
-                },
-              },
+            include: {
+              enrollments: true,
               cohort: true,
+              location: true
             },
           },
+          assessment: true,
         },
         take,
         skip,
@@ -597,18 +639,19 @@ export default async function handler(
           userCohort: userCohortFilter,
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              referrer: true
+            }
+          },
           userCohort: {
-            select: {
-              enrollments: {
-                select: {
-                  enrolled: true,
-                  course_name: true,
-                },
-              },
+            include: {
+              enrollments: true,
               cohort: true,
+              location: true
             },
           },
+          assessment: true,
         },
         take,
         skip,
@@ -626,18 +669,19 @@ export default async function handler(
           userCohort: userCohortFilter,
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              referrer: true
+            }
+          },
           userCohort: {
-            select: {
-              enrollments: {
-                select: {
-                  enrolled: true,
-                  course_name: true,
-                },
-              },
+            include: {
+              enrollments: true,
               cohort: true,
+              location: true
             },
           },
+          assessment: true,
         },
         take,
         skip,
@@ -683,30 +727,33 @@ export default async function handler(
         filteredOutSample = await prisma.user.findMany({
           where: inverseFilterConditions,
           include: {
-            profile: true,
+            profile: {
+              include: {
+                referrer: true
+              }
+            },
             userCohort: {
-              select: {
-                enrollments: {
-                  select: {
-                    enrolled: true,
-                    course_name: true,
-                  },
-                },
+              include: {
+                enrollments: true,
                 cohort: true,
+                location: true
               },
             },
+            assessment: true,
           },
           take: 10, // Just get 10 samples
         });
       }
     }
 
-    return res.status(200).json({
-      applicants,
-      count,
-      filteredOutCount,
-      filteredOutSample,
-    });
+    return res.status(200).json(
+      bigint_filter({
+        applicants,
+        count,
+        filteredOutCount,
+        filteredOutSample,
+      })
+    );
   } catch (err: any) {
     console.error(err.message);
     return res.status(400).send(err.message);
