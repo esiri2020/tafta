@@ -103,7 +103,7 @@ export default async function handler(
       console.log('Starting rehydration process...');
       
       // Reduce the limit to prevent timeouts
-      const limit = 1000;
+      const limit = 50;
       const last_date = await prisma.rehydrationDate.findFirst({
         orderBy: {
           created_at: 'desc'
@@ -151,7 +151,7 @@ export default async function handler(
       console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
 
       // Increase batch size for better performance
-      const BATCH_SIZE = 500;
+      const BATCH_SIZE = 10;
       const enrollmentItems = data.items;
       const totalBatches = Math.ceil(enrollmentItems.length / BATCH_SIZE);
       let processedCount = 0;
