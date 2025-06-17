@@ -33,18 +33,18 @@ function providesList<
     : ['UNKNOWN_ERROR'];
 }
 
-
-//testing 
-const url: string = process.env.NODE_ENV === 'production'
-  ? 'https://reg.terraacademyforarts.com/api/'
-  : 'http://localhost:3000/api/';
+//testing
+const url: string =
+  process.env.NODE_ENV === 'production'
+    ? 'https://reg.terraacademyforarts.com/api/'
+    : 'http://localhost:3000/api/';
 
 export const apiService = createApi({
   reducerPath: 'apiService',
   baseQuery: fetchBaseQuery({
     baseUrl: url,
     prepareHeaders: async headers => {
-      const session = await getSession() as Session & {userData?: UserData};
+      const session = (await getSession()) as Session & {userData?: UserData};
       if (session?.userData?.userId) {
         headers.set('authorization', `Bearer ${session.userData.userId}`);
       }
@@ -162,10 +162,10 @@ export const apiService = createApi({
         result ? [{type: 'Enrollments', id: result.id}] : ['Enrollments'],
     }),
     getApplicants: builder.query({
-      query: ({page, limit, filter, query, cohortId}) =>
+      query: ({page, limit, filter, query, cohortId, includeAssessment}) =>
         cohortId
-          ? `applicants?page=${page}&limit=${limit}&filter=${filter}&query=${query}&cohortId=${cohortId}`
-          : `applicants?page=${page}&limit=${limit}&filter=${filter}&query=${query}`,
+          ? `applicants?page=${page}&limit=${limit}&filter=${filter}&query=${query}&cohortId=${cohortId}&includeAssessment=${includeAssessment}`
+          : `applicants?page=${page}&limit=${limit}&filter=${filter}&query=${query}&includeAssessment=${includeAssessment}`,
       providesTags: (result, args, error) =>
         result
           ? [

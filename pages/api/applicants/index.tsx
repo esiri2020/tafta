@@ -121,17 +121,23 @@ export default async function handler(
             const groupName = user.userCohort[0]?.cohort?.name;
             const thinkificUserId = response?.data.id;
             if (!groupName || !thinkificUserId) {
-              console.warn('Missing groupName or thinkificUserId for group assignment:', { groupName, thinkificUserId });
+              console.warn(
+                'Missing groupName or thinkificUserId for group assignment:',
+                {groupName, thinkificUserId},
+              );
             } else {
               try {
                 const groupRes = await api.post('/group_users', {
                   group_names: [groupName],
-                  user_id: thinkificUserId
+                  user_id: thinkificUserId,
                 });
                 console.log('User added to Thinkific group:', groupRes.data);
               } catch (err) {
                 if (err instanceof Error) {
-                  console.error('Failed to add user to Thinkific group:', err.message);
+                  console.error(
+                    'Failed to add user to Thinkific group:',
+                    err.message,
+                  );
                 } else {
                   console.error('Failed to add user to Thinkific group:', err);
                 }
@@ -165,17 +171,23 @@ export default async function handler(
             const groupName = user.userCohort[0]?.cohort?.name;
             const thinkificUserId = user.thinkific_user_id;
             if (!groupName || !thinkificUserId) {
-              console.warn('Missing groupName or thinkificUserId for group assignment:', { groupName, thinkificUserId });
+              console.warn(
+                'Missing groupName or thinkificUserId for group assignment:',
+                {groupName, thinkificUserId},
+              );
             } else {
               try {
                 const groupRes = await api.post('/group_users', {
                   group_names: [groupName],
-                  user_id: thinkificUserId
+                  user_id: thinkificUserId,
                 });
                 console.log('User added to Thinkific group:', groupRes.data);
               } catch (err) {
                 if (err instanceof Error) {
-                  console.error('Failed to add user to Thinkific group:', err.message);
+                  console.error(
+                    'Failed to add user to Thinkific group:',
+                    err.message,
+                  );
                 } else {
                   console.error('Failed to add user to Thinkific group:', err);
                 }
@@ -224,12 +236,14 @@ export default async function handler(
     filter,
     query,
     cohortId,
+    includeAssessment,
   }: {
     page?: string;
     limit?: string;
     filter?: string;
     query?: string;
     cohortId?: string;
+    includeAssessment?: string;
   } = req.query;
 
   const take = parseInt(typeof limit == 'string' && limit ? limit : '30');
@@ -487,11 +501,17 @@ export default async function handler(
                 select: {
                   enrolled: true,
                   course_name: true,
+                  percentage_completed: true,
+                  started_at: true,
+                  completed_at: true,
+                  completed: true,
+                  expired: true,
                 },
               },
               cohort: true,
             },
           },
+          assessment: includeAssessment === 'true' ? true : false,
         },
         take,
         skip,

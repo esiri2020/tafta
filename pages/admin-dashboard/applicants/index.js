@@ -359,6 +359,7 @@ function ApplicantList() {
       filter: filterParams,
       query: searchQuery,
       cohortId,
+      includeAssessment: true, // Add this to request assessment data
     },
     {
       skip: !data, // Only fetch after main data is loaded
@@ -524,6 +525,34 @@ function ApplicantList() {
         'Course',
         'Application Status',
         'Enrollment Status',
+        // Assessment Headers
+        'Course of Study',
+        'Had Job Before Admission',
+        'Employment Type',
+        'Work Time Type',
+        'Employed In Creative Sector',
+        'Creative Job Nature',
+        'Years of Experience (Creative)',
+        'Satisfaction Level',
+        'Skill Rating',
+        'Monthly Income',
+        'Has Reliable Income',
+        'Earning Meets Needs',
+        'Work Is Decent And Good',
+        'Job Gives Purpose',
+        'Feel Respected At Work',
+        'LMS Platform Rating',
+        'TAFTA Preparation Rating',
+        'Quality of Interaction Rating',
+        'Training Materials Rating',
+        'Topic Sequencing Rating',
+        'Facilitators Response Rating',
+        'Would Recommend TAFTA',
+        // Enrollment Details
+        'Course Progress',
+        'Course Start Date',
+        'Course Completion Date',
+        'Course Status',
       ],
       // Data rows
       ...exportData.applicants.map(applicant => [
@@ -552,6 +581,48 @@ function ApplicantList() {
             ? 'Enrolled'
             : 'Pending'
           : 'None',
+        // Assessment Data
+        applicant.assessment?.courseOfStudy || 'N/A',
+        applicant.assessment?.hadJobBeforeAdmission ? 'Yes' : 'No',
+        applicant.assessment?.employmentType || 'N/A',
+        applicant.assessment?.workTimeType || 'N/A',
+        applicant.assessment?.employedInCreativeSector ? 'Yes' : 'No',
+        applicant.assessment?.creativeJobNature || 'N/A',
+        applicant.assessment?.yearsOfExperienceCreative || 'N/A',
+        applicant.assessment?.satisfactionLevel || 'N/A',
+        applicant.assessment?.skillRating || 'N/A',
+        applicant.assessment?.monthlyIncome || 'N/A',
+        applicant.assessment?.hasReliableIncome ? 'Yes' : 'No',
+        applicant.assessment?.earningMeetsNeeds ? 'Yes' : 'No',
+        applicant.assessment?.workIsDecentAndGood ? 'Yes' : 'No',
+        applicant.assessment?.jobGivesPurpose ? 'Yes' : 'No',
+        applicant.assessment?.feelRespectedAtWork ? 'Yes' : 'No',
+        applicant.assessment?.lmsPlatformRating || 'N/A',
+        applicant.assessment?.taftaPreparationRating || 'N/A',
+        applicant.assessment?.qualityOfInteractionRating || 'N/A',
+        applicant.assessment?.trainingMaterialsRating || 'N/A',
+        applicant.assessment?.topicSequencingRating || 'N/A',
+        applicant.assessment?.facilitatorsResponseRating || 'N/A',
+        applicant.assessment?.wouldRecommendTafta ? 'Yes' : 'No',
+        // Enrollment Details
+        applicant.userCohort?.[0]?.enrollments?.[0]?.percentage_completed
+          ? `${applicant.userCohort[0].enrollments[0].percentage_completed}%`
+          : 'N/A',
+        applicant.userCohort?.[0]?.enrollments?.[0]?.started_at
+          ? new Date(
+              applicant.userCohort[0].enrollments[0].started_at,
+            ).toLocaleDateString()
+          : 'N/A',
+        applicant.userCohort?.[0]?.enrollments?.[0]?.completed_at
+          ? new Date(
+              applicant.userCohort[0].enrollments[0].completed_at,
+            ).toLocaleDateString()
+          : 'N/A',
+        applicant.userCohort?.[0]?.enrollments?.[0]?.completed
+          ? 'Completed'
+          : applicant.userCohort?.[0]?.enrollments?.[0]?.expired
+          ? 'Expired'
+          : 'In Progress',
       ]),
     ];
   }, [exportData?.applicants]);
