@@ -412,7 +412,7 @@ const ApplicantCreateForm = () => {
             }}>
             <TabsList className='grid grid-cols-2 w-full max-w-md'>
               <TabsTrigger value='individual'>Individual</TabsTrigger>
-              <TabsTrigger value='enterprise'>Enterprise</TabsTrigger>
+              <TabsTrigger value='enterprise'>Enterprise [For Business Owners]</TabsTrigger>
             </TabsList>
             {/* </Tabs> */}
             {/* </div> */}

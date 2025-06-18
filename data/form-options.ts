@@ -87,7 +87,7 @@ export const ranges = [
 ];
 
 // Gender options
-export const genderList = ['MALE', 'FEMALE', 'OTHER'];
+export const genderList = ['MALE', 'FEMALE'];
 
 // Education levels
 export const levels_of_education = [
@@ -304,6 +304,7 @@ export const business_size = [
 
 export const business_sectors = [
   {value: 'agriculture', label: 'Agriculture'},
+  {value: 'creatives', label: 'Creatives'},
   {value: 'manufacturing', label: 'Manufacturing'},
   {value: 'services', label: 'Services'},
   {value: 'technology', label: 'Technology'},
