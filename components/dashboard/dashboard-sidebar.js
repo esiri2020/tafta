@@ -539,7 +539,7 @@ export const DashboardSidebar = props => {
           }}>
           <div>
             <Box sx={{p: 3}}>
-              <NextLink href='/' passHref>
+              <NextLink href='https://terraacademyforarts.com/' passHref>
                 <a>
                   <Box
                     sx={{
@@ -553,7 +553,7 @@ export const DashboardSidebar = props => {
                     }}>
                     <img
                       alt='tafta logo'
-                      ahref='/'
+                      ahref='https://terraacademyforarts.com/'
                       style={{margin: '20px 0px'}}
                       src='/static/images/logo.svg'
                     />

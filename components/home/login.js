@@ -73,7 +73,7 @@ export const LoginScout = ({providers, csrfToken, ...others}) => {
         >
             <img
                 alt="tafta logo"
-                ahref="/"
+                ahref="https://terraacademyforarts.com/"
                 style={{margin:"20px 0px"}}
                 src="/static/images/logo.svg"
             />
