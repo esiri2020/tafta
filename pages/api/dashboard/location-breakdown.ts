@@ -17,44 +17,63 @@ export default async function handler(
 
     // Get the cohortId from the URL and ensure it's a string
     const { cohortId } = req.query;
+    const cohortIdString = Array.isArray(cohortId) ? cohortId[0] : cohortId;
 
-    // Build the where clause
-    const where: any = { completed: true };
-    if (cohortId) {
-      where.userCohort = { cohortId: String(cohortId) };
+    // Define a base where clause for enrollments
+    const baseEnrollmentWhere: any = {
+      completed: true,
+    };
+
+    if (cohortIdString) {
+      baseEnrollmentWhere.userCohort = {
+        cohortId: cohortIdString,
+      };
     }
 
-    // Get all certified enrollments with their user data
-    const certifiedEnrollments = await prisma.enrollment.findMany({
-      where,
+    // Get certified enrollments grouped by state and gender
+    const groupedEnrollments = await prisma.enrollment.groupBy({
+      by: ['course_name', 'userCohortId'],
+      _count: {
+        _all: true,
+      },
+      where: baseEnrollmentWhere,
+    });
+
+    // Fetch user profiles for gender and state of residence
+    const userCohorts = await prisma.userCohort.findMany({
+      where: cohortIdString
+        ? { cohortId: cohortIdString }
+        : { enrollments: { some: { completed: true } } }, // Only relevant userCohorts
       include: {
-        userCohort: {
+        user: {
           include: {
-            user: {
-              include: {
-                profile: true,
-              },
-            },
-            cohort: true,
+            profile: true,
           },
         },
+        cohort: true,
       },
     });
 
-    // Group enrollments by state and course
+    const userProfileMap = new Map();
+    userCohorts.forEach(uc => {
+      if (uc.userId && uc.user?.profile) {
+        userProfileMap.set(uc.id, { gender: uc.user.profile.gender, stateOfResidence: uc.user.profile.stateOfResidence });
+      }
+    });
+
     const locationBreakdown = new Map<string, {
       courses: Map<string, { female: number; male: number; total: number }>;
       total: number;
     }>();
 
-    certifiedEnrollments.forEach((enrollment) => {
-      // Get the user's profile data
-      const userProfile = enrollment.userCohort.user.profile;
+    groupedEnrollments.forEach(enrollment => {
+      const userProfile = userProfileMap.get(enrollment.userCohortId);
       if (!userProfile) return;
 
       const state = userProfile.stateOfResidence || 'Unknown';
       const course = enrollment.course_name;
       const gender = userProfile.gender || 'Unknown';
+      const count = enrollment._count._all;
 
       if (!locationBreakdown.has(state)) {
         locationBreakdown.set(state, {
@@ -69,13 +88,13 @@ export default async function handler(
       }
 
       const courseData = stateData.courses.get(course)!;
-      courseData.total++;
-      stateData.total++;
+      courseData.total += count;
+      stateData.total += count;
 
       if (gender === 'FEMALE') {
-        courseData.female++;
+        courseData.female += count;
       } else if (gender === 'MALE') {
-        courseData.male++;
+        courseData.male += count;
       }
     });
 
@@ -99,8 +118,13 @@ export default async function handler(
       state.courses.sort((a, b) => b.total - a.total);
     });
 
-    const cohortName = certifiedEnrollments[0]?.userCohort.cohort?.name || 'Unknown Cohort';
     const totalCompletion = formattedData.reduce((sum, state) => sum + state.total, 0);
+
+    // Try to get cohort name if cohortId is provided and userCohorts has data
+    let cohortName = 'Unknown Cohort';
+    if (cohortIdString && userCohorts.length > 0) {
+        cohortName = userCohorts[0].cohort?.name || 'Unknown Cohort';
+    }
 
     return res.json({
       states: formattedData,
