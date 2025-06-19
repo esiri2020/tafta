@@ -29,20 +29,34 @@ export const getServerSideProps: GetServerSideProps = async context => {
           destination: '/admin-dashboard',
         },
       };
-    case 'APPLICANT':
-      return session?.userData?.profile
-        ? {
-            redirect: {
-              permanent: false,
-              destination: `/dashboard`,
-            },
-          }
-        : {
-            redirect: {
-              permanent: false,
-              destination: `/register-new?userId=${session?.userData?.userId}&step=3`,
-            },
-          };
+    case 'APPLICANT': {
+      // If the user does not have a verified profile, redirect to verify email
+      if (!session?.userData?.emailVerified) {
+        return {
+          redirect: {
+            permanent: false,
+            destination: `/register-new?step=2`,
+          },
+        };
+      }
+      // If the user has at least one enrollment (enrollmentIds as strings), redirect to dashboard
+      const enrollments = session?.userData?.enrollments || [];
+      if (Array.isArray(enrollments) && enrollments.length > 0) {
+        return {
+          redirect: {
+            permanent: false,
+            destination: `/dashboard`,
+          },
+        };
+      }
+      // If the user has a verified profile, but no enrollment, redirect to personal information
+      return {
+        redirect: {
+          permanent: false,
+          destination: `/register-new?step=3`,
+        },
+      };
+    }
     default:
       return {
         redirect: {

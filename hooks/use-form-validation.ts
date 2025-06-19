@@ -76,13 +76,9 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
     }),
 
     // Job Readiness Indicators
-    jobReadiness: Yup.array()
-      .of(Yup.string())
-      .min(1, 'Please select at least one job readiness indicator')
-      .required('Please select your job readiness indicators'),
+    jobReadiness: Yup.array().of(Yup.string()),
 
     // Registration fields
-    registrationMode: Yup.string().required('Registration Mode is required'),
     talpParticipation: Yup.boolean().required(
       'Please indicate TALP participation',
     ),

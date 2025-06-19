@@ -18,25 +18,6 @@ export const RegistrationTalp = ({formik}: RegistrationTalpProps) => {
     <FormSection title='Registration & TALP'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6'>
         <div className='space-y-2'>
-          <Label>Registration Mode</Label>
-          <RadioGroup
-            value={formik.values.registrationMode}
-            onValueChange={value =>
-              formik.setFieldValue('registrationMode', value)
-            }
-            className='flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4'>
-            <div className='flex items-center space-x-2'>
-              <RadioGroupItem value='online' id='mode-online' />
-              <Label htmlFor='mode-online'>Online</Label>
-            </div>
-            <div className='flex items-center space-x-2'>
-              <RadioGroupItem value='learning_train' id='mode-learning' />
-              <Label htmlFor='mode-learning'>Learning Train</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <div className='space-y-2'>
           <Label>TALP Participation</Label>
           <RadioGroup
             value={formik.values.talpParticipation.toString()}

@@ -83,6 +83,12 @@ export const authOptions: AuthOptions = {
         const { host } = _url;
         const type =
           _url.searchParams.get('callbackUrl')?.split('/').pop() || '';
+        // Only delete previous tokens if this is a resend (resend=true in query)
+        if (_url.searchParams.get('resend') === 'true') {
+          await prisma.verificationToken.deleteMany({
+            where: { identifier: email },
+          });
+        }
         const transport = createTransport(server);
         await transport.sendMail({
           to: email,
@@ -134,18 +140,40 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
-        if (user.email !== null) {
-          token.userData = {
-            userId: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            middleName: user.middleName,
-            type: user.type,
-            email: user.email,
-            role: user.role,
-            profile: user.profile ? true : false,
-          } as UserData;
+        // Fetch enrollments for the user
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            userCohort: {
+              include: {
+                enrollments: true,
+              },
+            },
+          },
+        });
+
+        // Only include enrollment IDs as strings to avoid BigInt serialization issues
+        let enrollmentIds: string[] = [];
+        if (dbUser && dbUser.userCohort) {
+          enrollmentIds = dbUser.userCohort.flatMap(uc =>
+            uc.enrollments
+              .filter(e => e.id !== null && e.id !== undefined)
+              .map(e => String(e.id))
+          );
         }
+
+        token.userData = {
+          userId: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          middleName: user.middleName,
+          type: user.type,
+          email: user.email,
+          role: user.role,
+          profile: user.profile ? true : false,
+          emailVerified: user.emailVerified,
+          enrollments: enrollmentIds,
+        } as UserData;
       }
       return token;
     },

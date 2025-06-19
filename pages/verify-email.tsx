@@ -60,15 +60,9 @@ export default function VerifyEmail() {
           },
         })
         .then(res => {
-          // Include course parameters when redirecting
           router.replace({
-            pathname: `/role`,
-            query: {
-              courseId,
-              cohortId,
-              courseName,
-              actualCourseId,
-            },
+            pathname: '/register-new',
+            query: { step: 3 },
           });
         })
         .catch(err => {

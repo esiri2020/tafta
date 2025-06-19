@@ -145,6 +145,10 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           if (res.data && res.data.user && res.data.user.id) {
             sessionStorage.setItem('userId', res.data.user.id);
           }
+          // Store the email in sessionStorage for later steps
+          if (email) {
+            sessionStorage.setItem('email', email);
+          }
 
           let req = await signIn('email', {
             redirect: false,
