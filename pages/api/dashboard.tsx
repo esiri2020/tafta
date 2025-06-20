@@ -287,7 +287,7 @@ export default async function handler(
       })
       .reverse();
 
-    const locations = ['Kaduna', 'Lagos', 'Ogun'];
+    const locations = ['Kano', 'Lagos', 'Ogun'];
 
     const locationCounts = await Promise.all(
       locations.map(async location => {
