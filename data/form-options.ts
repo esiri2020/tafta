@@ -106,7 +106,7 @@ export const user_disabilies = [
   {value: 'visual', label: 'Visual'},
   {value: 'hearing', label: 'Hearing'},
   {value: 'physical', label: 'Physical'},
-  {value: 'cognitive', label: 'Cognitive'},
+  {value: 'intellectual', label: 'Intellectual'},
   {value: 'other', label: 'Other'},
 ];
 

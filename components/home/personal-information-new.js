@@ -2289,7 +2289,7 @@ export const VerifyEmail = ({ email: propEmail, onBack }) => {
               {resendStatus}
             </Typography>
           )}
-          <Button variant="text" onClick={onBack || (() => router.back())} sx={{ mt: 2 }}>
+          <Button variant="text" onClick={() => router.replace('/register-new?step=1')} sx={{ mt: 2 }}>
             Back
           </Button>
         </CardContent>

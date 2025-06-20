@@ -81,8 +81,8 @@ export const authOptions: AuthOptions = {
       }) {
         const _url = new URL(url);
         const { host } = _url;
-        const type =
-          _url.searchParams.get('callbackUrl')?.split('/').pop() || '';
+        // Always use the 'verify-email' template for verification emails
+        const type = 'verify-email';
         // Only delete previous tokens if this is a resend (resend=true in query)
         if (_url.searchParams.get('resend') === 'true') {
           await prisma.verificationToken.deleteMany({
