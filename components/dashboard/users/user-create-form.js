@@ -12,9 +12,13 @@ import {
   Divider,
   Grid,
   TextField,
-  MenuItem
+  MenuItem,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
 import { useCreateUserMutation } from '../../../services/api'
+import { useState } from 'react';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 const genderList = ['MALE', 'FEMALE']
 const ranges = [[1,5],[6,10],[11,15],[16,20],[21,25],[26,30],[31,35],[36,40]]
@@ -23,6 +27,7 @@ const roles = ['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST', 'APPLICANT']
 export const UserCreateForm = ({  ...other }) => {
   const [ createUser, result ] = useCreateUserMutation()
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -159,11 +164,23 @@ export const UserCreateForm = ({  ...other }) => {
                 helperText={formik.touched.password && formik.errors.password}
                 label="Password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 required
                 value={formik.values.password}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
             </Grid>
             <Grid

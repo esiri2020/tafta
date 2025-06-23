@@ -30,7 +30,7 @@ async function fetchWithRetry(url: string, retries = 3) {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 429 && i < retries - 1) {
-        console.warn(`Rate limited. Waiting ${(i + 1) * 2000}ms`);
+        console.warn(`Rate limited. Retrying after ${(i + 1) * 2000}ms...`);
         await sleep((i + 1) * 2000);
         continue;
       }
@@ -61,30 +61,41 @@ interface Data {
 
 // === Main Handler ===
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") return res.status(405).end();
+  if (req.method !== "GET") {
+    return res.status(405).json({ message: "Method Not Allowed" });
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    if (req.query.cron_secret !== process.env.CRON_SECRET) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
 
   const startTime = Date.now();
   try {
     console.log("🔄 Starting enrollment sync...");
 
-    // Get the last successful sync date
     const lastSync = await prisma.rehydrationDate.findFirst({
       where: { status: "completed" },
       orderBy: { created_at: "desc" }
     });
 
-    // Get start date from query parameter or use last sync date
     const startDate = req.query.start_date as string || 
       (lastSync ? new Date(lastSync.created_at).toISOString().split('T')[0] : "2025-01-01");
     
+    console.log(`🔍 Determined sync start date: ${startDate}`);
+
     const url = `/enrollments?limit=100000&query[updated_after]=${startDate}T00:00:00Z`;
-    console.log(`Fetching enrollments from ${startDate}...`);
+    console.log(`📡 Fetching enrollments from Thinkific API since ${startDate}...`);
 
     const response = await fetchWithRetry(url);
     const enrollments = response.items || [];
-    console.log(`Found ${enrollments.length} enrollments to process`);
+    console.log(`✅ Found ${enrollments.length} enrollments to process.`);
+    if (enrollments.length === 0) {
+        console.log('No new enrollments to process. Exiting.');
+        return res.status(200).json({ message: "No new enrollments to process." });
+    }
 
-    // Process enrollments in batches of 100
     const BATCH_SIZE = 100;
     let processedCount = 0;
     let skippedCount = 0;
@@ -93,42 +104,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     for (let i = 0; i < enrollments.length; i += BATCH_SIZE) {
       const batch = enrollments.slice(i, i + BATCH_SIZE);
-      console.log(`\nProcessing batch ${i/BATCH_SIZE + 1} of ${Math.ceil(enrollments.length/BATCH_SIZE)}`);
+      console.log(`\n⚙️ Processing batch ${i/BATCH_SIZE + 1} of ${Math.ceil(enrollments.length/BATCH_SIZE)}...`);
 
-      // Process each enrollment in the batch
       for (const enrollment of batch) {
         try {
-          // Only find user by Thinkific ID
-          const user = await prisma.user.findFirst({
+          let user = await prisma.user.findFirst({
             where: { thinkific_user_id: enrollment.user_id.toString() }
           });
 
-          // If user not found by Thinkific ID, skip
+          if (!user && enrollment.user_email) {
+            console.log(`User with Thinkific ID ${enrollment.user_id} not found. Trying to match by email: ${enrollment.user_email}`);
+            user = await prisma.user.findUnique({
+              where: { email: enrollment.user_email }
+            });
+
+            if (user) {
+              console.log(`User found by email. Updating their Thinkific ID to ${enrollment.user_id}.`);
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { thinkific_user_id: enrollment.user_id.toString() }
+              });
+            }
+          }
+
           if (!user) {
-            console.log(`⚠️ Skipping enrollment ${enrollment.id}: No user with Thinkific ID ${enrollment.user_id}`);
+            console.log(`⚠️ Skipping enrollment ${enrollment.id}: User with Thinkific ID ${enrollment.user_id} and email ${enrollment.user_email || 'N/A'} not found in DB.`);
             skippedCount++;
             continue;
           }
 
-          // Get user's cohort
           const userCohort = await prisma.userCohort.findFirst({
             where: { userId: user.id }
           });
 
           if (!userCohort) {
-            console.log(`⚠️ Skipping enrollment ${enrollment.id}: No cohort found for user ${user.email}`);
+            console.log(`⚠️ Skipping enrollment ${enrollment.id}: No cohort found for user ${user.email} (ID: ${user.id}).`);
             skippedCount++;
             continue;
           }
 
-          // Convert percentage_completed to float
           let percentageCompleted = null;
           if (enrollment.percentage_completed) {
             const val = parseFloat(enrollment.percentage_completed.toString());
             percentageCompleted = isNaN(val) ? null : (val > 1 ? val / 100 : val);
           }
 
-          // Update or create enrollment
           await prisma.enrollment.upsert({
             where: {
               id: enrollment.id.toString()
@@ -154,14 +174,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           processedCount++;
-          // Log progress every 5 seconds
           const now = Date.now();
           if (now - lastProgressLog >= 5000) {
             console.log(`\n📊 Progress Update:`);
             console.log(`   Processed: ${processedCount} enrollments`);
             console.log(`   Skipped: ${skippedCount} enrollments`);
             console.log(`   Errors: ${errorCount}`);
-            console.log(`   Success Rate: ${((processedCount / (processedCount + skippedCount)) * 100).toFixed(1)}%`);
+            const successRate = (processedCount + skippedCount) > 0 ? ((processedCount / (processedCount + skippedCount + errorCount)) * 100).toFixed(1) : "0.0";
+            console.log(`   Success Rate: ${successRate}%`);
             lastProgressLog = now;
           }
         } catch (error) {
@@ -170,8 +190,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Add a small delay between batches to prevent connection pool exhaustion
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     const duration = Date.now() - startTime;
@@ -179,10 +198,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`   Total Processed: ${processedCount} enrollments`);
     console.log(`   Total Skipped: ${skippedCount} enrollments`);
     console.log(`   Total Errors: ${errorCount}`);
-    console.log(`   Success Rate: ${((processedCount / (processedCount + skippedCount)) * 100).toFixed(1)}%`);
+    const finalSuccessRate = (processedCount + skippedCount) > 0 ? ((processedCount / (processedCount + skippedCount + errorCount)) * 100).toFixed(1) : "0.0";
+    console.log(`   Success Rate: ${finalSuccessRate}%`);
     console.log(`   Duration: ${(duration / 1000).toFixed(1)} seconds`);
 
-    // Record sync log
     await prisma.rehydrationDate.create({
       data: {
         enrollment_count: processedCount,
@@ -201,10 +220,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error: any) {
-    console.error("Rehydration error:", error);
+    console.error("❌ Rehydration failed:", error);
     const duration = Date.now() - startTime;
 
-    // Record failed sync
     await prisma.rehydrationDate.create({
       data: {
         enrollment_count: 0,
