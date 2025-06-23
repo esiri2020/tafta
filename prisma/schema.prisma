@@ -446,6 +446,7 @@ enum Role {
   SUPERADMIN
   APPLICANT
   SUPPORT
+  GUEST
 }
 
 enum Gender {

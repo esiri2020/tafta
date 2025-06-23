@@ -23,6 +23,7 @@ export const getServerSideProps: GetServerSideProps = async context => {
         },
       };
     case 'SUPPORT':
+    case 'GUEST':
       return {
         redirect: {
           permanent: false,

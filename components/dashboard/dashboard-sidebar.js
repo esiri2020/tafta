@@ -420,6 +420,76 @@ const getSuperAdminSections = userId => [
   },
 ];
 
+const getGuestSections = userId => [
+  {
+    title: 'General',
+    items: [
+      {
+        title: 'Dashboard',
+        path: '/admin-dashboard',
+        icon: <HomeIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Enrollment Overview',
+            path: '/admin-dashboard',
+          },
+          {
+            title: 'View All Enrollments',
+            path: '/admin-dashboard/enrollments',
+          },
+        ],
+      },
+      {
+        title: 'Applicants',
+        path: '/admin-dashboard/applicants',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'View All Applicants',
+            path: '/admin-dashboard/applicants',
+          },
+          {
+            title: 'Applicants Overview',
+            path: '/admin-dashboard/applicants/overview',
+          },
+        ],
+      },
+      {
+        title: 'Assessment',
+        path: '/admin-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Assessment Overview',
+            path: '/admin-dashboard/assessment/overview',
+          },
+        ],
+      },
+      {
+        title: 'Cohorts',
+        path: '/admin-dashboard/cohorts',
+        icon: <LanIcon fontSize='small' />,
+        children: [
+          {
+            title: 'View Cohorts',
+            path: '/admin-dashboard/cohorts',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      {
+        title: 'Profile',
+        path: `/admin-dashboard/profile/${userId}`,
+        icon: <UserCircleIcon fontSize='small' />,
+      },
+    ],
+  },
+];
+
 export const DashboardSidebar = props => {
   const {onClose, open} = props;
   const {data: session, status} = useSession();
@@ -434,6 +504,8 @@ export const DashboardSidebar = props => {
       ? getAdminSelection(session.userData.userId)
       : session?.userData?.role === 'SUPPORT'
       ? getSupportSections(session.userData.userId)
+      : session?.userData?.role === 'GUEST'
+      ? getGuestSections(session.userData.userId)
       : [];
   const cohortRef = useRef(null);
   const [cohort, setSelectedCohort] = useState(null);

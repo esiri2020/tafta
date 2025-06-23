@@ -7,7 +7,7 @@ export default withAuth({
       const admin_regex = /admin-dashboard/gi
       // `/admin` requires admin role
       if (req.nextUrl.pathname.match(admin_regex)) {
-        return token?.userData?.role === "SUPERADMIN" || token?.userData?.role === "ADMIN" || token?.userData?.role === "SUPPORT"
+        return token?.userData?.role === "SUPERADMIN" || token?.userData?.role === "ADMIN" || token?.userData?.role === "SUPPORT" || token?.userData?.role === "GUEST"
       }
       // `/me` only requires the user to be logged in
       return !!token

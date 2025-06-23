@@ -69,7 +69,7 @@ export default async function handler(
         return res.status(401).json({ message: 'Unauthorized' });
       }
       const { userId, role } = session.userData;
-      if (!['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(role)) {
+      if (!['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST'].includes(role)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
       const { page = '0', limit = '10' } = req.query;
@@ -163,7 +163,7 @@ export default async function handler(
         return res.status(401).json({ message: 'Unauthorized' });
       }
       const { role, userId } = session.userData;
-      if (!['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(role)) {
+      if (!['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST'].includes(role)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
       const { title, message, type, recipientIds } = req.body;

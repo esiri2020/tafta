@@ -89,7 +89,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let processedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
-    let thinkificIdsUpdated = 0;
     let lastProgressLog = Date.now();
 
     for (let i = 0; i < enrollments.length; i += BATCH_SIZE) {
@@ -99,41 +98,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Process each enrollment in the batch
       for (const enrollment of batch) {
         try {
-          // First try to find user by Thinkific ID
-          let user = await prisma.user.findFirst({
+          // Only find user by Thinkific ID
+          const user = await prisma.user.findFirst({
             where: { thinkific_user_id: enrollment.user_id.toString() }
           });
 
-          // If user not found by Thinkific ID, try to find by email
+          // If user not found by Thinkific ID, skip
           if (!user) {
-            // Get user details from Thinkific
-            const thinkificUser = await fetchWithRetry(`/users/${enrollment.user_id}`);
-            if (!thinkificUser || !thinkificUser.email) {
-              console.log(`⚠️ Skipping enrollment ${enrollment.id}: Could not find user details in Thinkific`);
-              skippedCount++;
-              continue;
-            }
-
-            // Try to find user by email
-            user = await prisma.user.findFirst({
-              where: { email: thinkificUser.email.toLowerCase() }
-            });
-
-            // If user found by email but no Thinkific ID, update their record
-            if (user && !user.thinkific_user_id) {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { thinkific_user_id: enrollment.user_id.toString() }
-              });
-              console.log(`✅ Updated user ${user.email} with Thinkific ID ${enrollment.user_id}`);
-              thinkificIdsUpdated++;
-            }
-            // If user not found at all, skip this enrollment
-            else if (!user) {
-              console.log(`⚠️ Skipping enrollment ${enrollment.id}: User ${thinkificUser.email} not found in database`);
-              skippedCount++;
-              continue;
-            }
+            console.log(`⚠️ Skipping enrollment ${enrollment.id}: No user with Thinkific ID ${enrollment.user_id}`);
+            skippedCount++;
+            continue;
           }
 
           // Get user's cohort
@@ -180,7 +154,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           processedCount++;
-          
           // Log progress every 5 seconds
           const now = Date.now();
           if (now - lastProgressLog >= 5000) {
@@ -188,7 +161,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log(`   Processed: ${processedCount} enrollments`);
             console.log(`   Skipped: ${skippedCount} enrollments`);
             console.log(`   Errors: ${errorCount}`);
-            console.log(`   Thinkific IDs Updated: ${thinkificIdsUpdated}`);
             console.log(`   Success Rate: ${((processedCount / (processedCount + skippedCount)) * 100).toFixed(1)}%`);
             lastProgressLog = now;
           }
@@ -207,7 +179,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`   Total Processed: ${processedCount} enrollments`);
     console.log(`   Total Skipped: ${skippedCount} enrollments`);
     console.log(`   Total Errors: ${errorCount}`);
-    console.log(`   Total Thinkific IDs Updated: ${thinkificIdsUpdated}`);
     console.log(`   Success Rate: ${((processedCount / (processedCount + skippedCount)) * 100).toFixed(1)}%`);
     console.log(`   Duration: ${(duration / 1000).toFixed(1)} seconds`);
 
@@ -226,7 +197,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       processed: processedCount,
       skipped: skippedCount,
       errors: errorCount,
-      thinkificIdsUpdated,
       duration
     });
 

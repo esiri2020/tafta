@@ -75,7 +75,7 @@ export default async function handler(
     }
 
     const { role, userId } = session.userData;
-    if (!['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(role)) {
+    if (!['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST'].includes(role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 

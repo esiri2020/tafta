@@ -35,7 +35,7 @@ const LocationTrendsChart = ({data, colors}) => {
   // Color mapping for locations
   const locationColorMap = {
     Lagos: colors.primary,
-    Kaduna: colors.secondary,
+    Kano: colors.secondary,
     Ogun: colors.tertiary,
     Abuja: colors.info,
     Rivers: colors.warning,

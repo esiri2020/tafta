@@ -16,10 +16,8 @@ export default async function handler(
 
   // Check if user is staff (super admin, admin, or support)
   const userRole = token?.userData?.role as string;
-  if (!userRole || !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)) {
-    return res.status(403).send({
-      error: 'Unauthorized. Only staff members can archive notifications.',
-    });
+  if (!userRole || !['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST'].includes(userRole)) {
+    return res.status(403).json({ message: 'Forbidden' });
   }
 
   const { id } = req.query;

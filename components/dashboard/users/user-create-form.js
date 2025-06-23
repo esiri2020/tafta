@@ -18,7 +18,7 @@ import { useCreateUserMutation } from '../../../services/api'
 
 const genderList = ['MALE', 'FEMALE']
 const ranges = [[1,5],[6,10],[11,15],[16,20],[21,25],[26,30],[31,35],[36,40]]
-const roles = ['SUPERADMIN', 'ADMIN', 'SUPPORT', 'APPLICANT']
+const roles = ['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST', 'APPLICANT']
 
 export const UserCreateForm = ({  ...other }) => {
   const [ createUser, result ] = useCreateUserMutation()
