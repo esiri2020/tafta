@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/rehydrate?cron_secret=${CRON_SECRET}",
+      "path": "/api/rehydrate?cron_secret=701a5c0aed3b9c315f6a0bad46edca9b26fe5e70ca7644a83c27f24a188eed9a",
       "schedule": "0 1 * * *"
     }
   ]
