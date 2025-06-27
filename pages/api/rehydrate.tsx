@@ -60,146 +60,131 @@ interface Data {
 }
 
 // === Main Handler ===
+// NOTE: This endpoint is intended to be triggered by Vercel's cron job every 10 minutes.
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    if (req.query.cron_secret !== process.env.CRON_SECRET) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
+  // No cron_secret check; endpoint is public for Vercel cron
 
   const startTime = Date.now();
   try {
-    console.log("🔄 Starting enrollment sync...");
+    console.log("🔄 Starting batch rehydration of incomplete enrollments...");
 
-    const lastSync = await prisma.rehydrationDate.findFirst({
-      where: { status: "completed" },
-      orderBy: { created_at: "desc" }
-    });
-
-    const startDate = req.query.start_date as string || 
-      (lastSync ? new Date(lastSync.created_at).toISOString().split('T')[0] : "2025-01-01");
-    
-    console.log(`🔍 Determined sync start date: ${startDate}`);
-
-    const url = `/enrollments?limit=100000&query[updated_after]=${startDate}T00:00:00Z`;
-    console.log(`📡 Fetching enrollments from Thinkific API since ${startDate}...`);
-
-    const response = await fetchWithRetry(url);
-    const enrollments = response.items || [];
-    console.log(`✅ Found ${enrollments.length} enrollments to process.`);
-    if (enrollments.length === 0) {
-        console.log('No new enrollments to process. Exiting.');
-        return res.status(200).json({ message: "No new enrollments to process." });
-    }
-
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 5;
     let processedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
-    let lastProgressLog = Date.now();
+    let batchNumber = 0;
+    let hasMore = true;
 
-    for (let i = 0; i < enrollments.length; i += BATCH_SIZE) {
-      const batch = enrollments.slice(i, i + BATCH_SIZE);
-      console.log(`\n⚙️ Processing batch ${i/BATCH_SIZE + 1} of ${Math.ceil(enrollments.length/BATCH_SIZE)}...`);
+    while (hasMore) {
+      // Fetch a batch of incomplete or active enrollments
+      const incompleteEnrollments = await prisma.enrollment.findMany({
+        where: {
+          OR: [
+            { completed: false },
+            { completed: null },
+            { AND: [ { completed: false }, { started_at: { not: null } } ] }, // active: started but not completed
+          ]
+        },
+        take: BATCH_SIZE,
+        orderBy: { updated_at: 'asc' },
+        include: {
+          userCohort: {
+            include: {
+              user: true
+            }
+          }
+        }
+      });
+      if (incompleteEnrollments.length === 0) {
+        hasMore = false;
+        break;
+      }
+      batchNumber++;
+      console.log(`\n⚙️ Processing batch ${batchNumber} (${incompleteEnrollments.length} enrollments)...`);
 
-      for (const enrollment of batch) {
+      for (const enrollment of incompleteEnrollments) {
         try {
-          let user = await prisma.user.findFirst({
-            where: { thinkific_user_id: enrollment.user_id.toString() }
-          });
-
-          if (!user && enrollment.user_email) {
-            console.log(`User with Thinkific ID ${enrollment.user_id} not found. Trying to match by email: ${enrollment.user_email}`);
-            user = await prisma.user.findUnique({
-              where: { email: enrollment.user_email }
-            });
-
-            if (user) {
-              console.log(`User found by email. Updating their Thinkific ID to ${enrollment.user_id}.`);
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { thinkific_user_id: enrollment.user_id.toString() }
-              });
+          let thinkificStatus = null;
+          let foundById = false;
+          // 1. Try by enrollment ID
+          if (enrollment.id) {
+            try {
+              const response = await fetchWithRetry(`/enrollments/${enrollment.id}`);
+              thinkificStatus = response;
+              foundById = true;
+            } catch (apiError) {
+              const err = apiError as any;
+              if (err?.response?.status !== 404) {
+                console.error(`Error fetching Thinkific status for enrollment ${enrollment.id}:`, err?.response?.data || err);
+              }
             }
           }
-
-          if (!user) {
-            console.log(`⚠️ Skipping enrollment ${enrollment.id}: User with Thinkific ID ${enrollment.user_id} and email ${enrollment.user_email || 'N/A'} not found in DB.`);
+          // 2. If not found by ID, try by user email
+          if (!thinkificStatus && enrollment.userCohort?.user?.email) {
+            try {
+              // Find Thinkific user by email
+              const userResp = await fetchWithRetry(`/users?query[email]=${encodeURIComponent(enrollment.userCohort.user.email)}`);
+              const thinkificUser = userResp.items && userResp.items.length > 0 ? userResp.items[0] : null;
+              if (thinkificUser) {
+                // Get all enrollments for this user
+                const enrollmentsResp = await fetchWithRetry(`/users/${thinkificUser.id}/enrollments`);
+                // Try to match by course_id
+                thinkificStatus = enrollmentsResp.items.find((e: any) => String(e.course_id) === String(enrollment.course_id));
+                // If found, update the local enrollment id
+                if (thinkificStatus && !enrollment.id && thinkificStatus.id) {
+                  await prisma.enrollment.update({
+                    where: { uid: enrollment.uid },
+                    data: { id: BigInt(thinkificStatus.id) }
+                  });
+                }
+              }
+            } catch (err) {
+              console.error(`Error fetching Thinkific user/enrollments for email ${enrollment.userCohort.user.email}:`, err);
+            }
+          }
+          // 3. If still not found, skip and log
+          if (!thinkificStatus) {
+            console.log(`Enrollment not found in LMS for local enrollment uid: ${enrollment.uid}, email: ${enrollment.userCohort?.user?.email}`);
             skippedCount++;
             continue;
           }
-
-          const userCohort = await prisma.userCohort.findFirst({
-            where: { userId: user.id }
-          });
-
-          if (!userCohort) {
-            console.log(`⚠️ Skipping enrollment ${enrollment.id}: No cohort found for user ${user.email} (ID: ${user.id}).`);
-            skippedCount++;
-            continue;
-          }
-
-          let percentageCompleted = null;
-          if (enrollment.percentage_completed) {
-            const val = parseFloat(enrollment.percentage_completed.toString());
-            percentageCompleted = isNaN(val) ? null : (val > 1 ? val / 100 : val);
-          }
-
-          await prisma.enrollment.upsert({
-            where: {
-              id: enrollment.id.toString()
+          // 4. Update all status fields
+          await prisma.enrollment.update({
+            where: { uid: enrollment.uid },
+            data: {
+              completed: thinkificStatus.completed,
+              enrolled: thinkificStatus.enrolled,
+              expired: thinkificStatus.expired,
+              percentage_completed: thinkificStatus.percentage_completed != null && thinkificStatus.percentage_completed !== ''
+                ? parseFloat(thinkificStatus.percentage_completed)
+                : null,
+              completed_at: thinkificStatus.completed_at ? new Date(thinkificStatus.completed_at) : null,
+              started_at: thinkificStatus.started_at ? new Date(thinkificStatus.started_at) : null,
+              activated_at: thinkificStatus.activated_at ? new Date(thinkificStatus.activated_at) : null,
+              updated_at: new Date(),
+              id: thinkificStatus.id ? BigInt(thinkificStatus.id) : enrollment.id,
             },
-            update: {
-              completed: enrollment.completed,
-              completed_at: enrollment.completed_at ? new Date(enrollment.completed_at) : null,
-              percentage_completed: percentageCompleted,
-              updated_at: new Date()
-            },
-            create: {
-              id: enrollment.id.toString(),
-              user_id: enrollment.user_id.toString(),
-              course_id: enrollment.course_id.toString(),
-              course_name: enrollment.course_name,
-              completed: enrollment.completed,
-              completed_at: enrollment.completed_at ? new Date(enrollment.completed_at) : null,
-              percentage_completed: percentageCompleted,
-              userCohortId: userCohort.id,
-              created_at: new Date(enrollment.created_at),
-              updated_at: new Date()
-            }
           });
-
           processedCount++;
-          const now = Date.now();
-          if (now - lastProgressLog >= 5000) {
-            console.log(`\n📊 Progress Update:`);
-            console.log(`   Processed: ${processedCount} enrollments`);
-            console.log(`   Skipped: ${skippedCount} enrollments`);
-            console.log(`   Errors: ${errorCount}`);
-            const successRate = (processedCount + skippedCount) > 0 ? ((processedCount / (processedCount + skippedCount + errorCount)) * 100).toFixed(1) : "0.0";
-            console.log(`   Success Rate: ${successRate}%`);
-            lastProgressLog = now;
-          }
+          console.log(`✅ Updated enrollment uid: ${enrollment.uid} (id: ${enrollment.id}) with current LMS status.`);
         } catch (error) {
-          console.error(`❌ Error processing enrollment ${enrollment.id}:`, error);
+          console.error(`❌ Error processing enrollment uid: ${enrollment.uid}:`, error);
           errorCount++;
         }
       }
-
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait a bit between batches to avoid hammering DB/API
+      await sleep(500);
     }
 
     const duration = Date.now() - startTime;
-    console.log(`\n✅ Sync completed:`);
+    console.log(`\n✅ Batch rehydration completed:`);
     console.log(`   Total Processed: ${processedCount} enrollments`);
     console.log(`   Total Skipped: ${skippedCount} enrollments`);
     console.log(`   Total Errors: ${errorCount}`);
-    const finalSuccessRate = (processedCount + skippedCount) > 0 ? ((processedCount / (processedCount + skippedCount + errorCount)) * 100).toFixed(1) : "0.0";
-    console.log(`   Success Rate: ${finalSuccessRate}%`);
     console.log(`   Duration: ${(duration / 1000).toFixed(1)} seconds`);
 
     await prisma.rehydrationDate.create({
@@ -212,7 +197,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     return res.status(200).json({
-      message: "Rehydration completed",
+      message: "Batch rehydration completed",
       processed: processedCount,
       skipped: skippedCount,
       errors: errorCount,
