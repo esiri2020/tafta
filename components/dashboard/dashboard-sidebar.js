@@ -79,6 +79,21 @@ const getSupportSections = userId => [
           },
         ],
       },
+      {
+        title: 'Notifications',
+        path: '/admin-dashboard/notifications',
+        icon: <NotificationsIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Notification Overview',
+            path: '/admin-dashboard/notifications',
+          },
+          {
+            title: 'Cohort Alerts',
+            path: '/admin-dashboard/notifications/alerts',
+          },
+        ],
+      },
     ],
   },
 
@@ -189,21 +204,21 @@ const getAdminSelection = userId => [
           },
         ],
       },
-      {
-        title: 'Cohorts',
-        path: '/admin-dashboard/cohorts',
-        icon: <LanIcon fontSize='small' />,
-        children: [
-          {
-            title: 'View Cohorts',
-            path: '/admin-dashboard/cohorts',
-          },
-          {
-            title: 'Create Cohorts',
-            path: '/admin-dashboard/cohorts/create',
-          },
-        ],
-      },
+      // {
+      //   title: 'Cohorts',
+      //   path: '/admin-dashboard/cohorts',
+      //   icon: <LanIcon fontSize='small' />,
+      //   children: [
+      //     {
+      //       title: 'View Cohorts',
+      //       path: '/admin-dashboard/cohorts',
+      //     },
+      //     {
+      //       title: 'Create Cohorts',
+      //       path: '/admin-dashboard/cohorts/create',
+      //     },
+      //   ],
+      // },
       {
         title: 'Notifications',
         path: '/admin-dashboard/notifications',
@@ -213,31 +228,35 @@ const getAdminSelection = userId => [
             title: 'Notification Overview',
             path: '/admin-dashboard/notifications',
           },
+          {
+            title: 'Cohort Alerts',
+            path: '/admin-dashboard/notifications/alerts',
+          },
         ],
       },
     ],
   },
 
-  {
-    title: 'Scheduler',
-    items: [
-      {
-        title: 'Bookings ',
-        path: '/admin-dashboard/scheduler',
-        icon: <ChairAltIcon fontSize='small' />,
-        children: [
-          {
-            title: 'Manage Bookings',
-            path: '/admin-dashboard/scheduler',
-          },
-          {
-            title: 'Book a Seat',
-            path: '/admin-dashboard/scheduler/book-a-seat',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Scheduler',
+  //   items: [
+  //     {
+  //       title: 'Bookings ',
+  //       path: '/admin-dashboard/scheduler',
+  //       icon: <ChairAltIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'Manage Bookings',
+  //           path: '/admin-dashboard/scheduler',
+  //         },
+  //         {
+  //           title: 'Book a Seat',
+  //           path: '/admin-dashboard/scheduler/book-a-seat',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Manage Support',
     items: [
@@ -248,26 +267,26 @@ const getAdminSelection = userId => [
       },
     ],
   },
-  {
-    title: 'Manage Users',
-    items: [
-      {
-        title: 'Users',
-        path: '/admin-dashboard/users',
-        icon: <UsersIcon fontSize='small' />,
-        children: [
-          {
-            title: 'View Users',
-            path: '/admin-dashboard/users/',
-          },
-          {
-            title: 'Create Users',
-            path: '/admin-dashboard/users/create-user',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Manage Users',
+  //   items: [
+  //     {
+  //       title: 'Users',
+  //       path: '/admin-dashboard/users',
+  //       icon: <UsersIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'View Users',
+  //           path: '/admin-dashboard/users/',
+  //         },
+  //         {
+  //           title: 'Create Users',
+  //           path: '/admin-dashboard/users/create-user',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Account',
     items: [
@@ -466,16 +485,27 @@ const getGuestSections = userId => [
         ],
       },
       {
-        title: 'Cohorts',
-        path: '/admin-dashboard/cohorts',
-        icon: <LanIcon fontSize='small' />,
+        title: 'Notifications',
+        path: '/admin-dashboard/notifications',
+        icon: <NotificationsIcon fontSize='small' />,
         children: [
           {
-            title: 'View Cohorts',
-            path: '/admin-dashboard/cohorts',
+            title: 'Notification Overview',
+            path: '/admin-dashboard/notifications',
           },
         ],
       },
+      // {
+      //   title: 'Cohorts',
+      //   path: '/admin-dashboard/cohorts',
+      //   icon: <LanIcon fontSize='small' />,
+      //   children: [
+      //     {
+      //       title: 'View Cohorts',
+      //       path: '/admin-dashboard/cohorts',
+      //     },
+      //   ],
+      // },
     ],
   },
   {

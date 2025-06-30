@@ -531,3 +531,14 @@ enum StaffAlertType {
   WARNING
   ALERT
 }
+
+model RehydrationProgress {
+  id                String   @id @default(cuid())
+  cohortId          String   // The cohort being processed
+  lastUpdatedAt     DateTime // The updated_at of the last processed enrollment
+  lastEnrollmentUid String   // The uid of the last processed enrollment (for tie-breaker)
+  cycle             Int      // The current rehydration cycle
+  lastCycleDate     DateTime // When the last full cycle completed
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

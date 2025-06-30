@@ -62,6 +62,22 @@ export const LGAs = {
       'Karaye',
       'Kunchi',
     ],
+    Group6: [
+      'Kumbotso',
+      'Gaya',
+      'Albasu',
+      'Gabasawa',
+      'Dawakin kudu',
+      'Minjibir',
+      'Tofa',
+      'Kura',
+      'Warawa',
+      'Tudun wada',
+      'Takai',
+      'Doguwa',
+      'Garko',
+      'Bagwai',
+    ],
   },
 };
 
