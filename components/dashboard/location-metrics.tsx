@@ -61,7 +61,7 @@ export const LocationMetrics: React.FC<LocationMetricsProps> = ({ data }) => {
                 ))}
                 <div className="pt-2 border-t">
                   <div className="text-sm font-medium">
-                    Total Enrollments: {formatNumber(state.total)}
+                    Total Completed: {formatNumber(state.total)}
                   </div>
                 </div>
               </div>
