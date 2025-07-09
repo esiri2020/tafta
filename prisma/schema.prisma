@@ -238,10 +238,17 @@ model Report {
 model RehydrationDate {
   id               String   @id @default(cuid())
   created_at       DateTime @default(now())
-  enrollment_count Int
+  enrollment_count Int?
   duration         Int?
   error            String?
   status           String   @default("completed")
+}
+
+model RehydrationProgress {
+  id                String   @id @default(cuid())
+  lastPageProcessed Int?
+  totalPages        Int?
+  updatedAt         DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -530,15 +537,4 @@ enum StaffAlertType {
   INFO
   WARNING
   ALERT
-}
-
-model RehydrationProgress {
-  id                String   @id @default(cuid())
-  cohortId          String   // The cohort being processed
-  lastUpdatedAt     DateTime // The updated_at of the last processed enrollment
-  lastEnrollmentUid String   // The uid of the last processed enrollment (for tie-breaker)
-  cycle             Int      // The current rehydration cycle
-  lastCycleDate     DateTime // When the last full cycle completed
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
 }

@@ -33,161 +33,124 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (req.method === 'GET') {
     try {
-      const limit = 100000
-      const last_date = await prisma.rehydrationDate.findFirst({
-        orderBy: {
-          created_at: 'desc'
-        }
-      })
-      // const { data: _data } = await api.get('/enrollments?limit=1')
-      const { data } = await api.get(`/enrollments?limit=${limit}&query[updated_after]=${
-        last_date?.created_at? 
-        last_date.created_at.toISOString().split('T')[0] : '2023-05-01'}T00:00:00Z`)
+      const isLocal = process.env.NODE_ENV !== 'production';
+      const BATCH_PAGE_LIMIT = isLocal ? 5000 : 10;
+      const ENTRIES_PER_PAGE = 25;
+      // First, get totalPages from the API
+      const firstPageResp = await api.get(`/enrollments?page=1&limit=${ENTRIES_PER_PAGE}`);
+      const totalPages = firstPageResp.data.meta.pagination.total_pages;
+      // Determine where to start (from last page backwards)
+      let lastProgress = await prisma.rehydrationProgress.findFirst({
+        orderBy: { updatedAt: 'desc' }
+      });
+      let startPage = lastProgress?.lastPageProcessed ? lastProgress.lastPageProcessed - 1 : totalPages;
+      let currentPage = startPage;
+      let processedEnrollments = 0;
+      let processedPages = 0;
+      let allEnrollments: any[] = [];
+      let stopEarly = false;
+      const progressId = 'rehydration-main';
 
-      const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase())
-      const users = await prisma.user.findMany({
-        where: {
-          email: { in: userEmails }
-        },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          thinkific_user_id: true,
-          userCohort: {
-            select: {
-              id: true
-            }
+      for (let i = 0; i < BATCH_PAGE_LIMIT && currentPage > 0; i++) {
+        const { data } = await api.get(`/enrollments?page=${currentPage}&limit=${ENTRIES_PER_PAGE}`);
+        const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase());
+        const users = await prisma.user.findMany({
+          where: { email: { in: userEmails } },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            thinkific_user_id: true,
+            userCohort: { select: { id: true } }
           }
-        }
-      })
-
-      const user_list: Promise<User>[] = []
-
-      const enrollments: Enrollment[] = await data.items.map(async (item: Data) => {
-        let { user_email, user_name, ...data } = item
-        user_email = user_email.toLowerCase()
-        const user = users.find((user) => user.email === user_email)
-        if (!user) {
-          console.warn('No User: ' + user_email);
-          return;
-        }
-        if (user.role !== "APPLICANT") return;
-        const userCohortId = user.userCohort.at(-1)?.id
-        if (!userCohortId) {
-          console.error(`User ${user.email} has no cohort`)
-          return
-        }
-        if (user.thinkific_user_id === null) {
-          const updated_user = prisma.user.update({
-            where: { id: user.id },
-            data: {
-              thinkific_user_id: `${item.user_id}`
-            }
-          })
-          user_list.push(updated_user)
-        }
-        if (data.percentage_completed) {
-          data.percentage_completed = parseFloat(data.percentage_completed)
-        }
-        const enrollment = await prisma.enrollment.upsert({
-          where: {
-            id: data.id
-          },
-          update: {
-            enrolled: true,
-            ...data,
-            userCohort: {
-              connect: { id: userCohortId }
-            }
-          },
-          create: {
-            enrolled: true,
-            ...data,
-            userCohort: {
-              connect: { id: userCohortId }
-            }
+        });
+        const user_list: Promise<User>[] = [];
+        const enrollments: Enrollment[] = await Promise.all(data.items.map(async (item: Data) => {
+          let { user_email, user_name, ...enrollmentData } = item;
+          user_email = user_email.toLowerCase();
+          const user = users.find((user) => user.email.toLowerCase() === user_email);
+          if (!user) {
+            console.warn('No User: ' + user_email);
+            return;
           }
-        })
-        return enrollment
-      })
-
-      if (user_list.length > 0) {
-        await Promise.allSettled(user_list)
+          if (user.role !== "APPLICANT") return;
+          const userCohortId = user.userCohort.at(-1)?.id;
+          if (!userCohortId) {
+            console.error(`User ${user.email} has no cohort`);
+            return;
+          }
+          if (user.thinkific_user_id === null) {
+            const updated_user = prisma.user.update({
+              where: { id: user.id },
+              data: { thinkific_user_id: `${item.user_id}` }
+            });
+            user_list.push(updated_user);
+          }
+          if (enrollmentData.percentage_completed) {
+            enrollmentData.percentage_completed = parseFloat(enrollmentData.percentage_completed);
+          }
+          const enrollment = await prisma.enrollment.upsert({
+            where: { id: enrollmentData.id },
+            update: {
+              enrolled: true,
+              ...enrollmentData,
+              userCohort: { connect: { id: userCohortId } }
+            },
+            create: {
+              enrolled: true,
+              ...enrollmentData,
+              userCohort: { connect: { id: userCohortId } }
+            }
+          });
+          // Debug log for each enrollment
+          console.log(`Upserted enrollment for user: ${user_email}, enrollment id: ${enrollmentData.id}, completed: ${enrollmentData.completed}, completed_at: ${enrollmentData.completed_at}`);
+          return enrollment;
+        }));
+        if (user_list.length > 0) {
+          await Promise.allSettled(user_list);
+        }
+        allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
+        processedEnrollments += enrollments.filter(Boolean).length;
+        processedPages++;
+        console.log(`Processed page ${currentPage} of ${totalPages}`);
+        await prisma.rehydrationProgress.upsert({
+          where: { id: progressId },
+          update: { lastPageProcessed: currentPage, updatedAt: new Date(), totalPages },
+          create: { id: progressId, lastPageProcessed: currentPage, updatedAt: new Date(), totalPages }
+        });
+        if (currentPage === 1) {
+          stopEarly = true;
+          break;
+        }
+        currentPage--;
       }
-
-      // asyncForEach(data.items, async (item: Data) => {
-      //     let { user_email, user_name, ...data } = item
-      //     user_email = user_email.toLowerCase()
-      //     if (!userEmails.includes(user_email)) {
-      //         console.warn('No User: ' + user_email);
-      //         return;
-      //     }
-      //     const user = await prisma.user.findUnique({
-      //         where: {
-      //             email: user_email
-      //         },
-      //         include: {
-      //             userCohort: true
-      //         }
-      //     })
-      //     if (!user) {
-      //         console.warn('No User: ' + user_email);
-      //         return;
-      //     }
-      //     if (user.role != "APPLICANT") return;
-      //     const userCohortId = user.userCohort.pop()?.id
-      //     if (!userCohortId) {
-      //         console.error(`User ${user.email} has no cohort`)
-      //         return
-      //     }
-      //     if (user.thinkific_user_id === null) {
-      //         const updated_user = prisma.user.update({
-      //             where: { id: user.id },
-      //             data: {
-      //                 thinkific_user_id: `${item.user_id}`
-      //             }
-      //         })
-      //         user_list.push(updated_user)
-      //     }
-      //     if (data.percentage_completed) {
-      //         data.percentage_completed = parseFloat(data.percentage_completed)
-      //     }
-      //     const enrollment = prisma.enrollment.upsert({
-      //         where: {
-      //             id: data.id
-      //         },
-      //         update: {
-      //             enrolled: true,
-      //             ...data,
-      //         },
-      //         create: {
-      //             userCohortId: userCohortId,
-      //             enrolled: true,
-      //             ...data
-      //         }
-      //     })
-
-      //     enrollment_list.push(enrollment)
-      // }).then(async (result) => {
-      //     const enrollment_result = await Promise.allSettled(enrollment_list)
-      //     const user_result = await Promise.allSettled(user_list)
-      // }).catch(err => {
-      //     console.error(err)
-      //     return res.send(err.message)
-      // })
-      const date = await prisma.rehydrationDate.create({
-        data: {
-          enrollment_count: enrollments.length
-        }
-      })
-      
-      return res.send({ message: 'Synchronizing', count: enrollments.length })
+      await prisma.rehydrationDate.create({
+        data: { enrollment_count: processedEnrollments }
+      });
+      if (stopEarly || currentPage <= 0) {
+        await prisma.rehydrationProgress.deleteMany({});
+        console.log('All pages processed. Progress reset.');
+      }
+      return res.status(200).json({
+        message: 'Batch synchronizing',
+        processedPages,
+        processedEnrollments,
+        lastPageProcessed: currentPage,
+        totalPages,
+        done: stopEarly || currentPage <= 0
+      });
     } catch (err) {
-      console.error(err)
-      return res.send(err instanceof Error ? err.message : 'An unknown error occurred')
+      console.error('Rehydration error:', err);
+      return res.status(500).json({
+        message: err instanceof Error ? err.message : 'An error occurred',
+        error: true
+      });
     }
   }
 }
