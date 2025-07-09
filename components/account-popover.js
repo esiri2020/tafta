@@ -25,10 +25,7 @@ export const AccountPopover = (props) => {
     }
 
     try {
-      signOut();
-      Router
-        .push('/login')
-        .catch(console.error);
+      signOut({ callbackUrl: '/login' });
     } catch (err) {
       console.error(err);
     }

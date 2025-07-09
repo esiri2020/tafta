@@ -35,10 +35,7 @@ export const MainSidebar = (props) => {
 
     const handleSignout = () => {
       try {
-        signOut();
-        Router
-          .replace('/')
-          .catch(console.error);
+        signOut({ callbackUrl: '/login' });
       } catch (err) {
         console.error(err);
       }

@@ -1,6 +1,8 @@
 {
-  "crons": [{
-    "path": "/api/rehydrate",
-    "schedule": "*/5 * * * *"
-  }]
+  "crons": [
+    {
+      "path": "/api/rehydrate",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 } 

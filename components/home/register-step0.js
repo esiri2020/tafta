@@ -1,11 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
-import { Container, Card, CardContent, Grid, Paper, Box, Button, Checkbox, FormHelperText, Link, TextField, Typography } from '@mui/material';
+import { Container, Card, CardContent, Grid, Paper, Box, Button, Checkbox, FormHelperText, Link, TextField, Typography, InputAdornment, IconButton } from '@mui/material';
 import { useCreateApplicantMutation } from '../../services/api'
 import { signIn } from 'next-auth/react';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 
 export const RegisterStep = ({ handlers, ...other }) => {
@@ -15,6 +16,8 @@ export const RegisterStep = ({ handlers, ...other }) => {
   const [createApplicant, result] = useCreateApplicantMutation()
   const router = useRouter();
   const { cohortId, userId } = router.query
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   if (!userId) {
     if (!cohortId) {
       if (typeof window === "undefined") return null;
@@ -207,11 +210,23 @@ export const RegisterStep = ({ handlers, ...other }) => {
                     helperText={formik.touched.password && formik.errors.password}
                     label="Password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     onBlur={formik.handleBlur}
                     onChange={formik.handleChange}
                     required
                     value={formik.values.password}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <Visibility /> : <VisibilityOff />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
                   />
                 </Grid>
                 <Grid
@@ -225,11 +240,23 @@ export const RegisterStep = ({ handlers, ...other }) => {
                     helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
                     label="Confirm Password"
                     name="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     onBlur={formik.handleBlur}
                     onChange={formik.handleChange}
                     required
                     value={formik.values.confirmPassword}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            edge="end"
+                          >
+                            {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
                   />
                 </Grid>
 

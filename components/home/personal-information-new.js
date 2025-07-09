@@ -28,6 +28,7 @@ import {cn} from '@/lib/utils';
 import {format} from 'date-fns';
 import {CalendarIcon} from 'lucide-react';
 import {Label} from '@/components/ui/label';
+import { signIn, useSession } from 'next-auth/react';
 
 const nigeria_states = ['Kano', 'Lagos', 'Ogun'];
 
@@ -553,7 +554,6 @@ export const PersonalInformation = ({
           employmentStatus: applicant?.profile?.employmentStatus || '',
           selfEmployedType: applicant?.profile?.selfEmployedType || '',
           residencyStatus: applicant?.profile?.residencyStatus || '',
-          registrationMode: applicant.profile?.registrationMode || 'online',
           talpParticipation: applicant.profile?.talpParticipation === true,
           talpType: applicant.profile?.talpType || '',
           talpOther: applicant.profile?.talpOther || '',
@@ -589,7 +589,6 @@ export const PersonalInformation = ({
           employmentStatus: '',
           residencyStatus: '',
           selfEmployedType: '',
-          registrationMode: 'online',
           talpParticipation: false,
           talpType: '',
           talpOther: '',
@@ -676,7 +675,6 @@ export const PersonalInformation = ({
           talpOther,
           jobReadiness,
           businessSupport,
-          registrationMode,
           businessSize,
           businessPartners,
           companyPhoneNumber,
@@ -742,14 +740,6 @@ export const PersonalInformation = ({
           talpOther,
           jobReadiness,
           businessSupport,
-          registrationMode,
-          // Add course selection fields
-          selectedCourse,
-          cohortId,
-          selectedCourseName,
-          selectedCourseId,
-          businessSupportNeeds,
-          businessType,
           businessSize,
           businessPartners,
           companyPhoneNumber,
@@ -1372,34 +1362,6 @@ export const PersonalInformation = ({
                     />
                   )}
                 />
-              </Grid>
-
-              {/* Registration Mode - Learning Train vs Online */}
-              <Grid item md={6} xs={12}>
-                <Typography sx={{ml: 2}} variant='p'>
-                  Registration Mode
-                </Typography>
-                <Grid sx={{ml: 2}}>
-                  <RadioGroup
-                    name='registrationMode'
-                    sx={{flexDirection: 'row'}}
-                    value={formik.values.registrationMode}
-                    onChange={formik.handleChange}
-                    required>
-                    <FormControlLabel
-                      control={<Radio sx={{ml: 1}} />}
-                      label={<Typography variant='body1'>Online</Typography>}
-                      value='online'
-                    />
-                    <FormControlLabel
-                      control={<Radio sx={{ml: 1}} />}
-                      label={
-                        <Typography variant='body1'>Learning Train</Typography>
-                      }
-                      value='learning_train'
-                    />
-                  </RadioGroup>
-                </Grid>
               </Grid>
 
               {/* TALP Participation */}
@@ -2265,32 +2227,76 @@ export const MoreInformation = ({
   );
 };
 
-export const VerifyEmail = () => (
-  <Box>
-    <Card>
-      <CardContent
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-        }}>
-        <Typography
-          variant='h5'
-          align='center'
+export const VerifyEmail = ({ email: propEmail, onBack }) => {
+  const { data: session } = useSession();
+  const [resendStatus, setResendStatus] = useState('');
+  const router = useRouter();
+  // Always get the email from props, session, or sessionStorage
+  let email = propEmail || (session?.userData?.email ?? session?.user?.email ?? '');
+  if (!email && typeof window !== 'undefined') {
+    email = sessionStorage.getItem('email') || '';
+  }
+  console.log('VerifyEmail session:', session);
+  console.log('VerifyEmail resolved email:', email);
+
+  const handleResend = async () => {
+    setResendStatus('Sending...');
+    console.log('Resend clicked, email:', email);
+    try {
+      const result = await signIn('email', {
+        redirect: false,
+        callbackUrl: '/verify-email?resend=true',
+        email,
+      });
+      console.log('signIn result:', result);
+      setResendStatus('A new verification email has been sent. Please use the most recent link.');
+    } catch (err) {
+      setResendStatus('Failed to resend. Please try again.');
+      console.error('Resend error:', err);
+    }
+  };
+
+  return (
+    <Box>
+      <Card>
+        <CardContent
           sx={{
-            marginBottom: '50px',
-            padding: '50px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}>
-          Dear Applicant, <br /> Thank you, your registration was successful,{' '}
-          <br />
-          <br /> However, you're not there yet.
-          <br /> To complete your registration, Please check your email to
-          verify your account.
-        </Typography>
-      </CardContent>
-    </Card>
-  </Box>
-);
+          <Typography
+            variant='h5'
+            align='center'
+            sx={{
+              marginBottom: '30px',
+              padding: '30px',
+            }}>
+            <span role="img" aria-label="success">🎉</span> <br />
+            Dear Applicant,<br />
+            <b>{email}</b><br /><br />
+            Your registration was <b>successful!</b> <br />
+            A verification email was sent to <b>{email}</b>.<br /><br />
+            <span style={{ color: '#888', fontSize: '0.95em' }}>
+              If this is not your correct email, please go back and update it.
+            </span>
+          </Typography>
+          <Button variant="outlined" onClick={handleResend} sx={{ mt: 2 }}>
+            Resend Verification Email
+          </Button>
+          {resendStatus && (
+            <Typography align="center" sx={{ mt: 1 }} color="primary">
+              {resendStatus}
+            </Typography>
+          )}
+          <Button variant="text" onClick={() => router.replace('/register-new?step=1')} sx={{ mt: 2 }}>
+            Back
+          </Button>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
 
 export const EndOfApplication = () => (
   <Box>

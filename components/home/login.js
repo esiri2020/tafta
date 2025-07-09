@@ -1,13 +1,16 @@
 import { useRouter } from 'next/router';
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
-import { Typography, Box, Button, FormHelperText, TextField } from '@mui/material';
+import { Typography, Box, Button, FormHelperText, TextField, InputAdornment, IconButton } from '@mui/material';
 import toast from 'react-hot-toast';
 import { signIn } from 'next-auth/react';
 import NextLink from 'next/link';
+import { useState } from 'react';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 export const LoginScout = ({providers, csrfToken, ...others}) => {
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
   const formik = useFormik({
     initialValues: {
       email: '',
@@ -73,7 +76,7 @@ export const LoginScout = ({providers, csrfToken, ...others}) => {
         >
             <img
                 alt="tafta logo"
-                ahref="/"
+                ahref="https://terraacademyforarts.com/"
                 style={{margin:"20px 0px"}}
                 src="/static/images/logo.svg"
             />
@@ -106,8 +109,20 @@ export const LoginScout = ({providers, csrfToken, ...others}) => {
             name="password"
             onBlur={formik.handleBlur}
             onChange={formik.handleChange}
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={formik.values.password}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <Visibility /> : <VisibilityOff />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
         />
         {formik.errors.submit && (
             <Box sx={{ mt: 3 }}>

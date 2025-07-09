@@ -1,14 +1,18 @@
 import { useRouter } from 'next/router';
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
-import { Box, Button, FormHelperText, TextField } from '@mui/material';
+import { Box, Button, FormHelperText, TextField, InputAdornment, IconButton } from '@mui/material';
 import { useResetPasswordMutation } from '../../services/api'
 import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 
 export const ResetPasswordForm = () => {
   const router = useRouter();
   const [resetPassword, result] = useResetPasswordMutation()
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const formik = useFormik({
     initialValues: {
       password: '',
@@ -56,8 +60,20 @@ export const ResetPasswordForm = () => {
           name="password"
           onBlur={formik.handleBlur}
           onChange={formik.handleChange}
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           value={formik.values.password}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
+                >
+                  {showPassword ? <Visibility /> : <VisibilityOff />}
+                </IconButton>
+              </InputAdornment>
+            )
+          }}
         />
         <TextField
           error={Boolean(formik.touched.confirmPassword && formik.errors.confirmPassword)}
@@ -68,8 +84,20 @@ export const ResetPasswordForm = () => {
           name="confirmPassword"
           onBlur={formik.handleBlur}
           onChange={formik.handleChange}
-          type="password"
+          type={showConfirmPassword ? 'text' : 'password'}
           value={formik.values.confirmPassword}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  edge="end"
+                >
+                  {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
+                </IconButton>
+              </InputAdornment>
+            )
+          }}
         />
         {formik.errors.submit && (
           <Box sx={{ mt: 3 }}>

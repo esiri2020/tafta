@@ -5,7 +5,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../lib/prismadb';
 import {PrismaClientKnownRequestError} from '@prisma/client/runtime/library';
 
-type Role = 'ADMIN' | 'APPLICANT' | 'SUPERADMIN' | 'SUPPORT' | 'USER';
+type Role = 'ADMIN' | 'APPLICANT' | 'SUPERADMIN' | 'SUPPORT' | 'USER' | 'GUEST';
 type RegistrationType = 'INDIVIDUAL' | 'ORGANIZATION' | 'ENTERPRISE';
 
 // Define our own types based on the schema

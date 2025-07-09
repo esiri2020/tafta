@@ -79,6 +79,21 @@ const getSupportSections = userId => [
           },
         ],
       },
+      {
+        title: 'Notifications',
+        path: '/admin-dashboard/notifications',
+        icon: <NotificationsIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Notification Overview',
+            path: '/admin-dashboard/notifications',
+          },
+          {
+            title: 'Cohort Alerts',
+            path: '/admin-dashboard/notifications/alerts',
+          },
+        ],
+      },
     ],
   },
 
@@ -189,21 +204,21 @@ const getAdminSelection = userId => [
           },
         ],
       },
-      {
-        title: 'Cohorts',
-        path: '/admin-dashboard/cohorts',
-        icon: <LanIcon fontSize='small' />,
-        children: [
-          {
-            title: 'View Cohorts',
-            path: '/admin-dashboard/cohorts',
-          },
-          {
-            title: 'Create Cohorts',
-            path: '/admin-dashboard/cohorts/create',
-          },
-        ],
-      },
+      // {
+      //   title: 'Cohorts',
+      //   path: '/admin-dashboard/cohorts',
+      //   icon: <LanIcon fontSize='small' />,
+      //   children: [
+      //     {
+      //       title: 'View Cohorts',
+      //       path: '/admin-dashboard/cohorts',
+      //     },
+      //     {
+      //       title: 'Create Cohorts',
+      //       path: '/admin-dashboard/cohorts/create',
+      //     },
+      //   ],
+      // },
       {
         title: 'Notifications',
         path: '/admin-dashboard/notifications',
@@ -213,31 +228,35 @@ const getAdminSelection = userId => [
             title: 'Notification Overview',
             path: '/admin-dashboard/notifications',
           },
+          {
+            title: 'Cohort Alerts',
+            path: '/admin-dashboard/notifications/alerts',
+          },
         ],
       },
     ],
   },
 
-  {
-    title: 'Scheduler',
-    items: [
-      {
-        title: 'Bookings ',
-        path: '/admin-dashboard/scheduler',
-        icon: <ChairAltIcon fontSize='small' />,
-        children: [
-          {
-            title: 'Manage Bookings',
-            path: '/admin-dashboard/scheduler',
-          },
-          {
-            title: 'Book a Seat',
-            path: '/admin-dashboard/scheduler/book-a-seat',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Scheduler',
+  //   items: [
+  //     {
+  //       title: 'Bookings ',
+  //       path: '/admin-dashboard/scheduler',
+  //       icon: <ChairAltIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'Manage Bookings',
+  //           path: '/admin-dashboard/scheduler',
+  //         },
+  //         {
+  //           title: 'Book a Seat',
+  //           path: '/admin-dashboard/scheduler/book-a-seat',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Manage Support',
     items: [
@@ -248,26 +267,26 @@ const getAdminSelection = userId => [
       },
     ],
   },
-  {
-    title: 'Manage Users',
-    items: [
-      {
-        title: 'Users',
-        path: '/admin-dashboard/users',
-        icon: <UsersIcon fontSize='small' />,
-        children: [
-          {
-            title: 'View Users',
-            path: '/admin-dashboard/users/',
-          },
-          {
-            title: 'Create Users',
-            path: '/admin-dashboard/users/create-user',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   title: 'Manage Users',
+  //   items: [
+  //     {
+  //       title: 'Users',
+  //       path: '/admin-dashboard/users',
+  //       icon: <UsersIcon fontSize='small' />,
+  //       children: [
+  //         {
+  //           title: 'View Users',
+  //           path: '/admin-dashboard/users/',
+  //         },
+  //         {
+  //           title: 'Create Users',
+  //           path: '/admin-dashboard/users/create-user',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Account',
     items: [
@@ -420,6 +439,87 @@ const getSuperAdminSections = userId => [
   },
 ];
 
+const getGuestSections = userId => [
+  {
+    title: 'General',
+    items: [
+      {
+        title: 'Dashboard',
+        path: '/admin-dashboard',
+        icon: <HomeIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Enrollment Overview',
+            path: '/admin-dashboard',
+          },
+          {
+            title: 'View All Enrollments',
+            path: '/admin-dashboard/enrollments',
+          },
+        ],
+      },
+      {
+        title: 'Applicants',
+        path: '/admin-dashboard/applicants',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'View All Applicants',
+            path: '/admin-dashboard/applicants',
+          },
+          {
+            title: 'Applicants Overview',
+            path: '/admin-dashboard/applicants/overview',
+          },
+        ],
+      },
+      {
+        title: 'Assessment',
+        path: '/admin-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Assessment Overview',
+            path: '/admin-dashboard/assessment/overview',
+          },
+        ],
+      },
+      {
+        title: 'Notifications',
+        path: '/admin-dashboard/notifications',
+        icon: <NotificationsIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Notification Overview',
+            path: '/admin-dashboard/notifications',
+          },
+        ],
+      },
+      // {
+      //   title: 'Cohorts',
+      //   path: '/admin-dashboard/cohorts',
+      //   icon: <LanIcon fontSize='small' />,
+      //   children: [
+      //     {
+      //       title: 'View Cohorts',
+      //       path: '/admin-dashboard/cohorts',
+      //     },
+      //   ],
+      // },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      {
+        title: 'Profile',
+        path: `/admin-dashboard/profile/${userId}`,
+        icon: <UserCircleIcon fontSize='small' />,
+      },
+    ],
+  },
+];
+
 export const DashboardSidebar = props => {
   const {onClose, open} = props;
   const {data: session, status} = useSession();
@@ -434,6 +534,8 @@ export const DashboardSidebar = props => {
       ? getAdminSelection(session.userData.userId)
       : session?.userData?.role === 'SUPPORT'
       ? getSupportSections(session.userData.userId)
+      : session?.userData?.role === 'GUEST'
+      ? getGuestSections(session.userData.userId)
       : [];
   const cohortRef = useRef(null);
   const [cohort, setSelectedCohort] = useState(null);
@@ -539,7 +641,7 @@ export const DashboardSidebar = props => {
           }}>
           <div>
             <Box sx={{p: 3}}>
-              <NextLink href='/' passHref>
+              <NextLink href='https://terraacademyforarts.com/' passHref>
                 <a>
                   <Box
                     sx={{
@@ -553,7 +655,7 @@ export const DashboardSidebar = props => {
                     }}>
                     <img
                       alt='tafta logo'
-                      ahref='/'
+                      ahref='https://terraacademyforarts.com/'
                       style={{margin: '20px 0px'}}
                       src='/static/images/logo.svg'
                     />

@@ -13,7 +13,7 @@ export default async function handler(
       })
     }
     const userRole = token.userData?.role || '';
-    if (!['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)) {
+    if (!['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST'].includes(userRole)) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 

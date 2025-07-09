@@ -1,6 +1,6 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 import {getToken} from 'next-auth/jwt';
-import prisma from '../../lib/prismadb';
+import {prisma} from '@/lib/prisma'; // Standardize Prisma import
 
 // Add helper function to handle BigInt serialization
 function bigintToNumber(value: any): any {
@@ -63,7 +63,7 @@ export default async function handler(
 
     const userRole = token.userData.role || '';
     if (
-      !['SUPERADMIN', 'ADMIN', 'SUPPORT'].includes(userRole)
+      !['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST'].includes(userRole)
     ) {
       return res.status(403).json({error: 'Unauthorized.'});
     }
@@ -213,7 +213,7 @@ export default async function handler(
       },
     });
 
-    // Define the age ranges in descending order
+    // Define the age ranges
     const ageRanges = [
       {min: 15, max: 19, label: '15-19'},
       {min: 20, max: 24, label: '20-24'},
@@ -227,31 +227,46 @@ export default async function handler(
       {min: 60, max: 64, label: '60-64'},
     ];
 
-    // Initialize an object to store the counts for each age group
-    const ageGroupCounts: Record<string, number> = {};
+    // Fetch age range counts from the database using groupBy
+    const ageRangeCountsRaw = await prisma.profile.groupBy({
+      by: ['ageRange'],
+      _count: {
+        ageRange: true,
+      },
+      where: {
+        user: {
+          userCohort: {
+            some: {
+              ...cohortFilter,
+            },
+          },
+        },
+      },
+    });
 
-    // Fetch profiles from the database
-    const profiles = await prisma.profile.findMany();
+    // Initialize an object to store the counts for each age group, ensuring all age ranges are present
+    const ageGroupCounts: Record<string, number> = ageRanges.reduce(
+      (acc: Record<string, number>, range) => {
+        acc[range.label] = 0;
+        return acc;
+      },
+      {},
+    );
 
-    profiles.forEach((profile: any) => {
-      const ageRange = profile.ageRange;
-      if (ageRange && ageRange.match(/^\d+\s*-\s*\d+$/)) {
-        // Extract the minimum and maximum ages from the 'ageRange' field
-        const [minAgeStr, maxAgeStr] = ageRange.split('-');
+    // Map the raw grouped data to the predefined age ranges
+    ageRangeCountsRaw.forEach(item => {
+      const ageRangeLabel = item.ageRange;
+      if (ageRangeLabel && ageRangeLabel.match(/^\d+\s*-\s*\d+$/)) {
+        const [minAgeStr, maxAgeStr] = ageRangeLabel.split('-');
         const minAge = Number.parseInt(minAgeStr.trim());
         const maxAge = Number.parseInt(maxAgeStr.trim());
 
-        // Find the corresponding age range
-        const ageRangeObj = ageRanges.find(
+        const matchedRange = ageRanges.find(
           range => minAge >= range.min && maxAge <= range.max,
         );
 
-        // If the age falls within one of the defined age ranges, increment the count
-        if (ageRangeObj) {
-          if (!ageGroupCounts[ageRangeObj.label]) {
-            ageGroupCounts[ageRangeObj.label] = 0;
-          }
-          ageGroupCounts[ageRangeObj.label]++;
+        if (matchedRange) {
+          ageGroupCounts[matchedRange.label] += item._count.ageRange;
         }
       }
     });
@@ -272,7 +287,7 @@ export default async function handler(
       })
       .reverse();
 
-    const locations = ['Kaduna', 'Lagos', 'Ogun'];
+    const locations = ['Kano', 'Lagos', 'Ogun'];
 
     const locationCounts = await Promise.all(
       locations.map(async location => {
@@ -510,23 +525,29 @@ export default async function handler(
     );
 
     // 6. Employment Status Distribution
-    const employmentStatusCounts: Record<string, number> = {};
+    const employmentStatusData = await prisma.profile.groupBy({
+      by: ['employmentStatus'],
+      _count: {
+        employmentStatus: true,
+      },
+      where: {
+        employmentStatus: {
+          not: null,
+        },
+        user: {
+          userCohort: {
+            some: {
+              ...cohortFilter,
+            },
+          },
+        },
+      },
+    });
 
-    for (const profile of profiles) {
-      if (profile.employmentStatus) {
-        if (!employmentStatusCounts[profile.employmentStatus]) {
-          employmentStatusCounts[profile.employmentStatus] = 0;
-        }
-        employmentStatusCounts[profile.employmentStatus]++;
-      }
-    }
-
-    const employmentStatusData = Object.entries(employmentStatusCounts).map(
-      ([status, count]) => ({
-        status,
-        count,
-      }),
-    );
+    const formattedEmploymentStatusData = employmentStatusData.map(item => ({
+      status: item.employmentStatus,
+      count: item._count.employmentStatus,
+    }));
 
     // 7. Course Enrollment Distribution
     const courseEnrollmentData = await prisma.enrollment.groupBy({
@@ -831,7 +852,7 @@ export default async function handler(
         size: item.size.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
         count: item.count.toString(),
       })),
-      employmentStatusData: employmentStatusData.map(item => ({
+      employmentStatusData: formattedEmploymentStatusData.map(item => ({
         status: item.status,
         count: item.count.toString(),
       })),

@@ -21,7 +21,7 @@ import {useEditUserMutation} from '../../../services/api';
 import {useState} from 'react';
 
 const genderList = ['MALE', 'FEMALE'];
-const roles = ['SUPERADMIN', 'ADMIN', 'SUPPORT', 'APPLICANT'];
+const roles = ['SUPERADMIN', 'ADMIN', 'SUPPORT', 'GUEST', 'APPLICANT'];
 const ranges = [
   [1, 5],
   [6, 10],

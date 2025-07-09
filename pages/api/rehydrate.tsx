@@ -2,60 +2,8 @@ import { getToken } from "next-auth/jwt"
 import api from "../../lib/axios.setup"
 import type { NextApiRequest, NextApiResponse } from "next"
 import prisma from "../../lib/prismadb"
-import { bigint_filter } from "./enrollments"
-
-type Role = 'ADMIN' | 'APPLICANT' | 'SUPERADMIN' | 'SUPPORT' | 'USER';
-type RegistrationType = 'INDIVIDUAL' | 'ENTERPRISE';
-
-// Define our own types based on the schema
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  firstName: string | null;
-  lastName: string | null;
-  middleName: string | null;
-  role: Role;
-  type: RegistrationType | null;
-  image: string | null;
-  emailVerified: Date | null;
-  createdAt: Date;
-  thinkific_user_id: string | null;
-  userCohort?: {
-    id: string;
-    name: string;
-    start_date: Date;
-    end_date: Date;
-    created_at: Date;
-    updated_at: Date;
-    enrollments?: {
-      course_name: string;
-      course_id: string;
-      enrolled: boolean;
-    }[];
-  } | null;
-  profile?: {
-    id: string;
-    user_id: string;
-    created_at: Date;
-    updated_at: Date;
-  } | null;
-}
-
-interface Enrollment {
-  id: number;
-  userCohortId: string;
-  enrolled: boolean;
-  percentage_completed: number | null;
-  expired: boolean;
-  is_free_trial: boolean;
-  completed: boolean;
-  started_at: Date | null;
-  activated_at: Date | null;
-  completed_at: Date | null;
-  updated_at: Date | null;
-  expiry_date: Date | null;
-}
+import { Enrollment, User } from "@prisma/client";
+import { bigint_filter } from "./enrollments";
 
 async function asyncForEach(array: any[], callback: (arg0: any, arg1: number, arg2: any) => any) {
   for (let index = 0; index < array.length; index++) {
@@ -81,55 +29,24 @@ interface Data {
   expiry_date: Date;
 }
 
-interface ThinkificUser {
-  email: string;
-  id: string;
-  role: Role;
-  userCohort: { id: string; }[];
-  thinkific_user_id: string | null;
-}
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Add cache control headers
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-
   if (req.method === 'GET') {
     try {
-      console.log('Starting rehydration process...');
-      
-      // Reduce the limit to prevent timeouts
-      const limit = 50;
+      const limit = 100000
       const last_date = await prisma.rehydrationDate.findFirst({
         orderBy: {
           created_at: 'desc'
         }
-      });
-      
-      console.log('Last rehydration date:', last_date?.created_at);
-      
-      // Force fresh data by adding a timestamp to the URL
-      const timestamp = new Date().getTime();
-      const { data } = await api.get(`/enrollments?limit=${limit}&_t=${timestamp}`);
+      })
+      // const { data: _data } = await api.get('/enrollments?limit=1')
+      const { data } = await api.get(`/enrollments?limit=${limit}&query[updated_after]=${
+        last_date?.created_at? 
+        last_date.created_at.toISOString().split('T')[0] : '2023-05-01'}T00:00:00Z`)
 
-      // Log only essential enrollment data
-      console.log('\n=== THINKIFIC ENROLLMENTS ===');
-      console.log('Total enrollments:', data.items.length);
-      
-      // Log completion statistics
-      const completionStats = data.items.reduce((acc: any, item: Data) => {
-        const status = item.completed ? 'completed' : 
-                      item.percentage_completed > 0 ? 'in_progress' : 'not_started';
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      }, {});
-      console.log('Completion stats:', completionStats);
-
-      const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase());
+      const userEmails = data.items.map((item: Data) => item.user_email.toLowerCase())
       const users = await prisma.user.findMany({
         where: {
           email: { in: userEmails }
@@ -145,137 +62,132 @@ export default async function handler(
             }
           }
         }
-      });
+      })
 
-      console.log('\n=== USER MATCHING ===');
-      console.log('Found users:', users.length, 'out of', userEmails.length, 'enrollments');
+      const user_list: Promise<User>[] = []
 
-      // Increase batch size for better performance
-      const BATCH_SIZE = 10;
-      const enrollmentItems = data.items;
-      const totalBatches = Math.ceil(enrollmentItems.length / BATCH_SIZE);
-      let processedCount = 0;
-      let skippedCount = 0;
-      let roleMismatchCount = 0;
-      let noCohortCount = 0;
-      let allEnrollments: any[] = [];
-
-      // Process in smaller chunks with timeout handling
-      for (let batch = 0; batch < totalBatches; batch++) {
-        const start = batch * BATCH_SIZE;
-        const end = Math.min(start + BATCH_SIZE, enrollmentItems.length);
-        const batchItems = enrollmentItems.slice(start, end);
-        
-        // Set a timeout for each batch
-        const batchPromise = Promise.all(batchItems.map(async (item: Data) => {
-          let { user_email, user_name, ...data } = item;
-          user_email = user_email.toLowerCase();
-          const user = users.find((user) => user.email.toLowerCase() === user_email);
-
-          if (!user) {
-            skippedCount++;
-            return;
-          }
-          if (user.role !== "APPLICANT") {
-            roleMismatchCount++;
-            return;
-          }
-          const userCohortId = user.userCohort.at(-1)?.id;
-          if (!userCohortId) {
-            noCohortCount++;
-            return;
-          }
-          processedCount++;
-
-          // Handle percentage_completed
-          if (typeof data.percentage_completed === 'string' || typeof data.percentage_completed === 'number') {
-            const val = typeof data.percentage_completed === 'string' 
-              ? parseFloat(data.percentage_completed)
-              : data.percentage_completed;
-            data.percentage_completed = val > 1 ? val / 100 : val;
-          } else {
-            data.percentage_completed = data.completed ? 1 : 0;
-          }
-
-          data.completed = Boolean(data.completed);
-
-          try {
-          const enrollment = await prisma.enrollment.upsert({
-            where: {
-              id: data.id
-            },
-            update: {
-              enrolled: true,
-              ...data,
-              userCohort: {
-                connect: { id: userCohortId }
-              }
-            },
-            create: {
-              enrolled: true,
-              ...data,
-              userCohort: {
-                connect: { id: userCohortId }
-              }
-            }
-            });
-            return enrollment;
-          } catch (error) {
-            console.error(`Error processing enrollment for ${user_email}:`, error);
-            return null;
-          }
-        }));
-
-        // Add timeout to each batch
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Batch processing timeout')), 25000)
-        );
-
-        try {
-          const enrollments = await Promise.race([batchPromise, timeoutPromise]) as any[];
-        allEnrollments = allEnrollments.concat(enrollments.filter(Boolean));
-        console.log(`--- Finished batch ${batch + 1} of ${totalBatches} ---`);
-        } catch (error) {
-          console.error(`Batch ${batch + 1} timed out or failed:`, error);
-          // Continue with next batch even if this one failed
-          continue;
+      const enrollments: Enrollment[] = await data.items.map(async (item: Data) => {
+        let { user_email, user_name, ...data } = item
+        user_email = user_email.toLowerCase()
+        const user = users.find((user) => user.email === user_email)
+        if (!user) {
+          console.warn('No User: ' + user_email);
+          return;
         }
+        if (user.role !== "APPLICANT") return;
+        const userCohortId = user.userCohort.at(-1)?.id
+        if (!userCohortId) {
+          console.error(`User ${user.email} has no cohort`)
+          return
+        }
+        if (user.thinkific_user_id === null) {
+          const updated_user = prisma.user.update({
+            where: { id: user.id },
+            data: {
+              thinkific_user_id: `${item.user_id}`
+            }
+          })
+          user_list.push(updated_user)
+        }
+        if (data.percentage_completed) {
+          data.percentage_completed = parseFloat(data.percentage_completed)
+        }
+        const enrollment = await prisma.enrollment.upsert({
+          where: {
+            id: data.id
+          },
+          update: {
+            enrolled: true,
+            ...data,
+            userCohort: {
+              connect: { id: userCohortId }
+            }
+          },
+          create: {
+            enrolled: true,
+            ...data,
+            userCohort: {
+              connect: { id: userCohortId }
+            }
+          }
+        })
+        return enrollment
+      })
+
+      if (user_list.length > 0) {
+        await Promise.allSettled(user_list)
       }
 
-      console.log('\n=== PROCESSING SUMMARY ===');
-      console.log({
-        totalEnrollments: enrollmentItems.length,
-        processedCount,
-        skippedCount,
-        roleMismatchCount,
-        noCohortCount,
-        updatedCount: allEnrollments.length,
-        completionStats
-      });
+      // asyncForEach(data.items, async (item: Data) => {
+      //     let { user_email, user_name, ...data } = item
+      //     user_email = user_email.toLowerCase()
+      //     if (!userEmails.includes(user_email)) {
+      //         console.warn('No User: ' + user_email);
+      //         return;
+      //     }
+      //     const user = await prisma.user.findUnique({
+      //         where: {
+      //             email: user_email
+      //         },
+      //         include: {
+      //             userCohort: true
+      //         }
+      //     })
+      //     if (!user) {
+      //         console.warn('No User: ' + user_email);
+      //         return;
+      //     }
+      //     if (user.role != "APPLICANT") return;
+      //     const userCohortId = user.userCohort.pop()?.id
+      //     if (!userCohortId) {
+      //         console.error(`User ${user.email} has no cohort`)
+      //         return
+      //     }
+      //     if (user.thinkific_user_id === null) {
+      //         const updated_user = prisma.user.update({
+      //             where: { id: user.id },
+      //             data: {
+      //                 thinkific_user_id: `${item.user_id}`
+      //             }
+      //         })
+      //         user_list.push(updated_user)
+      //     }
+      //     if (data.percentage_completed) {
+      //         data.percentage_completed = parseFloat(data.percentage_completed)
+      //     }
+      //     const enrollment = prisma.enrollment.upsert({
+      //         where: {
+      //             id: data.id
+      //         },
+      //         update: {
+      //             enrolled: true,
+      //             ...data,
+      //         },
+      //         create: {
+      //             userCohortId: userCohortId,
+      //             enrolled: true,
+      //             ...data
+      //         }
+      //     })
 
-      // Create a new RehydrationDate record
-      await prisma.rehydrationDate.create({
+      //     enrollment_list.push(enrollment)
+      // }).then(async (result) => {
+      //     const enrollment_result = await Promise.allSettled(enrollment_list)
+      //     const user_result = await Promise.allSettled(user_list)
+      // }).catch(err => {
+      //     console.error(err)
+      //     return res.send(err.message)
+      // })
+      const date = await prisma.rehydrationDate.create({
         data: {
-          enrollment_count: allEnrollments.length
+          enrollment_count: enrollments.length
         }
-      });
-
-      return res.status(200).json({ 
-        message: 'Synchronizing', 
-        count: allEnrollments.length,
-        stats: {
-          processed: processedCount,
-          skipped: skippedCount,
-          roleMismatch: roleMismatchCount,
-          noCohort: noCohortCount
-        }
-      });
+      })
+      
+      return res.send({ message: 'Synchronizing', count: enrollments.length })
     } catch (err) {
-      console.error('Rehydration error:', err);
-      return res.status(500).json({ 
-        message: err instanceof Error ? err.message : 'An error occurred',
-        error: true
-      });
+      console.error(err)
+      return res.send(err instanceof Error ? err.message : 'An unknown error occurred')
     }
   }
 }

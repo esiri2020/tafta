@@ -12,10 +12,7 @@ export const MainNavbar = (props) => {
 
   const handleSignout = () => {
     try {
-      signOut();
-      Router
-        .replace('/')
-        .catch(console.error);
+      signOut({ callbackUrl: '/login' });
     } catch (err) {
       console.error(err);
     }
@@ -38,10 +35,10 @@ export const MainNavbar = (props) => {
           sx={{ minHeight: 64 }}
         >
           <NextLink
-            href="https://reg.terraacademyforarts.com/"
+            href="https://terraacademyforarts.com/"
             passHref
           >
-            <a ahref="https://reg.terraacademyforarts.com/">
+            <a ahref="https://terraacademyforarts.com/">
               <Box
                 sx={{
                   display: 'flex',

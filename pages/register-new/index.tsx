@@ -75,7 +75,7 @@ function StepContent({
     case 1:
       return <RegisterStepNew handlers={handlers} />;
     case 2:
-      return <VerifyEmail />;
+      return <VerifyEmail email={applicant?.email || (session?.userData?.email ?? session?.user?.email)} onBack={() => {}} />;
     case 3:
       return (
         <PersonalInformation
