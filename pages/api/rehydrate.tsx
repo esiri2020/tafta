@@ -42,6 +42,7 @@ export default async function handler(
       const isLocal = process.env.NODE_ENV !== 'production';
       const BATCH_PAGE_LIMIT = isLocal ? 5000 : 10;
       const ENTRIES_PER_PAGE = 25;
+      const STOP_DATE = new Date('2025-03-30T00:00:00Z');
       // First, get totalPages from the API
       const firstPageResp = await api.get(`/enrollments?page=1&limit=${ENTRIES_PER_PAGE}`);
       const totalPages = firstPageResp.data.meta.pagination.total_pages;
@@ -74,6 +75,12 @@ export default async function handler(
         const enrollments: Enrollment[] = await Promise.all(data.items.map(async (item: Data) => {
           let { user_email, user_name, ...enrollmentData } = item;
           user_email = user_email.toLowerCase();
+          // Check if enrollment is from or before the stop date
+          if (enrollmentData.completed_at && new Date(enrollmentData.completed_at) <= STOP_DATE) {
+            console.log(`Reached stop date ${STOP_DATE.toISOString().split('T')[0]}, stopping at enrollment ${enrollmentData.id}`);
+            stopEarly = true;
+            return;
+          }
           const user = users.find((user) => user.email.toLowerCase() === user_email);
           if (!user) {
             console.warn('No User: ' + user_email);
