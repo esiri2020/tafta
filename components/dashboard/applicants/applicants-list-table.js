@@ -28,6 +28,7 @@ import {
 import toast from 'react-hot-toast';
 import {NotificationDialog} from '../notifications/notification-dialog';
 import {Notifications as NotificationsIcon} from '@mui/icons-material';
+import axios from 'axios';
 
 export const ApplicantsListTable = props => {
   const {
@@ -48,6 +49,9 @@ export const ApplicantsListTable = props => {
 
   // New state for notification dialog
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+
+  // New state for retrying enrollment
+  const [retryingUid, setRetryingUid] = useState(null);
 
   // Reset selected applicants when applicants change
   useEffect(
@@ -116,6 +120,19 @@ export const ApplicantsListTable = props => {
   // Handle closing notification dialog
   const handleCloseNotificationDialog = () => {
     setNotificationDialogOpen(false);
+  };
+
+  const handleRetryEnrollment = async (uid) => {
+    setRetryingUid(uid);
+    try {
+      const res = await axios.post('/api/enrollments/retry', { uid });
+      toast.success(res.data.message || 'Enrollment retried successfully');
+      // Optionally: trigger a reload of applicants here
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Retry failed');
+    } finally {
+      setRetryingUid(null);
+    }
   };
 
   return (
@@ -348,6 +365,19 @@ export const ApplicantsListTable = props => {
                         None
                       </Box>
                     )}
+                    {/* Retry Enrollment Button: show if stuck */}
+                    {applicant.userCohort[0]?.enrollments.length > 0 &&
+                      (!applicant.userCohort[0].enrollments[0].activated_at || !applicant.userCohort[0].enrollments[0].enrolled) && (
+                        <Button
+                          size='small'
+                          variant='outlined'
+                          disabled={retryingUid === applicant.userCohort[0].enrollments[0].uid}
+                          onClick={() => handleRetryEnrollment(applicant.userCohort[0].enrollments[0].uid)}
+                          sx={{ml: 1}}
+                        >
+                          {retryingUid === applicant.userCohort[0].enrollments[0].uid ? 'Retrying...' : 'Retry Enrollment'}
+                        </Button>
+                      )}
                   </TableCell>
                   <TableCell align='right'>
                     <NextLink
