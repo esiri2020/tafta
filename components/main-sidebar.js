@@ -54,33 +54,24 @@ export const MainSidebar = (props) => {
       variant="temporary"
     >
       <Box sx={{ p: 2 }}>
-      <NextLink
+      <MainSidebarLink
         href="/Help"
-        passHref
+        color="textSecondary"
+        sx={{ ml: 2 }}
+        underline="none"
+        variant="subtitle2"
       >
-        <MainSidebarLink
-          color="textSecondary"
-          sx={{ ml: 2 }}
-          underline="none"
-          variant="subtitle2"
-        >
-          Help
-        </MainSidebarLink>
-      </NextLink>
-      <NextLink
+        Help
+      </MainSidebarLink>
+      <MainSidebarLink
         href=""
-        passHref
+        color="textSecondary"
+        sx={{ ml: 2 }}
+        underline="none"
+        variant="subtitle2"
       >
-        <MainSidebarLink
-          color="textSecondary"
-          component="a"
-          sx={{ ml: 2 }}
-          underline="none"
-          variant="subtitle2"
-        >
-          Contact Us
-        </MainSidebarLink>
-      </NextLink>
+        Contact Us
+      </MainSidebarLink>
       {
         session?.userData ? 
         // (
@@ -108,17 +99,12 @@ export const MainSidebar = (props) => {
           <>
             <MainSidebarLink
               href="/role"
-              passHref
+              color="textSecondary"
+              sx={{ ml: 2 }}
+              underline="none"
+              variant="subtitle2"
             >
-              <Link
-                color="textSecondary"
-                component="a"
-                sx={{ ml: 2 }}
-                underline="none"
-                variant="subtitle2"
-              >
-                Dashboard
-              </Link>
+              Dashboard
             </MainSidebarLink>
             <br/>
             <Button

@@ -40,19 +40,10 @@ const ApplicantEdit = () => {
           py: 8,
         }}>
         <Container maxWidth='md'>
-          <Box sx={{mb: 4}}>
-            <NextLink href='/admin-dashboard/applicants' passHref>
-              <Link
-                color='textPrimary'
-                component='a'
-                sx={{
-                  alignItems: 'center',
-                  display: 'flex',
-                }}>
-                <ArrowBackIcon fontSize='small' sx={{mr: 1}} />
-                <Typography variant='subtitle2'>Applicants</Typography>
-              </Link>
-            </NextLink>
+          <Box sx={{ mb: 4 }}>
+            <Link href="/admin-dashboard/applicants" passHref legacyBehavior style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>
+              <a style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>Back to Applicants</a>
+            </Link>
           </Box>
           <Box
             sx={{

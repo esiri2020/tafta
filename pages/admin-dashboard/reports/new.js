@@ -1,6 +1,6 @@
-import NextLink from 'next/link';
+import Link from 'next/link';
 import Head from 'next/head';
-import { Box, Breadcrumbs, Container, Link, Typography } from '@mui/material';
+import { Box, Breadcrumbs, Container, Typography } from '@mui/material';
 import { DashboardLayout } from '../../../components/dashboard/dashboard-layout';
 import { CreateReport } from '../../../components/dashboard/reports/create-report';
 
@@ -29,14 +29,9 @@ const ReportCreate = () => {
               separator="/"
               sx={{ mt: 1 }}
             >
-              <NextLink
-                href="/admin-dashboard/reports"
-                passHref
-              >
-                <Link variant="subtitle2">
-                  Dashboard
-                </Link>
-              </NextLink>
+              <Link href="/admin-dashboard/reports" passHref legacyBehavior style={{textDecoration: 'none'}}>
+                <a style={{textDecoration: 'none'}}>Back to Reports</a>
+              </Link>
               <Typography
                 color="textSecondary"
                 variant="subtitle2"

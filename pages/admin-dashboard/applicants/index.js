@@ -221,7 +221,7 @@ const FilteredOutApplicantsCard = ({
                           <DropdownMenuItem>
                             <Link
                               href={`/admin-dashboard/applicants/${applicant.id}`}>
-                              <a>View Details</a>
+                              View Details
                             </Link>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -825,7 +825,7 @@ function ApplicantList() {
                 : 'Send Notifications'}
             </Button>
             <Button>
-              <Link href='/admin-dashboard/applicants/create'>
+              <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
                 <a className='flex items-center'>
                   <UserPlus className='mr-2 h-4 w-4' />
                   Add Applicant
@@ -1495,13 +1495,13 @@ function ApplicantList() {
                             <DropdownMenuItem>
                               <Link
                                 href={`/admin-dashboard/applicants/${applicant.id}`}>
-                                <a>View Details</a>
+                                View Details
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <Link
                                 href={`/admin-dashboard/applicants/${applicant.id}/edit`}>
-                                <a>Edit</a>
+                                Edit
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -1538,7 +1538,7 @@ function ApplicantList() {
                             No applicants found
                           </p>
                           <Button variant='outline'>
-                            <Link href='/admin-dashboard/applicants/create'>
+                            <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
                               <a className='flex items-center'>
                                 <Plus className='mr-2 h-4 w-4' />
                                 Add Applicant

@@ -9,6 +9,7 @@ import {Card, CardContent, CardHeader, CardFooter} from '@/components/ui/card';
 import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {FormSection} from '@/components/form-section';
+import NextLink from 'next/link';
 
 // Form Sections
 import {BasicInformation} from '@/components/home/form-sections/basic-information';
@@ -468,14 +469,16 @@ export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
                 ? 'Saving...'
                 : 'Save Changes'}
             </Button>
-            <Link href={`/admin-dashboard/applicants/${applicant.id}`} passHref>
+            <NextLink href={`/admin-dashboard/applicants/${applicant.id}`} passHref legacyBehavior>
               <Button
                 variant='outline'
                 className='ml-2'
-                disabled={formik.isSubmitting || isSubmitting}>
+                disabled={formik.isSubmitting || isSubmitting}
+                as='a'
+              >
                 Cancel
               </Button>
-            </Link>
+            </NextLink>
           </div>
         </CardFooter>
       </Card>

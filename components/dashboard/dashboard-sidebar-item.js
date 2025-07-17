@@ -93,43 +93,39 @@ export const DashboardSidebarItem = ({
         px: 2
       }}
     >
-      <NextLink
+      <Button
+        component={NextLink}
         href={path}
-        passHref
+        startIcon={icon}
+        endIcon={chip}
+        disableRipple
+        sx={{
+          borderRadius: 1,
+          color: 'neutral.300',
+          justifyContent: 'flex-start',
+          pl: `${paddingLeft}px`,
+          pr: 3,
+          textAlign: 'left',
+          textTransform: 'none',
+          width: '100%',
+          ...(active && {
+            backgroundColor: 'rgba(255,255,255, 0.08)',
+            color: 'secondary.main',
+            fontWeight: 'fontWeightBold'
+          }),
+          '& .MuiButton-startIcon': {
+            color: active ? 'secondary.main' : 'neutral.400'
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(255,255,255, 0.08)'
+          }
+        }}
       >
-        <Button
-          component="a"
-          startIcon={icon}
-          endIcon={chip}
-          disableRipple
-          sx={{
-            borderRadius: 1,
-            color: 'neutral.300',
-            justifyContent: 'flex-start',
-            pl: `${paddingLeft}px`,
-            pr: 3,
-            textAlign: 'left',
-            textTransform: 'none',
-            width: '100%',
-            ...(active && {
-              backgroundColor: 'rgba(255,255,255, 0.08)',
-              color: 'secondary.main',
-              fontWeight: 'fontWeightBold'
-            }),
-            '& .MuiButton-startIcon': {
-              color: active ? 'secondary.main' : 'neutral.400'
-            },
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255, 0.08)'
-            }
-          }}
-        >
-          <Box sx={{ flexGrow: 1 }}>
-            {title}
-          </Box>
-          {info}
-        </Button>
-      </NextLink>
+        <Box sx={{ flexGrow: 1 }}>
+          {title}
+        </Box>
+        {info}
+      </Button>
     </ListItem>
   );
 };

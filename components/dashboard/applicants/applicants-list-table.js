@@ -276,13 +276,13 @@ export const ApplicantsListTable = props => {
                         )}
                       </Avatar>
                       <Box sx={{ml: 1}}>
-                        <NextLink
+                        <Button
+                          component={NextLink}
                           href={`/admin-dashboard/applicants/${applicant.id}`}
-                          passHref>
-                          <Link color='inherit' variant='subtitle2'>
-                            {`${applicant.firstName} ${applicant.lastName}`}
-                          </Link>
-                        </NextLink>
+                          color='inherit'
+                          variant='subtitle2'>
+                          {`${applicant.firstName} ${applicant.lastName}`}
+                        </Button>
                         <Typography color='textSecondary' variant='body2'>
                           {applicant.email}
                         </Typography>
@@ -380,20 +380,12 @@ export const ApplicantsListTable = props => {
                       )}
                   </TableCell>
                   <TableCell align='right'>
-                    <NextLink
-                      href={`/admin-dashboard/applicants/${applicant.id}/edit`}
-                      passHref>
-                      <IconButton component='a'>
-                        <PencilAltIcon fontSize='small' />
-                      </IconButton>
-                    </NextLink>
-                    <NextLink
-                      href={`/admin-dashboard/applicants/${applicant.id}`}
-                      passHref>
-                      <IconButton component='a'>
-                        <ArrowRightIcon fontSize='small' />
-                      </IconButton>
-                    </NextLink>
+                    <IconButton component={NextLink} href={`/admin-dashboard/applicants/${applicant.id}/edit`}>
+                      <PencilAltIcon fontSize='small' />
+                    </IconButton>
+                    <IconButton component={NextLink} href={`/admin-dashboard/applicants/${applicant.id}`}>
+                      <ArrowRightIcon fontSize='small' />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               );

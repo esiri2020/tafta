@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
-import { Typography, Box, Button, FormHelperText, TextField, InputAdornment, IconButton } from '@mui/material';
+import { Typography, Box, Button, FormHelperText, TextField, InputAdornment, IconButton, Link as MuiLink } from '@mui/material';
 import toast from 'react-hot-toast';
 import { signIn } from 'next-auth/react';
 import NextLink from 'next/link';
@@ -147,17 +147,17 @@ export const LoginScout = ({providers, csrfToken, ...others}) => {
         sx={{
           mt:5
         }}>
-        <NextLink
+        <MuiLink
+            component={NextLink}
             href="/forgot-password"
-            passHref
+            variant="body2"
+            underline="hover"
+            sx={{ cursor: 'pointer' }}
           >
-            <Typography
-              component="a"
-              variant="p"
-            >
+            <Typography component="span" variant="p">
               Forgot Password?
             </Typography>
-          </NextLink>
+          </MuiLink>
         </Box>
     </Box>
   );

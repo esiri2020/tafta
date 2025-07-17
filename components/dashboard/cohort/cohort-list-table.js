@@ -41,25 +41,26 @@ export const CohortListTable = (props) => {
     cohorts,
     cohortCount,
     rowsPerPage,
+    openCohortId,
     ...other
   } = props;
-  const [openCohort, setOpenCohort] = useState(null);
+  // Remove internal openCohort state
+  // const [openCohort, setOpenCohort] = useState(null);
 
-  const handleOpenCohort = (cohortId) => {
-    setOpenCohort((prevValue) => (prevValue === cohortId ? null : cohortId));
-  };
+  // Remove handleOpenCohort, use onCohortSelect
+  // const handleOpenCohort = (cohortId) => { ... };
 
   const handleCohortClick = (cohort) => {
     onCohortSelect(cohort);
   };
 
   const handleUpdateCohort = () => {
-    setOpenCohort(null);
+    // setOpenCohort(null); // This line is removed as per the edit hint
     toast.success('Cohort updated');
   };
 
   const handleCancelEdit = () => {
-    setOpenCohort(null);
+    // setOpenCohort(null); // This line is removed as per the edit hint
   };
 
   const handleDeleteCohort = () => {
@@ -92,7 +93,7 @@ export const CohortListTable = (props) => {
           </TableHead>
           <TableBody>
             {cohorts.map((cohort) => {
-              const open = cohort.id === openCohort;
+              const open = cohort.id === openCohortId;
               return (
                 <Fragment key={cohort.id}>
                   <TableRow
@@ -119,10 +120,7 @@ export const CohortListTable = (props) => {
                       }}
                       width="25%"
                     >
-                      <IconButton onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenCohort(cohort.id);
-                      }}>
+                      <IconButton onClick={e => { e.stopPropagation(); handleCohortClick(cohort); }}>
                         {open
                           ? <ChevronDownIcon fontSize="small" />
                           : <ChevronRightIcon fontSize="small" />}
@@ -181,7 +179,7 @@ export const CohortListTable = (props) => {
                       >
                         <CohortEditForm
                           cohort={cohort}
-                          cancel={handleCancelEdit}
+                          cancel={() => onCohortSelect(cohort)}
                         />
                       </TableCell>
                     </TableRow>
@@ -212,5 +210,6 @@ CohortListTable.propTypes = {
   onRowsPerPageChange: PropTypes.func,
   onCohortSelect: PropTypes.func.isRequired,
   page: PropTypes.number.isRequired,
-  rowsPerPage: PropTypes.number.isRequired
+  rowsPerPage: PropTypes.number.isRequired,
+  openCohortId: PropTypes.string // Added propType for openCohortId
 };
