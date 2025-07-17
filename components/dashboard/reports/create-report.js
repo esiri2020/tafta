@@ -95,9 +95,9 @@ export const CreateReport = (props) => {
               title, description, cohortId, files: filesRes.map(file => file.url)
             }
             console.log('Creating report with body:', body);
-            result = await createReport({ body }).unwrap()
-            console.log('Report creation response:', result);
-            if (result?.message == 'success') {
+            const apiResult = await createReport({ body }).unwrap()
+            console.log('Report creation response:', apiResult);
+            if (apiResult?.message == 'success') {
               toast.dismiss()
               toast.success('Report uploaded')
               router.push('/admin-dashboard/reports')
@@ -115,9 +115,9 @@ export const CreateReport = (props) => {
             title, description, cohortId, files: []
           }
           console.log('Creating report without files:', body);
-          result = await createReport({ body }).unwrap()
-          console.log('Report creation response:', result);
-          if (result?.message == 'success') {
+          const apiResult = await createReport({ body }).unwrap()
+          console.log('Report creation response:', apiResult);
+          if (apiResult?.message == 'success') {
             toast.dismiss()
             toast.success('Report uploaded')
             router.push('/admin-dashboard/reports')
