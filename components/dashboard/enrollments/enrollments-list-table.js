@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Users,
 } from 'lucide-react';
+import axios from 'axios';
 
 import {
   Table,
@@ -47,6 +48,7 @@ export function EnrollmentListTable({
   onRowsPerPageChange,
 }) {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [retryingUid, setRetryingUid] = useState(null);
 
   const toggleRowExpansion = uid => {
     setExpandedRow(expandedRow === uid ? null : uid);
@@ -86,6 +88,19 @@ export function EnrollmentListTable({
   const totalPages = Math.ceil(enrollmentsCount / rowsPerPage);
   const startItem = page * rowsPerPage + 1;
   const endItem = Math.min((page + 1) * rowsPerPage, enrollmentsCount);
+
+  const handleRetryEnrollment = async (uid) => {
+    setRetryingUid(uid);
+    try {
+      const res = await axios.post('/api/enrollments/retry', { uid });
+      toast.success(res.data.message || 'Enrollment retried successfully');
+      // Optionally: trigger a reload of enrollments here
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Retry failed');
+    } finally {
+      setRetryingUid(null);
+    }
+  };
 
   return (
     <div>
@@ -200,7 +215,20 @@ export function EnrollmentListTable({
                       </div>
                     </TableCell>
                     <TableCell className='hidden md:table-cell'>
-                      {getStatusBadge(enrollment)}
+                      <div className='flex items-center gap-2'>
+                        {getStatusBadge(enrollment)}
+                        {/* Retry Enrollment Button: show if stuck */}
+                        {(!enrollment.activated_at || getStatusBadge(enrollment).props.children === 'Pending') && (
+                          <Button
+                            size='xs'
+                            variant='outline'
+                            disabled={retryingUid === enrollment.uid}
+                            onClick={() => handleRetryEnrollment(enrollment.uid)}
+                          >
+                            {retryingUid === enrollment.uid ? 'Retrying...' : 'Retry Enrollment'}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className='hidden lg:table-cell'>
                       {formatDate(enrollment.activated_at)}

@@ -16,9 +16,27 @@ import {
 import { ArrowRight as ArrowRightIcon } from '../../../icons/arrow-right';
 import { Scrollbar } from '../../scrollbar';
 import { formatInTimeZone } from '../../../utils'
+import axios from 'axios';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 // import { SeverityPill } from '../../severity-pill';
 
 export const ApplicantEnrollment = ({ enrollments, ...others }) => {
+  const [retryingUid, setRetryingUid] = useState(null);
+
+  const handleRetryEnrollment = async (uid) => {
+    setRetryingUid(uid);
+    try {
+      const res = await axios.post('/api/enrollments/retry', { uid });
+      toast.success(res.data.message || 'Enrollment retried successfully');
+      // Optionally: trigger a reload of enrollments here
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Retry failed');
+    } finally {
+      setRetryingUid(null);
+    }
+  };
+
   if (!enrollments) return (
     <div>No enrollments</div>)
   return (
@@ -49,13 +67,25 @@ export const ApplicantEnrollment = ({ enrollments, ...others }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {enrollments?.map((enrollment) => (
-              <TableRow key={enrollment.id}>
+            {enrollments?.map((enrollment, index) => (
+              <TableRow key={enrollment.uid || enrollment.id || index}>
                 <TableCell>
                   {enrollment.id}
                 </TableCell>
                 <TableCell>
-                  {enrollment.activated_at ? formatInTimeZone(enrollment.activated_at, 'dd MMM yyyy') : 'Activation Loading...'}
+                  {enrollment.activated_at ? formatInTimeZone(enrollment.activated_at, 'dd MMM yyyy') : (
+                    <>
+                      Activation Loading...
+                      <button
+                        type="button"
+                        disabled={retryingUid === enrollment.uid}
+                        onClick={() => handleRetryEnrollment(enrollment.uid)}
+                        style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, border: '1px solid #1976d2', background: '#1976d2', color: '#fff', cursor: 'pointer', fontSize: 12 }}
+                      >
+                        {retryingUid === enrollment.uid ? 'Retrying...' : 'Retry'}
+                      </button>
+                    </>
+                  )}
                 </TableCell>
                 <TableCell>
                   {enrollment.course_name}
