@@ -148,17 +148,9 @@ export const UsersListTable = (props) => {
                         {getInitials(`${user.firstName} ${user.lastName}`)}
                       </Avatar>
                       <Box sx={{ ml: 1 }}>
-                        <NextLink
-                          href={`/admin-dashboard/users/${user.id}`}
-                          passHref
-                        >
-                          <Link
-                            color="inherit"
-                            variant="subtitle2"
-                          >
-                            {`${user.firstName} ${user.lastName}`}
-                          </Link>
-                        </NextLink>
+                        <Link href={`/admin-dashboard/users/${user.id}`} passHref legacyBehavior color="inherit" variant="subtitle2">
+                          {`${user.firstName} ${user.lastName}`}
+                        </Link>
                         <Typography
                           color="textSecondary"
                           variant="body2"
@@ -175,22 +167,12 @@ export const UsersListTable = (props) => {
                   </TableCell>
                   
                   <TableCell align="right">
-                    <NextLink
-                      href={`/admin-dashboard/users/${user.id}/edit`}
-                      passHref
-                    >
-                      <IconButton component="a">
-                        <PencilAltIcon fontSize="small" />
-                      </IconButton>
-                    </NextLink>
-                    <NextLink
-                      href={`/admin-dashboard/users/${user.id}`}
-                      passHref
-                    >
-                      <IconButton component="a">
-                        <ArrowRightIcon fontSize="small" />
-                      </IconButton>
-                    </NextLink>
+                    <IconButton component={Link} href={`/admin-dashboard/users/${user.id}/edit`}>
+                      <PencilAltIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton component={Link} href={`/admin-dashboard/users/${user.id}`}>
+                      <ArrowRightIcon fontSize="small" />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               );

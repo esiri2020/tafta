@@ -15,6 +15,7 @@ function Cohorts() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [course, setCourse] = useState([])
     const [status, setStatus] = useState('')
+    const [openCohortId, setOpenCohortId] = useState(null);
     
     const { data, error, isLoading } = useGetCohortsQuery({page, limit: rowsPerPage, filter: status})
   
@@ -29,6 +30,10 @@ function Cohorts() {
   
     const handleRowsPerPageChange = (event) => {
       setRowsPerPage(parseInt(event.target.value, 10));
+    };
+
+    const handleCohortSelect = (cohort) => {
+      setOpenCohortId(prev => (prev === cohort.id ? null : cohort.id));
     };
   
     if(isLoading) return ( <SplashScreen/> )
@@ -90,6 +95,8 @@ function Cohorts() {
                 cohorts={cohorts}
                 cohortCount={count}
                 rowsPerPage={rowsPerPage}
+                onCohortSelect={handleCohortSelect}
+                openCohortId={openCohortId}
               />
             </Card>
           </Container>

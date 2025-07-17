@@ -414,11 +414,9 @@ const Account = () => {
                   variant='outlined'>
                   Notifications
                 </Button>
-                <NextLink href='/dashboard/assessment' passHref>
-                  <Button component='a' sx={{m: 1}} variant='outlined'>
-                    Complete Assessment
-                  </Button>
-                </NextLink>
+                <Button component={NextLink} href='/dashboard/assessment' sx={{m: 1}} variant='outlined'>
+                  Complete Assessment
+                </Button>
                 <Button 
                   onClick={handleOpenLMSDialog}
                   sx={{m: 1}} 
@@ -505,11 +503,9 @@ const Account = () => {
               <Typography variant='h6' sx={{mb: 2}}>
                 Complete your TAFTA training assessment
               </Typography>
-              <NextLink href='/dashboard/assessment' passHref>
-                <Button component='a' variant='contained' sx={{px: 4, py: 1}}>
-                  Go to Assessment Form
-                </Button>
-              </NextLink>
+              <Button component={NextLink} href='/dashboard/assessment' variant='contained' sx={{px: 4, py: 1}}>
+                Go to Assessment Form
+              </Button>
             </Box>
           )}
         </Container>

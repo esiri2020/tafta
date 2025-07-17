@@ -9,6 +9,7 @@ import { getInitials } from '../../../utils/get-initials';
 import { useGetApplicantQuery } from '../../../services/api'
 import { SplashScreen } from '../../../components/splash-screen';
 import { MainLayout } from '../../../components/main-layout';
+import { Link as MuiLink } from '@mui/material';
 
 
 const ApplicantEdit = () => {
@@ -45,27 +46,10 @@ const ApplicantEdit = () => {
       >
         <Container maxWidth="md">
           <Box sx={{ mb: 4 }}>
-            <NextLink
-              href="/dashboard/"
-              passHref
-            >
-              <Link
-                color="textPrimary"
-                component="a"
-                sx={{
-                  alignItems: 'center',
-                  display: 'flex'
-                }}
-              >
-                <ArrowBackIcon
-                  fontSize="small"
-                  sx={{ mr: 1 }}
-                />
-                <Typography variant="subtitle2">
-                  Back to Dashboard
-                </Typography>
-              </Link>
-            </NextLink>
+            <MuiLink component={NextLink} href="/dashboard/" color="textPrimary" sx={{ alignItems: 'center', display: 'flex' }}>
+              <ArrowBackIcon fontSize="small" sx={{ mr: 1 }} />
+              <Typography component="span" variant="subtitle2">Back to Dashboard</Typography>
+            </MuiLink>
           </Box>
           <Box
             sx={{

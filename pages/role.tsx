@@ -4,9 +4,7 @@ import Link from 'next/link';
 
 const Role = (props: any) => {
   return (
-    <Link href='/'>
-      <a>Go Back to Home</a>
-    </Link>
+    <Link href='/' passHref legacyBehavior>Go Back to Home</Link>
   );
 };
 export const getServerSideProps: GetServerSideProps = async context => {

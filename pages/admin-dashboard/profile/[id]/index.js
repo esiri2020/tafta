@@ -25,6 +25,7 @@ import { PencilAlt as PencilAltIcon } from '../../../../icons/pencil-alt';
 import { getInitials } from '../../../../utils/get-initials';
 import { useGetUserQuery } from '../../../../services/api'
 import { SplashScreen } from '../../../../components/splash-screen';
+import { Link as MuiLink } from '@mui/material';
 
 
 const tabs = [
@@ -69,27 +70,10 @@ const UserDetails = () => {
         <Container maxWidth="md">
           <div>
             <Box sx={{ mb: 4 }}>
-              <NextLink
-                href="/admin-dashboard/users"
-                passHref
-              >
-                <Link
-                  color="textPrimary"
-                  component="a"
-                  sx={{
-                    alignItems: 'center',
-                    display: 'flex'
-                  }}
-                >
-                  <ArrowBackIcon
-                    fontSize="small"
-                    sx={{ mr: 1 }}
-                  />
-                  <Typography variant="subtitle2">
-                    Users
-                  </Typography>
-                </Link>
-              </NextLink>
+              <MuiLink component={NextLink} href="/admin-dashboard/users" style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>
+                <ArrowBackIcon fontSize="small" sx={{ mr: 1 }} />
+                <Typography component="span" variant="subtitle2">Users</Typography>
+              </MuiLink>
             </Box>
             <Grid
               container
@@ -139,21 +123,15 @@ const UserDetails = () => {
                 item
                 sx={{ m: -1 }}
               >
-                <NextLink
+                <Button
+                  component={NextLink}
                   href={`/admin-dashboard/users/${user.id}/edit`}
-                  passHref
+                  endIcon={<PencilAltIcon fontSize="small" />}
+                  sx={{ m: 1 }}
+                  variant="outlined"
                 >
-                  <Button
-                    component="a"
-                    endIcon={(
-                      <PencilAltIcon fontSize="small" />
-                    )}
-                    sx={{ m: 1 }}
-                    variant="outlined"
-                  >
-                    Edit
-                  </Button>
-                </NextLink>
+                  Edit
+                </Button>
               </Grid>
             </Grid>
             <Tabs

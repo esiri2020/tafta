@@ -5,6 +5,7 @@ import { Menu as MenuIcon } from '../icons/menu';
 import { Logo } from './logo';
 import { signOut, useSession } from "next-auth/react"
 import Router from 'next/router';
+import { Link as MuiLink } from '@mui/material';
 
 export const MainNavbar = (props) => {
   const { onOpenSidebar } = props;
@@ -34,29 +35,9 @@ export const MainNavbar = (props) => {
           disableGutters
           sx={{ minHeight: 64 }}
         >
-          <NextLink
-            href="https://terraacademyforarts.com/"
-            passHref
-          >
-            <a ahref="https://terraacademyforarts.com/">
-              <Box
-                sx={{
-                  display: 'flex',
-                  my: 2,
-                  mx: 'auto',
-                  width: '160px',
-                  '& img': {
-                    width: '100%'
-                  }
-                }}
-              >
-                <img
-                  alt="Home"
-                  src="/static/images/logo.svg"
-                />
-              </Box>
-            </a>
-          </NextLink>
+          <MuiLink component={NextLink} href="https://terraacademyforarts.com/" sx={{ display: 'flex', my: 2, mx: 'auto', width: '160px', '& img': { width: '100%' } }}>
+            <img alt="Home" src="/static/images/logo.svg" />
+          </MuiLink>
           <Box sx={{ flexGrow: 1 }} />
           <IconButton
             color="inherit"
@@ -79,52 +60,20 @@ export const MainNavbar = (props) => {
             }}
           >
 
-            <NextLink
-              href="https://terraacademyforarts.com"
-              passHref
-            >
-              <Link
-                color="textSecondary"
-                sx={{ ml: 2 }}
-                underline="none"
-                variant="subtitle2"
-              >
-                About Us
-              </Link>
-            </NextLink>
-            <NextLink
-              href="https://terraacademyforarts.com/contact-us/"
-              passHref
-            >
-              <Link
-                color="textSecondary"
-                component="a"
-                sx={{ ml: 2, mr: 2 }}
-                underline="none"
-                variant="subtitle2"
-              >
-                Contact Us
-              </Link>
-            </NextLink>
+            <MuiLink component={NextLink} href="https://terraacademyforarts.com" color="textSecondary" sx={{ ml: 2 }} underline="none" variant="subtitle2">
+              About Us
+            </MuiLink>
+            <MuiLink component={NextLink} href="https://terraacademyforarts.com/contact-us/" color="textSecondary" sx={{ ml: 2, mr: 2 }} underline="none" variant="subtitle2">
+              Contact Us
+            </MuiLink>
             <Divider orientation="vertical" variant="middle" flexItem />
             {
               session?.userData ?
                 (
                   <>
-                    <NextLink
-                      href="/role"
-                      passHref
-                    >
-                      <Link
-                        color="textSecondary"
-                        component="a"
-                        sx={{ ml: 2 }}
-                        underline="none"
-                        variant="subtitle2"
-                      >
-                        Dashboard
-                      </Link>
-                    </NextLink>
+                    <MuiLink component={NextLink} href="/role" color="textSecondary" sx={{ ml: 2 }} underline="none" variant="subtitle2">
+                      Dashboard
+                    </MuiLink>
                     <Button
                       size="medium"
                       sx={{ ml: 2 }}

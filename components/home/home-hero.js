@@ -136,31 +136,28 @@ export const HomeHero = props => {
                     display: 'flex',
                     my: 2,
                   }}>
-                  <NextLink
+                  <Button
+                    component={NextLink}
                     href={{
                       pathname: '/register-new',
                       query: {cohortId: cohort.id},
                     }}
-                    passHref>
-                    <Button
-                      component='a'
-                      size='large'
-                      variant='contained'
-                      sx={{
-                        backgroundColor: cohort.color,
-                        width: '100%',
-                        color: fontColor(cohort.color),
-                        '&:hover': {
-                          backgroundColor: '#000',
-                          color: '#fff',
-                        },
-                      }}>
-                      <span style={{display: 'flex', flexGrow: 1}}>
-                        {cohort.name}
-                      </span>{' '}
-                      <span> Register </span>
-                    </Button>
-                  </NextLink>
+                    size='large'
+                    variant='contained'
+                    sx={{
+                      backgroundColor: cohort.color,
+                      width: '100%',
+                      color: fontColor(cohort.color),
+                      '&:hover': {
+                        backgroundColor: '#000',
+                        color: '#fff',
+                      },
+                    }}>
+                    <span style={{display: 'flex', flexGrow: 1}}>
+                      {cohort.name}
+                    </span>{' '}
+                    <span> Register </span>
+                  </Button>
                 </Box>
               ))}
             </Grid>

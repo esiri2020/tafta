@@ -366,22 +366,18 @@ export const UserEditForm = ({ user, ...other }) => {
           >
             Update
           </Button>
-          <NextLink
+          <Button
+            component={NextLink}
             href={`/admin-dashboard/users/${user.id}`}
-            passHref
+            disabled={formik.isSubmitting}
+            sx={{
+              m: 1,
+              mr: 'auto',
+            }}
+            variant='outlined'
           >
-            <Button
-              component="a"
-              disabled={formik.isSubmitting}
-              sx={{
-                m: 1,
-                mr: 'auto'
-              }}
-              variant="outlined"
-            >
-              Cancel
-            </Button>
-          </NextLink>
+            Cancel
+          </Button>
           <Button
             color="error"
             disabled={formik.isSubmitting}

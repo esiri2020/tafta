@@ -35,26 +35,38 @@ const buttonVariants = cva(
   },
 );
 
-const Button = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> &
-    VariantProps<typeof buttonVariants> & {
-      asChild?: boolean;
-      children?: React.ReactNode;
-    }
->(({className, variant, size, asChild = false, children, ...props}, ref) => {
-  const Comp = asChild ? Slot : 'button';
+// Add AsProp type for polymorphic support
+type AsProp<E extends React.ElementType> = {
+  as?: E;
+};
 
-  return (
-    <Comp
-      data-slot='button'
-      className={cn(buttonVariants({variant, size, className}))}
-      ref={ref}
-      {...props}>
-      {children}
-    </Comp>
-  );
-});
+type ButtonProps<E extends React.ElementType = 'button'> =
+  AsProp<E> &
+  Omit<React.ComponentPropsWithRef<E>, 'as' | 'ref' | 'size'> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean;
+    children?: React.ReactNode;
+    size?: 'default' | 'sm' | 'lg' | 'icon';
+  };
+
+const Button = React.forwardRef(
+  <E extends React.ElementType = 'button'>(
+    { className, variant, size, asChild = false, as, children, ...props }: ButtonProps<E>,
+    ref: React.Ref<any>
+  ) => {
+    const Comp = asChild ? Slot : as || 'button';
+    return (
+      <Comp
+        data-slot='button'
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </Comp>
+    );
+  }
+);
 
 Button.displayName = 'Button';
 

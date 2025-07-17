@@ -9,6 +9,7 @@ import { UserEditForm } from '../../../../components/dashboard/users/user-edit-f
 import { getInitials } from '../../../../utils/get-initials';
 import { useGetUserQuery } from '../../../../services/api'
 import { SplashScreen } from '../../../../components/splash-screen';
+import { Link as MuiLink } from '@mui/material';
 
 const UserEdit = () => {
   const router = useRouter()
@@ -44,27 +45,10 @@ const UserEdit = () => {
       >
         <Container maxWidth="md">
           <Box sx={{ mb: 4 }}>
-            <NextLink
-              href="/admin-dashboard/users"
-              passHref
-            >
-              <Link
-                color="textPrimary"
-                component="a"
-                sx={{
-                  alignItems: 'center',
-                  display: 'flex'
-                }}
-              >
-                <ArrowBackIcon
-                  fontSize="small"
-                  sx={{ mr: 1 }}
-                />
-                <Typography variant="subtitle2">
-                  Users
-                </Typography>
-              </Link>
-            </NextLink>
+            <MuiLink component={NextLink} href="/admin-dashboard/users" color="textPrimary" sx={{ alignItems: 'center', display: 'flex' }}>
+              <ArrowBackIcon fontSize="small" sx={{ mr: 1 }} />
+              <Typography component="span" variant="subtitle2">Users</Typography>
+            </MuiLink>
           </Box>
           <Box
             sx={{

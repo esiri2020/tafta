@@ -10,6 +10,7 @@ import {
   Drawer,
   Typography,
   useMediaQuery,
+  Link,
 } from '@mui/material';
 import {Home as HomeIcon} from '../../icons/home';
 import {Selector as SelectorIcon} from '../../icons/selector';
@@ -641,27 +642,11 @@ export const DashboardSidebar = props => {
           }}>
           <div>
             <Box sx={{p: 3}}>
-              <NextLink href='https://terraacademyforarts.com/' passHref>
-                <a>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      my: '2',
-                      mx: '0',
-                      width: '160px',
-                      '& img': {
-                        width: '100%',
-                      },
-                    }}>
-                    <img
-                      alt='tafta logo'
-                      ahref='https://terraacademyforarts.com/'
-                      style={{margin: '20px 0px'}}
-                      src='/static/images/logo.svg'
-                    />
-                  </Box>
+              <Link href='https://terraacademyforarts.com/' passHref legacyBehavior sx={{ display: 'flex', my: '2', mx: '0', width: '160px', '& img': { width: '100%' } }}>
+                <a style={{ display: 'flex', width: '100%' }}>
+                  <img src='/static/images/logo.svg' alt='Terra Academy for the Arts' />
                 </a>
-              </NextLink>
+              </Link>
             </Box>
             <Box sx={{px: 2}}>
               {data?.cohorts && (

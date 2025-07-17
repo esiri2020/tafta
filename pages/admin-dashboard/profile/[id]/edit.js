@@ -44,27 +44,9 @@ const UserEdit = () => {
       >
         <Container maxWidth="md">
           <Box sx={{ mb: 4 }}>
-            <NextLink
-              href="/admin-dashboard/users"
-              passHref
-            >
-              <Link
-                color="textPrimary"
-                component="a"
-                sx={{
-                  alignItems: 'center',
-                  display: 'flex'
-                }}
-              >
-                <ArrowBackIcon
-                  fontSize="small"
-                  sx={{ mr: 1 }}
-                />
-                <Typography variant="subtitle2">
-                  Users
-                </Typography>
-              </Link>
-            </NextLink>
+            <Link href="/admin-dashboard/users" passHref legacyBehavior style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>
+              <a style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>Back to Users</a>
+            </Link>
           </Box>
           <Box
             sx={{

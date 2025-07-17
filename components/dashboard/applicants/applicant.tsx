@@ -9,6 +9,7 @@ import {Card, CardContent, CardHeader, CardFooter} from '@/components/ui/card';
 import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {FormSection} from '@/components/form-section';
+import NextLink from 'next/link';
 
 // Form Sections - Import as type any to avoid strict type checking
 // We'll apply explicit type casting when using these components
@@ -657,14 +658,16 @@ const ApplicantCreateForm: React.FC = () => {
                 ? 'Creating...'
                 : 'Create Applicant'}
             </Button>
-            <Link href='/admin-dashboard/applicants' passHref>
+            <NextLink href='/admin-dashboard/applicants' passHref legacyBehavior>
               <Button
                 variant='outline'
                 className='ml-2'
-                disabled={formik.isSubmitting || isSubmitting}>
+                disabled={formik.isSubmitting || isSubmitting}
+                as='a'
+              >
                 Cancel
               </Button>
-            </Link>
+            </NextLink>
           </div>
         </CardFooter>
       </Card>

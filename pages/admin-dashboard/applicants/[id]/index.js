@@ -72,27 +72,9 @@ const ApplicantDetails = () => {
         <Container maxWidth="md">
           <div>
             <Box sx={{ mb: 4 }}>
-              <NextLink
-                href="/admin-dashboard/applicants"
-                passHref
-              >
-                <Link
-                  color="textPrimary"
-                  component="a"
-                  sx={{
-                    alignItems: 'center',
-                    display: 'flex'
-                  }}
-                >
-                  <ArrowBackIcon
-                    fontSize="small"
-                    sx={{ mr: 1 }}
-                  />
-                  <Typography variant="subtitle2">
-                    Applicants
-                  </Typography>
-                </Link>
-              </NextLink>
+              <Link href="/admin-dashboard/applicants" passHref legacyBehavior style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>
+                <a style={{textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center'}}>Back to Applicants</a>
+              </Link>
             </Box>
             <Grid
               container
@@ -142,21 +124,15 @@ const ApplicantDetails = () => {
                 item
                 sx={{ m: -1 }}
               >
-                <NextLink
+                <Button
+                  component={NextLink}
                   href={`/admin-dashboard/applicants/${applicant.id}/edit`}
-                  passHref
+                  endIcon={<PencilAltIcon fontSize="small" />}
+                  sx={{ m: 1 }}
+                  variant="outlined"
                 >
-                  <Button
-                    component="a"
-                    endIcon={(
-                      <PencilAltIcon fontSize="small" />
-                    )}
-                    sx={{ m: 1 }}
-                    variant="outlined"
-                  >
-                    Edit
-                  </Button>
-                </NextLink>
+                  Edit
+                </Button>
                 {applicant.thinkific_user_id ? '' :
                   <Button
                     sx={{ m: 1 }}

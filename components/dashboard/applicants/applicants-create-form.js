@@ -9,6 +9,7 @@ import {Card, CardContent, CardHeader, CardActions} from '@/components/ui/card';
 import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {FormSection} from '@/components/form-section';
+import NextLink from 'next/link';
 
 // Form Sections
 import {BasicInformation} from '@/components/home/form-sections/basic-information';
@@ -450,14 +451,16 @@ const ApplicantCreateForm = () => {
                 ? 'Creating...'
                 : 'Create Applicant'}
             </Button>
-            <Link href='/admin-dashboard/applicants' passHref>
+            <NextLink href='/admin-dashboard/applicants' passHref legacyBehavior>
               <Button
                 variant='outline'
                 className='ml-2'
-                disabled={formik.isSubmitting || isSubmitting}>
+                disabled={formik.isSubmitting || isSubmitting}
+                as='a'
+              >
                 Cancel
               </Button>
-            </Link>
+            </NextLink>
           </div>
         </CardActions>
       </Card>
