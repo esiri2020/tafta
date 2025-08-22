@@ -240,12 +240,14 @@ def normalize_profile_fields(row):
     # Validate disability
     disability_value = row.get('disability')
     if disability_value:
-        disability_value = str(disability_value).strip().upper()
-        if disability_value not in ['YES', 'NO']:
+        disability_value = str(disability_value).strip()
+        # Allow specific disability types or 'none' for no disability
+        valid_disabilities = ['visual', 'hearing', 'physical', 'intellectual', 'other', 'none']
+        if disability_value.lower() not in valid_disabilities:
             print(f"[WARNING] Invalid disability '{disability_value}', setting to None")
             row['disability'] = None
         else:
-            row['disability'] = disability_value
+            row['disability'] = disability_value.lower()
     # Validate type
     type_value = row.get('type')
     if type_value:

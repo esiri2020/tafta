@@ -20,6 +20,7 @@ import {useFormik} from 'formik';
 import PropTypes from 'prop-types';
 import toast from 'react-hot-toast';
 import * as Yup from 'yup';
+import { user_disabilies } from '../../data/form-options';
 
 const nigeria_states = ['Kano', 'Lagos', 'Ogun'];
 
@@ -169,36 +170,7 @@ const defaultCohortCourses = [
   },
 ];
 
-const user_disabilies = [
-  {
-    label: 'Visual impairment (seeing problem)',
-    value: 'seeing',
-  },
-  {
-    label: 'Speech problems',
-    value: 'speech',
-  },
-  {
-    label: 'Mobility disability  (Limited use of leg)',
-    value: 'legDisability',
-  },
-  {
-    label: 'Limited use of arms or fingers',
-    value: 'handDisability',
-  },
-  {
-    label: 'Intellectual disability',
-    value: 'intellectualDisability',
-  },
-  {
-    label: 'Albinism',
-    value: 'albinism',
-  },
-  {
-    label: 'Others',
-    value: 'others',
-  },
-];
+// Using standardized disability options from form-options.ts
 
 const employment_status = [
   {

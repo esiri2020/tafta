@@ -549,6 +549,7 @@ function ApplicantList() {
         'Referrer Name',
         'Referrer Phone',
         'Source of Information',
+        'Disability',
         
         // Cohort Information
         'Cohort Name',
@@ -654,6 +655,7 @@ function ApplicantList() {
           applicant.profile?.referrer?.fullName || '',
           applicant.profile?.referrer?.phoneNumber || '',
           applicant.profile?.source || '',
+          applicant.profile?.disability || '',
           
           // Cohort Information
           cohort?.name || '',

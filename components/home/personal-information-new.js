@@ -29,6 +29,7 @@ import {format} from 'date-fns';
 import {CalendarIcon} from 'lucide-react';
 import {Label} from '@/components/ui/label';
 import { signIn, useSession } from 'next-auth/react';
+import { user_disabilies } from '../../data/form-options';
 
 const nigeria_states = ['Kano', 'Lagos', 'Ogun'];
 
@@ -178,36 +179,7 @@ const cohortCourses = [
   },
 ];
 
-const user_disabilies = [
-  {
-    label: 'Visual impairment (seeing problem)',
-    value: 'seeing',
-  },
-  {
-    label: 'Speech problems',
-    value: 'speech',
-  },
-  {
-    label: 'Mobility disability  (Limited use of leg)',
-    value: 'legDisability',
-  },
-  {
-    label: 'Limited use of arms or fingers',
-    value: 'handDisability',
-  },
-  {
-    label: 'Intellectual disability',
-    value: 'intellectualDisability',
-  },
-  {
-    label: 'Albinism',
-    value: 'albinism',
-  },
-  {
-    label: 'Others',
-    value: 'others',
-  },
-];
+// Using standardized disability options from form-options.ts
 
 const employment_status = [
   {

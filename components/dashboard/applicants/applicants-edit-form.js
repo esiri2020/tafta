@@ -25,6 +25,7 @@ import {
   Tab,
 } from '@mui/material';
 import {useEditApplicantMutation} from '../../../services/api';
+import { user_disabilies } from '../../../data/form-options';
 
 const genderList = ['MALE', 'FEMALE'];
 const registrationTypes = ['INDIVIDUAL', 'ENTERPRISE'];
@@ -68,36 +69,6 @@ const levels_of_education = [
   {
     label: "Master's Degree",
     value: 'MSC',
-  },
-];
-const user_disabilies = [
-  {
-    label: 'Visual impairment (seeing problem)',
-    value: 'seeing',
-  },
-  {
-    label: 'Speech problems',
-    value: 'speech',
-  },
-  {
-    label: 'Mobility disability  (Limited use of leg)',
-    value: 'legDisability',
-  },
-  {
-    label: 'Limited use of arms or fingers',
-    value: 'handDisability',
-  },
-  {
-    label: 'Intellectual disability',
-    value: 'intellectualDisability',
-  },
-  {
-    label: 'Albinism',
-    value: 'albinism',
-  },
-  {
-    label: 'Others',
-    value: 'others',
   },
 ];
 
