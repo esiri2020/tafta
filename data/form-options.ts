@@ -153,7 +153,7 @@ export const residency_status = [
 
 // Mobilizer list (example data)
 export const mobilizer = [
-'GENDEI', 'MUB', 'ARO', 'GIDN', 'NRCS01', 'KSUG02', 'NYSC', 'Dasia23', 'RCCGDD', 'KEN01', 'WOMDEV', 'LANMO', 'AKIN T', 'GOKE19', 'OLUFEMISAMSON',
+'GENDEI', 'MUB', 'ARO', 'GIDN','WIN', 'NRCS01', 'KSUG02', 'NYSC', 'Dasia23', 'RCCGDD', 'KEN01', 'WOMDEV', 'LANMO', 'AKIN T', 'GOKE19', 'OLUFEMISAMSON',
     'Pearl', 'OGJLE05', 'ADEOLU', 'NAFOGUN', 'KENNYWISE', 'DATARAIN', 'TK001', 'TK002', 'TK003', 'TK004', 'TK005', 'TK006',
     'TK007', 'TK008', 'TK009', 'NrsVee', 'TK010', 'TK011', 'TK012', 'TK013', 'TK014', 'TK015', 'TK016', 'TK017', 'TK018',
     'TK019', 'TK020', 'TK021', 'TK022', 'TK023', 'TK024', 'TK025', 'TK026', 'TK027', 'TK028', 'TK029', 'TK030',
