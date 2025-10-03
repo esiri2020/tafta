@@ -762,19 +762,18 @@ export const CohortEditForm = ({ cohort, cancel, ...other }) => {
               Cancel
             </Button>
           ) : (
-            <NextLink href={`/admin-dashboard/cohorts`} passHref>
-              <Button
-                component="a"
-                disabled={formik.isSubmitting}
-                sx={{
-                  m: 1,
-                  mr: "auto",
-                }}
-                variant="outlined"
-              >
-                Cancel
-              </Button>
-            </NextLink>
+            <Button
+              component={NextLink}
+              href={`/admin-dashboard/cohorts`}
+              disabled={formik.isSubmitting}
+              sx={{
+                m: 1,
+                mr: "auto",
+              }}
+              variant="outlined"
+            >
+              Cancel
+            </Button>
           )}
           {cohort?.id && (
             <Button

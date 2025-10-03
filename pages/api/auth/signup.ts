@@ -238,6 +238,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               ? {
                   create: {
                     cohortId,
+                    enrollments: profileData.selectedCourse && profileData.selectedCourseId && profileData.selectedCourseName
+                      ? {
+                          create: {
+                            enrolled: false, // Will be activated after email verification
+                            course_id: BigInt(profileData.selectedCourseId),
+                            course_name: profileData.selectedCourseName,
+                          },
+                        }
+                      : undefined,
                   },
                 }
               : undefined,
@@ -325,6 +334,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(201).json({message: 'User created', ...serializedUser, ref});
       } else {
         return await prisma.$transaction(async tx => {
+          // Define profile data for transaction
+          const profileData = {
+            selectedCourse: profile?.selectedCourse || '',
+            selectedCourseName: profile?.selectedCourseName || '',
+            selectedCourseId: profile?.selectedCourseId || '',
+            cohortId: profile?.cohortId || cohortId || '',
+            // Note: Referrer information is stored in the separate Referrer table, not in Profile
+          };
+
           // Create Thinkific user first
           let thinkificUserId = null;
           try {
@@ -363,6 +381,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 create: cohortId
                   ? {
                       cohortId,
+                      enrollments: profileData.selectedCourse && profileData.selectedCourseId && profileData.selectedCourseName
+                        ? {
+                            create: {
+                              enrolled: false, // Will be activated after email verification
+                              course_id: BigInt(profileData.selectedCourseId),
+                              course_name: profileData.selectedCourseName,
+                            },
+                          }
+                        : undefined,
                     }
                   : undefined,
               },

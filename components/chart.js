@@ -1,14 +1,12 @@
 import dynamic from 'next/dynamic';
-import ReactApexChart from 'react-apexcharts';
 
-const Chart = dynamic(() => import('react-apexcharts'), {
+const DynamicChart = dynamic(() => import('react-apexcharts'), {
   ssr: false,
   loading: () => null,
 });
 
-Chart.defaultProps = {
-  ...ReactApexChart.defaultProps,
-  type: 'line',
+// Wrapper component to provide default props without using defaultProps
+export const Chart = (props) => {
+  const { type = 'line', ...other } = props;
+  return <DynamicChart type={type} {...other} />;
 };
-
-export { Chart };
