@@ -178,7 +178,16 @@ export default async function handler(
       return res.status(404).json({ message: "Invalid ID" });
     }
 
-    res.json({ message: "success", cohort });
+    // Serialize BigInt values to strings
+    const serializedCohort = {
+      ...cohort,
+      cohortCourses: cohort.cohortCourses?.map(cc => ({
+        ...cc,
+        course_id: cc.course_id.toString(), // Convert BigInt to string
+      })) || []
+    };
+
+    res.json({ message: "success", cohort: serializedCohort });
   } catch (error) {
     console.error(error);
     res.status(400).json({ 

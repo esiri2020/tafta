@@ -222,9 +222,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       limit: Number(limit)
     });
 
+    // Serialize BigInt values to strings
+    const serializedCohorts = cohorts.map(cohort => ({
+      ...cohort,
+      cohortCourses: cohort.cohortCourses?.map(cc => ({
+        ...cc,
+        course_id: cc.course_id.toString(), // Convert BigInt to string
+      })) || []
+    }));
+
     res.status(200).json({
       message: 'success',
-      cohorts,
+      cohorts: serializedCohorts,
       count: total, // Frontend expects count directly
       pagination: {
         page: Number(page),
