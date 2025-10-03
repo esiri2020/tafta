@@ -46,12 +46,12 @@ const MobilizerDashboard = () => {
   const router = useRouter();
 
   // Get mobilizer data based on user's mobilizer code
-  const mobilizerId = session?.userData?.mobilizerId;
+  const mobilizerId = (session as any)?.userData?.mobilizerId;
   console.log('🔍 Mobilizer Dashboard Debug:', {
     session: session,
-    userData: session?.userData,
+    userData: (session as any)?.userData,
     mobilizerId: mobilizerId,
-    role: session?.userData?.role
+    role: (session as any)?.userData?.role
   });
   
   const { data: mobilizerData, isLoading: mobilizerLoading, error: mobilizerError } = useGetMobilizerByIdQuery(
@@ -74,14 +74,14 @@ const MobilizerDashboard = () => {
   }, [status, router]);
 
   useEffect(() => {
-    if (session?.userData?.role !== 'MOBILIZER') {
+    if ((session as any)?.userData?.role !== 'MOBILIZER') {
       router.push('/dashboard');
     }
   }, [session, router]);
 
   // Force session refresh if mobilizerId is missing
   useEffect(() => {
-    if (session && session?.userData?.role === 'MOBILIZER' && !mobilizerId) {
+    if (session && (session as any)?.userData?.role === 'MOBILIZER' && !mobilizerId) {
       console.log('🔄 MobilizerId missing, forcing session refresh...');
       // Force a session refresh by signing out and back in
       // This is a temporary workaround
@@ -103,7 +103,7 @@ const MobilizerDashboard = () => {
     );
   }
 
-  if (!session?.userData || session.userData.role !== 'MOBILIZER') {
+  if (!(session as any)?.userData || (session as any).userData.role !== 'MOBILIZER') {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Alert severity="error">
@@ -117,7 +117,7 @@ const MobilizerDashboard = () => {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Alert severity="error">
-          Error loading mobilizer data: {mobilizerError?.message || 'Unknown error'}
+          Error loading mobilizer data: {(mobilizerError as any)?.message || 'Unknown error'}
         </Alert>
       </Container>
     );

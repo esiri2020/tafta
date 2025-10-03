@@ -22,7 +22,7 @@ export const useNotifications = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Skip notifications for mobilizers
-  const shouldFetchNotifications = session?.userData?.role !== 'MOBILIZER';
+  const shouldFetchNotifications = (session as any)?.userData?.role !== 'MOBILIZER';
 
   const fetchAlerts = useCallback(async () => {
     if (!shouldFetchNotifications) {

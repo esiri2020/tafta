@@ -24,7 +24,7 @@ export default function MobilizerProfile() {
   const router = useRouter();
   
   // Use mobilizerId from session instead of URL parameter
-  const mobilizerId = session?.userData?.mobilizerId;
+  const mobilizerId = (session as any)?.userData?.mobilizerId;
 
   // Get mobilizer data
   const { data: mobilizerData, isLoading: mobilizerLoading, error: mobilizerError } = useGetMobilizerByIdQuery(
@@ -41,7 +41,7 @@ export default function MobilizerProfile() {
   }, [status, router]);
 
   useEffect(() => {
-    if (session?.userData?.role !== 'MOBILIZER') {
+    if ((session as any)?.userData?.role !== 'MOBILIZER') {
       router.push('/dashboard');
     }
   }, [session, router]);
@@ -50,7 +50,7 @@ export default function MobilizerProfile() {
     return <SplashScreen />;
   }
 
-  if (!session?.userData || session.userData.role !== 'MOBILIZER') {
+  if (!(session as any)?.userData || (session as any).userData.role !== 'MOBILIZER') {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Alert severity="error">
@@ -64,7 +64,7 @@ export default function MobilizerProfile() {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Alert severity="error">
-          Error loading mobilizer profile: {mobilizerError?.message || 'Unknown error'}
+          Error loading mobilizer profile: {(mobilizerError as any)?.message || 'Unknown error'}
         </Alert>
       </Container>
     );

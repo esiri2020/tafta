@@ -37,9 +37,9 @@ const MobilizerApplicants = () => {
 
   // Get mobilizer data based on user's mobilizer code
   const { data: mobilizerData, isLoading: mobilizerLoading } = useGetMobilizerByIdQuery(
-    session?.userData?.mobilizerId || '',
+    (session as any)?.userData?.mobilizerId || '',
     {
-      skip: !session?.userData?.mobilizerId,
+      skip: !(session as any)?.userData?.mobilizerId,
     }
   );
 
@@ -50,7 +50,7 @@ const MobilizerApplicants = () => {
   }, [status, router]);
 
   useEffect(() => {
-    if (session?.userData?.role !== 'MOBILIZER') {
+    if ((session as any)?.userData?.role !== 'MOBILIZER') {
       router.push('/dashboard');
     }
   }, [session, router]);
@@ -65,7 +65,7 @@ const MobilizerApplicants = () => {
     return <SplashScreen />;
   }
 
-  if (!session?.userData || session.userData.role !== 'MOBILIZER') {
+  if (!(session as any)?.userData || (session as any).userData.role !== 'MOBILIZER') {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Alert severity="error">

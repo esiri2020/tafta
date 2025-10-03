@@ -22,14 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const where: any = {};
     
     if (filter && filter !== 'undefined') {
-      where.status = filter;
+      where.active = filter === 'active';
     }
     
     if (query) {
-      where.OR = [
-        { name: { contains: query as string, mode: 'insensitive' } },
-        { description: { contains: query as string, mode: 'insensitive' } }
-      ];
+      where.name = { contains: query as string, mode: 'insensitive' };
     }
 
     // Get cohorts with pagination
