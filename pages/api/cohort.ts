@@ -43,6 +43,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
+      // Handle cohort courses and centers if provided
+      const { cohortCourses = [], centers = [] } = body;
+      
+      if (cohortCourses.length > 0 || centers.length > 0) {
+        await prisma.$transaction(async (tx) => {
+          // Create cohort courses
+          if (cohortCourses.length > 0) {
+            await tx.cohortCourse.createMany({
+              data: cohortCourses.map((cc: any) => ({
+                cohortId: cohort.id,
+                course_id: BigInt(cc.course_id),
+                course_limit: parseInt(cc.course_limit) || 0,
+              })),
+            });
+          }
+
+          // Create centers
+          if (centers.length > 0) {
+            await tx.center.createMany({
+              data: centers.map((center: any) => ({
+                cohortId: cohort.id,
+                name: center.centerName,
+                location: center.location,
+                seats: parseInt(center.numberOfSeats) || 0,
+              })),
+            });
+          }
+        });
+      }
+
       return res.status(201).json({ message: 'success', cohort });
     } catch (error) {
       console.error('❌ Error creating cohort:', error);
@@ -50,8 +80,83 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
+  // UPDATE cohort (PUT/PATCH)
+  if (req.method === 'PUT' || req.method === 'PATCH') {
+    try {
+      const body = typeof req.body === 'object' ? req.body : JSON.parse(req.body);
+      const { cohortCourses = [], centers = [], values } = body;
+      
+      if (!values || !values.id) {
+        return res.status(400).json({ message: 'Missing cohort ID for update' });
+      }
+
+      const { id, name, start_date, end_date, active, color } = values;
+
+      // Start transaction to update cohort and related data
+      const result = await prisma.$transaction(async (tx) => {
+        // Update the cohort
+        const updatedCohort = await tx.cohort.update({
+          where: { id },
+          data: {
+            name: String(name),
+            start_date: new Date(start_date),
+            end_date: new Date(end_date),
+            active: Boolean(active),
+            color: String(color),
+          },
+        });
+
+        // Handle cohort courses
+        if (Array.isArray(cohortCourses)) {
+          // Delete existing cohort courses
+          await tx.cohortCourse.deleteMany({
+            where: { cohortId: id }
+          });
+
+          // Create new cohort courses
+          if (cohortCourses.length > 0) {
+            await tx.cohortCourse.createMany({
+              data: cohortCourses.map((cc: any) => ({
+                cohortId: id,
+                course_id: BigInt(cc.course_id),
+                course_limit: parseInt(cc.course_limit) || 0,
+              })),
+            });
+          }
+        }
+
+        // Handle centers
+        if (Array.isArray(centers)) {
+          // Delete existing centers
+          await tx.center.deleteMany({
+            where: { cohortId: id }
+          });
+
+          // Create new centers
+          if (centers.length > 0) {
+            await tx.center.createMany({
+              data: centers.map((center: any) => ({
+                cohortId: id,
+                name: center.centerName,
+                location: center.location,
+                seats: parseInt(center.numberOfSeats) || 0,
+              })),
+            });
+          }
+        }
+
+        return updatedCohort;
+      });
+
+      return res.status(200).json({ message: 'success', cohort: result });
+    } catch (error) {
+      console.error('❌ Error updating cohort:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+
   if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET', 'POST']);
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH']);
     return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 

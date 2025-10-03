@@ -150,7 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Error fetching mobilizer data:', error);
     res.status(500).json({ 
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      error: process.env.NODE_ENV === 'development' ? (error as any)?.message : undefined
     });
   }
 }
