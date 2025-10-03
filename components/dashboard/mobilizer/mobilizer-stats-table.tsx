@@ -92,6 +92,8 @@ export const MobilizerStatsTable: React.FC<MobilizerStatsTableProps> = ({
         return 'default';
       case 'SUSPENDED':
         return 'error';
+      case 'UNREGISTERED':
+        return 'warning';
       default:
         return 'default';
     }
