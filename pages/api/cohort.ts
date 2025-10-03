@@ -22,7 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const where: any = {};
     
     if (filter && filter !== 'undefined') {
-      where.active = filter === 'active';
+      // Handle both 'true'/'false' strings and boolean values
+      const filterValue = Array.isArray(filter) ? filter[0] : filter;
+      if (filterValue === 'true') {
+        where.active = true;
+      } else if (filterValue === 'false') {
+        where.active = false;
+      }
     }
     
     if (query) {
@@ -41,6 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         start_date: true,
         end_date: true,
         active: true,
+        color: true,
       }
     });
 
