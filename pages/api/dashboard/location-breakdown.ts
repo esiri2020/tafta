@@ -19,6 +19,12 @@ export default async function handler(
     const { cohortId } = req.query;
     const cohortIdString = Array.isArray(cohortId) ? cohortId[0] : cohortId;
 
+    // Get the course IDs that belong to this cohort (if cohortId is provided)
+    const cohortCourseIds = cohortIdString ? await prisma.cohortCourse.findMany({
+      where: { cohortId: cohortIdString },
+      select: { course_id: true },
+    }).then(results => results.map(r => r.course_id)) : [];
+
     // Define a base where clause for enrollments
     const baseEnrollmentWhere: any = {
       completed: true,
@@ -27,6 +33,10 @@ export default async function handler(
     if (cohortIdString) {
       baseEnrollmentWhere.userCohort = {
         cohortId: cohortIdString,
+      };
+      // Only include enrollments for courses that belong to this cohort
+      baseEnrollmentWhere.course_id = {
+        in: cohortCourseIds,
       };
     }
 

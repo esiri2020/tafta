@@ -848,11 +848,25 @@ export const PersonalInformation = ({
             variant='h5'
             align='left'
             sx={{
-              marginBottom: { xs: '20px', md: '50px' },
+              marginBottom: { xs: '20px', md: '30px' },
               fontSize: { xs: '1.5rem', md: '2rem' }
             }}>
             Personal Information
           </Typography>
+          
+          <Box sx={{ 
+            mb: 3, 
+            p: 2, 
+            bgcolor: 'success.light', 
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'success.main'
+          }}>
+            <Typography variant='body2' color='success.dark' sx={{ textAlign: 'center', fontWeight: 'medium' }}>
+              🎉 <strong>Great! Your email has been verified.</strong> A new tab should have opened for you to access your learning platform. 
+              You can complete this form while your LMS is loading in the other tab.
+            </Typography>
+          </Box>
           <form onSubmit={formik.handleSubmit}>
             <Grid container spacing={{ xs: 2, md: 3 }}>
               <Grid item xs={12}>
@@ -2270,30 +2284,85 @@ export const VerifyEmail = ({ email: propEmail, onBack }) => {
   );
 };
 
-export const EndOfApplication = () => (
-  <Box>
-    <Card>
-      <CardContent
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-        }}>
-        <Typography
-          variant='h5'
-          align='center'
+export const EndOfApplication = ({ handlers }) => {
+  const router = useRouter();
+  const { handleNext } = handlers;
+
+  const handleSubmit = async () => {
+    try {
+      console.log('✅ Registration completed - enrollment already happened after email verification');
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('❌ Error completing registration:', error);
+      // Still redirect to dashboard
+      router.push('/dashboard');
+    }
+  };
+
+  return (
+    <Box>
+      <Card>
+        <CardContent
           sx={{
-            marginBottom: '50px',
-            padding: '50px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}>
-          Dear User, you have come to the end of the application, for us to
-          receive your application please click on SUBMIT, you can always review
-          your application on your Dashboard before the application closes.
-        </Typography>
-      </CardContent>
-    </Card>
-  </Box>
-);
+          <Typography
+            variant='h5'
+            align='center'
+            sx={{
+              marginBottom: '30px',
+              padding: '30px',
+            }}>
+            🎉 Congratulations! You have successfully completed your application.
+          </Typography>
+          
+          <Typography
+            variant='body1'
+            align='center'
+            sx={{
+              marginBottom: '30px',
+              padding: '0 30px',
+            }}>
+            Your registration and enrollment process is now complete. You can now access your learning platform and start your courses.
+          </Typography>
+
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
+            <Button
+              variant='contained'
+              size='large'
+              onClick={handleSubmit}
+              sx={{
+                backgroundColor: '#FF7A00',
+                '&:hover': {
+                  backgroundColor: '#e66a00',
+                },
+                px: 4,
+                py: 2,
+                fontSize: '1.1rem',
+              }}
+            >
+              Complete Registration & Access Learning Platform
+            </Button>
+          </Box>
+
+          <Typography
+            variant='body2'
+            align='center'
+            sx={{
+              marginTop: '20px',
+              padding: '0 30px',
+              color: 'text.secondary',
+            }}>
+            You can always review your application and access your courses from your Dashboard.
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
 
 export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
   const {

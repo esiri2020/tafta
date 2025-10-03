@@ -10,6 +10,7 @@
     "export": "next export",
     "start": "next start -p 8000",
     "seed": "node prisma/seed.mjs",
+    "seed:mobilizers": "ts-node prisma/seed-mobilizers.ts",
     "simulate-completion": "ts-node scripts/simulate-completion-data.ts"
   },
   "prisma": {

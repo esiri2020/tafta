@@ -261,7 +261,7 @@ export default async function handler(
             // Wait for the promise to resolve
             const updatedUser = await updatedUserPromise;
             console.log('updatedUser: ', updatedUser);
-            promises.push(Promise.resolve(updatedUser));
+            promises.push(Promise.resolve(updatedUser as any));
 
             const thinkific_data = {
               course_id: course_id,
@@ -460,22 +460,53 @@ export default async function handler(
   let femaleCount = 0;
   let totalCount = 0;
 
+  // Get cohort-specific course IDs for filtering
+  const cohortCourseIds = cohorts.length > 0 ? await prisma.cohortCourse.findMany({
+    where: { 
+      cohortId: { in: cohorts }
+    },
+    select: { course_id: true },
+  }).then(results => results.map(r => r.course_id)) : [];
+
+  // Debug logging
+  console.log('Enrollments API - cohorts:', cohorts);
+  console.log('Enrollments API - cohortCourseIds:', cohortCourseIds);
+
   // Define search condition
   let whereCondition: any = {};
 
   // Base conditions
-  if (course?.length) {
-    whereCondition.course_id = {
-      in: course.map(e => BigInt(e)),
-    };
-  }
-
   if (cohorts.length > 0) {
     whereCondition.userCohort = {
       cohortId: {
         in: cohorts,
       },
     };
+    // Only include enrollments for courses that belong to the selected cohorts
+    if (cohortCourseIds.length > 0) {
+      whereCondition.course_id = {
+        in: cohortCourseIds,
+      };
+    }
+  }
+
+  // Course filter - if both course and cohort filters exist, intersect them
+  if (course?.length) {
+    if (whereCondition.course_id) {
+      // If we already have a course_id filter (from cohort), intersect them
+      const cohortCourseIdsSet = new Set(cohortCourseIds);
+      const filteredCourseIds = course
+        .map(e => BigInt(e))
+        .filter(id => cohortCourseIdsSet.has(id));
+      whereCondition.course_id = {
+        in: filteredCourseIds,
+      };
+    } else {
+      // No existing course filter, just use the course filter
+      whereCondition.course_id = {
+        in: course.map(e => BigInt(e)),
+      };
+    }
   }
 
   // Date range filter
@@ -638,48 +669,77 @@ export default async function handler(
         where: femaleWhereCondition,
       });
     } else {
-      count = await prisma.enrollment.count({});
-      // Calculate male and female counts based on the total count
-      maleCount = await prisma.enrollment.count({
+      // Count unique users with enrollments (not enrollment records) - same logic as dashboard
+      count = await prisma.user.count({
         where: {
-          AND: [
-            {
-              course_id: course?.length
-                ? {in: course.map(e => BigInt(e))}
-                : undefined,
-            },
-            {
-              userCohort:
-                cohorts.length > 0 ? {cohortId: {in: cohorts}} : undefined,
-            },
-          ],
           userCohort: {
-            user: {
-              profile: {
-                gender: 'MALE',
+            some: {
+              // Apply cohort filter if specified
+              ...(whereCondition.userCohort?.cohortId ? {
+                cohortId: whereCondition.userCohort.cohortId,
+              } : {}),
+              enrollments: {
+                some: {
+                  // Apply course filter if specified
+                  ...(whereCondition.course_id ? {
+                    course_id: whereCondition.course_id,
+                  } : {}),
+                  // Only count users with actual enrollments (not pending/expired)
+                  enrolled: true,
+                },
               },
             },
           },
         },
       });
 
-      femaleCount = await prisma.enrollment.count({
+      // Calculate male and female counts using the same user-based logic
+      maleCount = await prisma.user.count({
         where: {
-          AND: [
-            {
-              course_id: course?.length
-                ? {in: course.map(e => BigInt(e))}
-                : undefined,
-            },
-            {
-              userCohort:
-                cohorts.length > 0 ? {cohortId: {in: cohorts}} : undefined,
-            },
-          ],
+          profile: {
+            gender: 'MALE',
+          },
           userCohort: {
-            user: {
-              profile: {
-                gender: 'FEMALE',
+            some: {
+              // Apply cohort filter if specified
+              ...(whereCondition.userCohort?.cohortId ? {
+                cohortId: whereCondition.userCohort.cohortId,
+              } : {}),
+              enrollments: {
+                some: {
+                  // Apply course filter if specified
+                  ...(whereCondition.course_id ? {
+                    course_id: whereCondition.course_id,
+                  } : {}),
+                  // Only count users with actual enrollments (not pending/expired)
+                  enrolled: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      femaleCount = await prisma.user.count({
+        where: {
+          profile: {
+            gender: 'FEMALE',
+          },
+          userCohort: {
+            some: {
+              // Apply cohort filter if specified
+              ...(whereCondition.userCohort?.cohortId ? {
+                cohortId: whereCondition.userCohort.cohortId,
+              } : {}),
+              enrollments: {
+                some: {
+                  // Apply course filter if specified
+                  ...(whereCondition.course_id ? {
+                    course_id: whereCondition.course_id,
+                  } : {}),
+                  // Only count users with actual enrollments (not pending/expired)
+                  enrolled: true,
+                },
               },
             },
           },
@@ -713,34 +773,104 @@ export default async function handler(
     enrollments = bigint_filter(enrollments);
     console.log(count, maleCount, femaleCount);
 
-    // Always count over all enrollments matching the filters, NOT paginated
-    const allWhere = {...whereCondition};
+    // Count unique users by status (not enrollment records) - consistent with dashboard logic
+    const baseUserWhere = {
+      userCohort: {
+        some: {
+          // Apply cohort filter if specified
+          ...(whereCondition.userCohort?.cohortId ? {
+            cohortId: whereCondition.userCohort.cohortId,
+          } : {}),
+          enrollments: {
+            some: {
+              // Apply course filter if specified
+              ...(whereCondition.course_id ? {
+                course_id: whereCondition.course_id,
+              } : {}),
+            },
+          },
+        },
+      },
+    };
 
-    const activeCount = await prisma.enrollment.count({
+    const activeCount = await prisma.user.count({
       where: {
-        ...allWhere,
-        completed: false,
-        expired: false,
-        enrolled: true,
+        ...baseUserWhere,
+        userCohort: {
+          some: {
+            ...baseUserWhere.userCohort.some,
+            enrollments: {
+              some: {
+                ...baseUserWhere.userCohort.some.enrollments.some,
+                completed: false,
+                expired: false,
+                enrolled: true,
+              },
+            },
+          },
+        },
       },
     });
-    const completedCount = await prisma.enrollment.count({
+
+    const completedCount = await prisma.user.count({
       where: {
-        ...allWhere,
-        completed: true,
+        ...baseUserWhere,
+        userCohort: {
+          some: {
+            ...baseUserWhere.userCohort.some,
+            enrollments: {
+              some: {
+                ...baseUserWhere.userCohort.some.enrollments.some,
+                completed: true,
+              },
+            },
+          },
+        },
       },
     });
-    const expiredCount = await prisma.enrollment.count({
+
+    const expiredCount = await prisma.user.count({
       where: {
-        ...allWhere,
-        expired: true,
+        ...baseUserWhere,
+        userCohort: {
+          some: {
+            ...baseUserWhere.userCohort.some,
+            enrollments: {
+              some: {
+                ...baseUserWhere.userCohort.some.enrollments.some,
+                expired: true,
+              },
+            },
+          },
+        },
       },
     });
-    const pendingCount = await prisma.enrollment.count({
+
+    const pendingCount = await prisma.user.count({
       where: {
-        ...allWhere,
-        activated_at: null,
+        ...baseUserWhere,
+        userCohort: {
+          some: {
+            ...baseUserWhere.userCohort.some,
+            enrollments: {
+              some: {
+                ...baseUserWhere.userCohort.some.enrollments.some,
+                activated_at: null,
+              },
+            },
+          },
+        },
       },
+    });
+
+    console.log('Enrollments API - Final counts:', {
+      count,
+      maleCount,
+      femaleCount,
+      activeCount,
+      completedCount,
+      expiredCount,
+      pendingCount,
     });
 
     return res.status(200).send({

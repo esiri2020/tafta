@@ -21,11 +21,17 @@ import { useGetApplicantsQuery } from '../../services/api'
 // import { Warning } from '@mui/icons-material';
 
 export const ApplicantsList = (props) => {
+  const { mobilizerId, cohortId, showMobilizerColumn = true, ...otherProps } = props;
   const [selectedCustomerIds, setSelectedCustomerIds] = useState([]);
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(0);
 
-  const { data, error, isLoading } = useGetApplicantsQuery({page, limit})
+  const { data, error, isLoading } = useGetApplicantsQuery({
+    page, 
+    limit,
+    mobilizerId: mobilizerId || undefined,
+    cohortId: cohortId || undefined
+  })
   
 
   const handleSelectAll = (event) => {

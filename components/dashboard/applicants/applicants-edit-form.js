@@ -1214,7 +1214,7 @@ export const ApplicantEditForm = ({applicant, ...other}) => {
             variant='contained'>
             Save Changes
           </Button>
-          <NextLink href={`/admin-dashboard/applicants/${applicant.id}`} passHref legacyBehavior>
+          <NextLink href={`/admin-dashboard/applicants/${applicant.id}`}>
             <Button
               disabled={formik.isSubmitting || isSubmitting}
               sx={{
@@ -1222,7 +1222,6 @@ export const ApplicantEditForm = ({applicant, ...other}) => {
                 mr: 'auto',
               }}
               variant='outlined'
-              as='a'
             >
               Cancel
             </Button>

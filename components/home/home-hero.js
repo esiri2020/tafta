@@ -138,10 +138,7 @@ export const HomeHero = props => {
                   }}>
                   <Button
                     component={NextLink}
-                    href={{
-                      pathname: '/register-new',
-                      query: {cohortId: cohort.id},
-                    }}
+                    href={`/register-new?cohortId=${cohort.id}`}
                     size='large'
                     variant='contained'
                     sx={{
@@ -244,32 +241,32 @@ export const HomeHero = props => {
                     The application takes about 1-2 minutes.
                     <br />
                     <strong>How to register:</strong>
-                    <ol style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
-                      <li>Register by selecting a cohort from the list above</li>
-                      <li>
-                        Put in your account credentials and submit the application
-                        to register
-                      </li>
-                      <li>User Already Exists? Check important Notice</li>
-                      <li>
-                        Check your email to verify your email. Users must verify
-                        their emails.
-                      </li>
-                      <li>
-                        After verifying your email, continue with filling in your
-                        personal information and click continue.
-                      </li>
-                      <li>
-                        After filling your personal information, select your
-                        course.
-                      </li>
-                      <li>Registration is finished.</li>
-                      <li>
-                        Login to the LMS - You are granted immediate access to
-                        start learning.
-                      </li>
-                    </ol>
                   </Typography>
+                  <ol style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                    <li>Register by selecting a cohort from the list above</li>
+                    <li>
+                      Put in your account credentials and submit the application
+                      to register
+                    </li>
+                    <li>User Already Exists? Check important Notice</li>
+                    <li>
+                      Check your email to verify your email. Users must verify
+                      their emails.
+                    </li>
+                    <li>
+                      After verifying your email, continue with filling in your
+                      personal information and click continue.
+                    </li>
+                    <li>
+                      After filling your personal information, select your
+                      course.
+                    </li>
+                    <li>Registration is finished.</li>
+                    <li>
+                      Login to the LMS - You are granted immediate access to
+                      start learning.
+                    </li>
+                  </ol>
                 </Box>
               </Grid>
 
@@ -302,30 +299,29 @@ export const HomeHero = props => {
                     If you have already registered for a previous cohort, you will
                     not be allowed to register with the same email for subsequent
                     cohorts, including this one.
-                    <br />
-                    <br />
-                    <Typography variant='h6'>
-                      Key Activities to Watch Out For
-                    </Typography>
-                    <ol>
-                      <li>
-                        <strong>Cohort 5 starts:</strong> 01 November 2023
-                      </li>
-                      <li>
-                        <strong>
-                          TAFTA Learning Train is coming to your community.
-                        </strong>
-                      </li>
-                      <li>
-                        <strong>Theory and Practical Physical Classes:</strong>{' '}
-                        Sound Design and Stage Lighting Only
-                      </li>
-                      <li>
-                        <strong>TALP Project </strong>- TAFTA Action Learning
-                        Project
-                      </li>
-                    </ol>
                   </Typography>
+                  <br />
+                  <Typography variant='h6' sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>
+                    Key Activities to Watch Out For
+                  </Typography>
+                  <ol style={{ fontSize: '0.9rem', color: '#666' }}>
+                    <li>
+                      <strong>Cohort 5 starts:</strong> 01 November 2023
+                    </li>
+                    <li>
+                      <strong>
+                        TAFTA Learning Train is coming to your community.
+                      </strong>
+                    </li>
+                    <li>
+                      <strong>Theory and Practical Physical Classes:</strong>{' '}
+                      Sound Design and Stage Lighting Only
+                    </li>
+                    <li>
+                      <strong>TALP Project </strong>- TAFTA Action Learning
+                      Project
+                    </li>
+                  </ol>
                 </Box>
               </Grid>
             </Grid>

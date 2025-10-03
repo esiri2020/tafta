@@ -5,6 +5,18 @@ import prisma from '../../../lib/prismadb';
 import {Enrollment, User} from '@prisma/client';
 import {bigint_filter} from '../enrollments';
 
+// Helper function to get cohort-specific course IDs
+async function getCohortCourseIds(cohortId: string | null): Promise<bigint[]> {
+  if (!cohortId) return [];
+  
+  const cohortCourses = await prisma.cohortCourse.findMany({
+    where: { cohortId },
+    select: { course_id: true },
+  });
+  
+  return cohortCourses.map(r => r.course_id);
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -239,6 +251,8 @@ export default async function handler(
     query,
     cohortId,
     includeAssessment,
+    mobilizerId, // Add mobilizerId parameter
+    mobilizerCode, // Add mobilizerCode parameter
   }: {
     page?: string;
     limit?: string;
@@ -246,10 +260,16 @@ export default async function handler(
     query?: string;
     cohortId?: string;
     includeAssessment?: string;
+    mobilizerId?: string; // Add mobilizerId type
+    mobilizerCode?: string; // Add mobilizerCode type
   } = req.query;
 
   const take = parseInt(typeof limit == 'string' && limit ? limit : '30');
   const skip = take * parseInt(typeof page == 'string' ? page : '0');
+  
+  // Get cohort-specific course IDs for filtering enrollments
+  const cohortCourseIds = await getCohortCourseIds(cohortId || null);
+  
   let count, applicants;
   const userCohortFilter = cohortId
     ? {
@@ -258,6 +278,29 @@ export default async function handler(
         },
       }
     : undefined;
+
+  // Add mobilizer filter for MOBILIZER role users or when filtering by mobilizer
+  const mobilizerFilter = mobilizerId
+    ? {
+        profile: {
+          referrer: {
+            id: mobilizerId, // Filter by referrer ID (mobilizer ID)
+          },
+        },
+      }
+    : mobilizerCode
+    ? {
+        profile: {
+          referrer: {
+            fullName: mobilizerCode, // Filter by referrer fullName instead of mobilizerCode
+          },
+        },
+      }
+    : undefined;
+
+  // Check if user is a mobilizer and should only see their referrals
+  const isMobilizerUser = token?.userData?.role === 'MOBILIZER';
+  const userMobilizerId = (token?.userData as any)?.mobilizerId;
 
   // Parse the filter if it's a stringified JSON object
   interface FilterParams {
@@ -272,6 +315,7 @@ export default async function handler(
     type?: string[];
     location?: string[];
     lga?: string[];
+    mobilizer?: string[];
     [key: string]: any; // Add index signature to allow indexing with string
   }
 
@@ -304,6 +348,8 @@ export default async function handler(
             email: {
               search: query,
             },
+            // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+            ...(mobilizerFilter || {}),
           },
         });
         applicants = await prisma.user.findMany({
@@ -312,6 +358,8 @@ export default async function handler(
             email: {
               search: query,
             },
+            // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+            ...(mobilizerFilter || {}),
           },
           include: {
             profile: {
@@ -321,7 +369,16 @@ export default async function handler(
             },
             userCohort: {
               include: {
-                enrollments: true,
+                enrollments: {
+                  // Only include enrollments for courses that belong to this cohort
+                  ...(cohortId ? {
+                    where: {
+                      course_id: {
+                        in: cohortCourseIds,
+                      },
+                    },
+                  } : {}),
+                },
                 cohort: true,
                 location: true
               },
@@ -345,6 +402,8 @@ export default async function handler(
                 },
               },
             ],
+            // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+            ...(mobilizerFilter || {}),
           },
         });
         applicants = await prisma.user.findMany({
@@ -360,6 +419,8 @@ export default async function handler(
                 },
               },
             ],
+            // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+            ...(mobilizerFilter || {}),
           },
           include: {
             profile: {
@@ -369,7 +430,16 @@ export default async function handler(
             },
             userCohort: {
               include: {
-                enrollments: true,
+                enrollments: {
+                  // Only include enrollments for courses that belong to this cohort
+                  ...(cohortId ? {
+                    where: {
+                      course_id: {
+                        in: cohortCourseIds,
+                      },
+                    },
+                  } : {}),
+                },
                 cohort: true,
                 location: true
               },
@@ -391,6 +461,8 @@ export default async function handler(
       filterConditions = {
         role: 'APPLICANT',
         userCohort: userCohortFilter,
+        // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+        ...(mobilizerFilter || {}),
       };
 
       // Add profile conditions if there are any profile-related filters
@@ -460,6 +532,16 @@ export default async function handler(
         profileConditions.LGADetails = {in: parsedFilter.lga};
       }
 
+      // Handle mobilizer filter
+      if (parsedFilter.mobilizer && parsedFilter.mobilizer.length > 0) {
+        // Filter by referrer fullName since mobilizer codes are now stored in Referrer table
+        profileConditions.referrer = {
+          fullName: {
+            in: parsedFilter.mobilizer,
+          },
+        };
+      }
+
       // Add profile conditions if any were set
       if (Object.keys(profileConditions).length > 0) {
         filterConditions.profile = profileConditions;
@@ -525,12 +607,16 @@ export default async function handler(
         where: {
           role: 'APPLICANT',
           userCohort: userCohortFilter,
+          // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+          ...(mobilizerFilter || {}),
         },
       });
       applicants = await prisma.user.findMany({
         where: {
           role: 'APPLICANT',
           userCohort: userCohortFilter,
+          // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+          ...(mobilizerFilter || {}),
         },
         include: {
           profile: {
@@ -675,12 +761,16 @@ export default async function handler(
         where: {
           role: 'APPLICANT',
           userCohort: userCohortFilter,
+          // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+          ...(mobilizerFilter || {}),
         },
       });
       applicants = await prisma.user.findMany({
         where: {
           role: 'APPLICANT',
           userCohort: userCohortFilter,
+          // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
+          ...(mobilizerFilter || {}),
         },
         include: {
           profile: {
@@ -748,7 +838,16 @@ export default async function handler(
             },
             userCohort: {
               include: {
-                enrollments: true,
+                enrollments: {
+                  // Only include enrollments for courses that belong to this cohort
+                  ...(cohortId ? {
+                    where: {
+                      course_id: {
+                        in: cohortCourseIds,
+                      },
+                    },
+                  } : {}),
+                },
                 cohort: true,
                 location: true
               },

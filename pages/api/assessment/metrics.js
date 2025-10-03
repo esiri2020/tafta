@@ -10,32 +10,44 @@ export default async function handler(req, res) {
       return res.status(401).json({message: 'Unauthorized'});
     }
 
-    // Only allow admin and super admin to access this endpoint
+    // Only allow admin, super admin, and mobilizers to access this endpoint
     if (
       session.userData.role !== 'ADMIN' &&
-      session.userData.role !== 'SUPERADMIN'
+      session.userData.role !== 'SUPERADMIN' &&
+      session.userData.role !== 'MOBILIZER'
     ) {
       return res.status(403).json({message: 'Forbidden'});
     }
 
     // Get optional cohort filter from query params
     const {cohortId} = req.query;
+    const mobilizerId = session.userData.mobilizerId;
 
-    // Basic assessment counts
-    const totalAssessments = await prisma.assessment.count();
-
-    // Filter for assessment counts if cohortId is provided
-    const whereClause = cohortId
-      ? {
-          user: {
-            userCohort: {
-              some: {
-                cohortId,
-              },
+    // Build where clause with cohort and mobilizer filtering
+    const whereClause = {
+      user: {
+        ...(cohortId && {
+          userCohort: {
+            some: {
+              cohortId,
             },
           },
-        }
-      : {};
+        }),
+        // Filter by mobilizer if user is a mobilizer
+        ...(session.userData.role === 'MOBILIZER' && mobilizerId && {
+          profile: {
+            referrer: {
+              id: mobilizerId,
+            },
+          },
+        }),
+      },
+    };
+
+    // Basic assessment counts
+    const totalAssessments = await prisma.assessment.count({
+      where: whereClause,
+    });
 
     // Get counts by enrollment status
     const enrollmentStatusCounts = await prisma.assessment.groupBy({

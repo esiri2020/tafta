@@ -142,7 +142,7 @@ const PersonalInformation = ({
   // Check if applicant is enterprise type
   const isEnterpriseType = applicant?.profile?.type === 'ENTERPRISE';
 
-  const [createEnrollment] = useCreateEnrollmentMutation();
+  // Enrollment will happen after email verification, not here
 
   // Initialize form values from applicant data
   const initialValues: FormValues = {
@@ -217,7 +217,6 @@ const PersonalInformation = ({
     userId,
     applicant,
     editApplicant,
-    createEnrollment,
     handleNext,
   });
 

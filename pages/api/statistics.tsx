@@ -43,6 +43,16 @@ export default async function handler(
   }
 
   try {
+    // Get cohortId from query parameters
+    const { cohortId } = req.query;
+    const cohortIdString = Array.isArray(cohortId) ? cohortId[0] : cohortId;
+
+    // Get cohort-specific course IDs if cohortId is provided
+    const cohortCourseIds = cohortIdString ? await prisma.cohortCourse.findMany({
+      where: { cohortId: cohortIdString },
+      select: { course_id: true },
+    }).then(results => results.map(r => r.course_id)) : [];
+
     // Get all courses from the database
     const courses = await prisma.course.findMany({
       select: {
@@ -93,10 +103,25 @@ export default async function handler(
     console.log('Initialized stats structure:', stats);
 
     // Get all enrollments with their related data
+    const enrollmentsWhere: any = {
+      completed: true,
+    };
+
+    // Add cohort filtering if cohortId is provided
+    if (cohortIdString) {
+      enrollmentsWhere.userCohort = {
+        cohortId: cohortIdString,
+      };
+      // Only include enrollments for courses that belong to this cohort
+      if (cohortCourseIds.length > 0) {
+        enrollmentsWhere.course_id = {
+          in: cohortCourseIds,
+        };
+      }
+    }
+
     const enrollments = await prisma.enrollment.findMany({
-      where: {
-        completed: true,
-      },
+      where: enrollmentsWhere,
       include: {
         userCohort: {
           include: {

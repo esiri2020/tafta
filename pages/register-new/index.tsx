@@ -87,7 +87,7 @@ function StepContent({
         />
       );
     case 4:
-      return <EndOfApplicationNew />;
+      return <EndOfApplicationNew handlers={{ handleNext: () => {} }} />;
     default:
       return <div>Step not found</div>;
   }

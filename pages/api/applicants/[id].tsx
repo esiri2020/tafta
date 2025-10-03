@@ -78,6 +78,13 @@ export default async function handler(
               }
             : undefined,
         },
+        include: {
+          userCohort: {
+            include: {
+              enrollments: true,
+            },
+          },
+        },
       });
       // if(Object.keys(_referrer).length) {
       //   const referrer = await prisma.referrer.upsert({
@@ -87,9 +94,23 @@ export default async function handler(
       //   })
       // }
 
+      // Convert BigInt values to strings for JSON serialization
+      const serializedUser = {
+        ...user,
+        userCohort: user.userCohort?.map(uc => ({
+          ...uc,
+          enrollments: uc.enrollments?.map(enrollment => ({
+            ...enrollment,
+            course_id: enrollment.course_id?.toString(),
+            id: enrollment.id?.toString(),
+            user_id: enrollment.user_id?.toString(),
+          }))
+        }))
+      };
+
       return res
         .status(202)
-        .send({message: 'Applicant Updated', applicant: user});
+        .send({message: 'Applicant Updated', applicant: serializedUser});
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {

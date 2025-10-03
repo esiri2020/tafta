@@ -469,12 +469,11 @@ export const ApplicantEditForm: React.FC<ApplicantEditProps> = ({
                 ? 'Saving...'
                 : 'Save Changes'}
             </Button>
-            <NextLink href={`/admin-dashboard/applicants/${applicant.id}`} passHref legacyBehavior>
+            <NextLink href={`/admin-dashboard/applicants/${applicant.id}`}>
               <Button
                 variant='outline'
                 className='ml-2'
                 disabled={formik.isSubmitting || isSubmitting}
-                as='a'
               >
                 Cancel
               </Button>

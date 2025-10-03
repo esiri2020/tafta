@@ -170,7 +170,10 @@ export default function EnrollmentsPage() {
       />
 
       <Card className='mt-6'>
-        <EnrollmentListFilters onChange={handleFiltersChange} />
+        <EnrollmentListFilters 
+          onChange={handleFiltersChange} 
+          cohortId={selectedCohort?.id}
+        />
         <EnrollmentListTable
           enrollments={safeEnrollments}
           enrollmentsCount={count}

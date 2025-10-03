@@ -96,11 +96,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 3. Attempt to re-activate with LMS
     try {
+      console.log('🔍 Enrollment data for Thinkific API:', {
+        enrollment_uid: enrollment.uid,
+        course_id: enrollment.course_id,
+        course_name: enrollment.course_name,
+        thinkific_user_id: user.thinkific_user_id,
+        user_email: user.email,
+        enrolled: enrollment.enrolled,
+        activated_at: enrollment.activated_at
+      });
+      
       const thinkific_data = {
-        course_id: course_id,
+        course_id: enrollment.course_id.toString(),
         user_id: user.thinkific_user_id,
         activated_at: new Date().toISOString(),
       };
+      
+      console.log('📤 Sending to Thinkific API:', thinkific_data);
       const response = await api.post('/enrollments', thinkific_data);
       if (response.status === 201) {
         const { data: enrollment_data } = response;
@@ -122,6 +134,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return safeJson(res, { error: 'LMS did not accept re-activation', details: response.data }, 400);
       }
     } catch (err: any) {
+      console.error('❌ Thinkific enrollment API error:', err);
+      console.error('❌ Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      
       // If already enrolled in LMS, fetch and update local DB
       if (err.response && err.response.status === 400 && err.response.data && err.response.data.errors) {
         const alreadyEnrolled = err.response.data.errors.find((e: any) => e.code === 'already_enrolled');

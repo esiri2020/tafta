@@ -17,12 +17,12 @@ import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {Calendar} from '@/components/ui/calendar';
 import {Badge} from '@/components/ui/badge';
 import {Separator} from '@/components/ui/separator';
-import {useGetCoursesQuery, useGetCohortsQuery} from '@/services/api';
+import {useGetCoursesQuery, useGetCohortsQuery, useGetEnrollmentCoursesQuery} from '@/services/api';
 import {LoadingSpinner} from '@/components/ui/loading-spinner';
 import {format} from 'date-fns';
 import {cn} from '@/lib/utils';
 
-export function EnrollmentListFilters({onChange = () => {}}) {
+export function EnrollmentListFilters({onChange = () => {}, cohortId = null}) {
   const [search, setSearch] = useState('');
   const [course, setCourse] = useState('all');
   const [status, setStatus] = useState('all');
@@ -30,7 +30,8 @@ export function EnrollmentListFilters({onChange = () => {}}) {
   const [dateRange, setDateRange] = useState({from: null, to: null});
   const [activeFilters, setActiveFilters] = useState(0);
 
-  const {data: coursesData, isLoading: coursesLoading} = useGetCoursesQuery();
+  // Use courses from actual enrollments in the database, filtered by cohort if provided
+  const {data: coursesData, isLoading: coursesLoading} = useGetEnrollmentCoursesQuery(cohortId || 'all');
   const {data: cohortsData, isLoading: cohortsLoading} = useGetCohortsQuery({
     page: 0,
   });
@@ -142,7 +143,7 @@ export function EnrollmentListFilters({onChange = () => {}}) {
               ) : (
                 coursesData?.courses?.map(course => (
                   <SelectItem key={course.id} value={course.id}>
-                    {course.slug}
+                    {course.name || course.slug}
                   </SelectItem>
                 ))
               )}
@@ -273,7 +274,9 @@ export function EnrollmentListFilters({onChange = () => {}}) {
             {course && course !== 'all' && coursesData?.courses && (
               <Badge variant='secondary' className='flex items-center gap-1'>
                 Course:{' '}
-                {coursesData.courses.find(c => c.id === course)?.slug || course}
+                {coursesData.courses.find(c => c.id === course)?.name || 
+                 coursesData.courses.find(c => c.id === course)?.slug || 
+                 course}
                 <button
                   className='ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2'
                   onClick={() => setCourse('all')}>

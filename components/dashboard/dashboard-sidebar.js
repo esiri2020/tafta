@@ -30,6 +30,7 @@ import {useAppDispatch, useAppSelector} from '../../hooks/rtkHook';
 import {useSession} from 'next-auth/react';
 import {Notifications as NotificationsIcon} from '../../icons/notifications';
 import {LoadingState} from '../ui/loading-state';
+import {Users as PeopleIcon} from '../../icons/users';
 
 const getSupportSections = userId => [
   {
@@ -339,6 +340,21 @@ const getSuperAdminSections = userId => [
         ],
       },
       {
+        title: 'Mobilizers',
+        path: '/admin-dashboard/mobilizers',
+        icon: <PeopleIcon fontSize='small' />,
+        children: [
+          {
+            title: 'View All Mobilizers',
+            path: '/admin-dashboard/mobilizers',
+          },
+          {
+            title: 'Create Mobilizer',
+            path: '/admin-dashboard/mobilizers/create',
+          },
+        ],
+      },
+      {
         title: 'Assessment',
         path: '/admin-dashboard/assessment',
         icon: <SchoolIcon fontSize='small' />,
@@ -521,6 +537,45 @@ const getGuestSections = userId => [
   },
 ];
 
+const getMobilizerSections = (userId, mobilizerId) => [
+  {
+    title: 'General',
+    items: [
+      {
+        title: 'Dashboard',
+        path: '/mobilizer-dashboard',
+        icon: <HomeIcon fontSize='small' />,
+      },
+      {
+        title: 'My Applicants',
+        path: '/mobilizer-dashboard/applicants',
+        icon: <SchoolIcon fontSize='small' />,
+      },
+      {
+        title: 'Assessment',
+        path: '/mobilizer-dashboard/assessment',
+        icon: <SchoolIcon fontSize='small' />,
+        children: [
+          {
+            title: 'Assessment Overview',
+            path: '/mobilizer-dashboard/assessment/overview',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      {
+        title: 'Profile',
+        path: `/mobilizer-dashboard/profile/${mobilizerId || userId}`,
+        icon: <UserCircleIcon fontSize='small' />,
+      },
+    ],
+  },
+];
+
 export const DashboardSidebar = props => {
   const {onClose, open} = props;
   const {data: session, status} = useSession();
@@ -537,10 +592,13 @@ export const DashboardSidebar = props => {
       ? getSupportSections(session.userData.userId)
       : session?.userData?.role === 'GUEST'
       ? getGuestSections(session.userData.userId)
+      : session?.userData?.role === 'MOBILIZER'
+      ? getMobilizerSections(session.userData.userId, session.userData.mobilizerId)
       : [];
   const cohortRef = useRef(null);
   const [cohort, setSelectedCohort] = useState(null);
   const [openCohortPopover, setOpenCohortPopover] = useState(false);
+  // Get cohorts for all users including mobilizers (they need cohort filtering)
   const {data, error, isLoading} = useGetCohortsQuery({
     page: 0,
     filter: undefined,
@@ -642,11 +700,11 @@ export const DashboardSidebar = props => {
           }}>
           <div>
             <Box sx={{p: 3}}>
-              <Link href='https://terraacademyforarts.com/' passHref legacyBehavior sx={{ display: 'flex', my: '2', mx: '0', width: '160px', '& img': { width: '100%' } }}>
-                <a style={{ display: 'flex', width: '100%' }}>
+              <NextLink href='https://terraacademyforarts.com/' passHref legacyBehavior>
+                <Link sx={{ display: 'flex', my: '2', mx: '0', width: '160px', '& img': { width: '100%' } }}>
                   <img src='/static/images/logo.svg' alt='Terra Academy for the Arts' />
-                </a>
-              </Link>
+                </Link>
+              </NextLink>
             </Box>
             <Box sx={{px: 2}}>
               {data?.cohorts && (

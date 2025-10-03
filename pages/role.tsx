@@ -1,8 +1,8 @@
-import {getSession} from 'next-auth/react';
 import {GetServerSideProps} from 'next';
+import {getSession} from 'next-auth/react';
 import Link from 'next/link';
 
-const Role = (props: any) => {
+const Role = () => {
   return (
     <Link href='/' passHref legacyBehavior>Go Back to Home</Link>
   );
@@ -28,6 +28,13 @@ export const getServerSideProps: GetServerSideProps = async context => {
           destination: '/admin-dashboard',
         },
       };
+    case 'MOBILIZER':
+      return {
+        redirect: {
+          permanent: false,
+          destination: '/mobilizer-dashboard',
+        },
+      };
     case 'APPLICANT': {
       // If the user does not have a verified profile, redirect to verify email
       if (!session?.userData?.emailVerified) {
@@ -38,21 +45,21 @@ export const getServerSideProps: GetServerSideProps = async context => {
           },
         };
       }
-      // If the user has at least one enrollment (enrollmentIds as strings), redirect to dashboard
+      // If the user has a verified profile but no enrollment, redirect to personal information
       const enrollments = session?.userData?.enrollments || [];
-      if (Array.isArray(enrollments) && enrollments.length > 0) {
+      if (Array.isArray(enrollments) && enrollments.length === 0) {
         return {
           redirect: {
             permanent: false,
-            destination: `/dashboard`,
+            destination: `/register-new?step=3`,
           },
         };
       }
-      // If the user has a verified profile, but no enrollment, redirect to personal information
+      // If the user has a verified profile and enrollments, redirect to TAFTA portal
       return {
         redirect: {
           permanent: false,
-          destination: `/register-new?step=3`,
+          destination: `https://portal.terraacademyforarts.com/users/sign_in`,
         },
       };
     }

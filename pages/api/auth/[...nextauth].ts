@@ -9,8 +9,9 @@ import prisma from '../../../lib/prismadb';
 import { html, text } from '../../../utils';
 // import {Theme} from 'next-auth';
 // import sendVerificationRequest from '../../../lib/sendVerificationRequest';
-import type { Session, UserData } from 'next-auth';
+import type { Session } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import type { UserData } from '../../../types/next-auth';
 
 // For more information on each option (and a full list of options) go to
 // https://next-auth.js.org/configuration/options
@@ -140,7 +141,7 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
-        // Fetch enrollments for the user
+        // Fetch enrollments and mobilizer data for the user
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           include: {
@@ -149,6 +150,7 @@ export const authOptions: AuthOptions = {
                 enrollments: true,
               },
             },
+            mobilizer: true, // Include mobilizer data
           },
         });
 
@@ -173,6 +175,7 @@ export const authOptions: AuthOptions = {
           profile: user.profile ? true : false,
           emailVerified: user.emailVerified,
           enrollments: enrollmentIds,
+          mobilizerId: dbUser?.mobilizer?.id || null, // Include mobilizer ID
         } as UserData;
       }
       return token;

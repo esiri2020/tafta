@@ -21,6 +21,7 @@ import {AccountPopover} from '../account-popover';
 import NotificationsPopover from './notifications/notifications-popover';
 import {useGetNotificationsQuery} from '../../services/api';
 import {useNotifications} from '../../hooks/use-notifications';
+import {useSession} from 'next-auth/react';
 // import { ContactsPopover } from '../contacts-popover';
 // import { ContentSearchDialog } from './content-search-dialog';
 // import { LanguagePopover } from './language-popover';
@@ -143,8 +144,17 @@ const DashboardNavbarRoot = styled(AppBar)(({theme}) => ({
 // };
 
 const NotificationsButton = () => {
+  const { data: session } = useSession();
   const [openPopover, setOpenPopover] = useState(false);
+  
+  // Skip notifications for mobilizers
+  const shouldShowNotifications = session?.userData?.role !== 'MOBILIZER';
   const { notifications, unreadCount, markAsRead } = useNotifications();
+
+  // Don't render notifications for mobilizers
+  if (!shouldShowNotifications) {
+    return null;
+  }
 
   return (
     <>

@@ -36,86 +36,89 @@ model Session {
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  email                 String                 @unique
-  emailVerified         DateTime?
-  image                 String?
-  firstName             String?
-  lastName              String?
-  createdAt             DateTime               @default(now())
-  role                  Role                   @default(APPLICANT)
-  password              String
-  thinkific_user_id     String?
-  middleName            String?
-  type                  RegistrationType?
-  accounts              Account[]
-  assessment            Assessment?
-  receivedNotifications Notification[]         @relation("ReceivedNotifications")
-  sentNotifications     Notification[]         @relation("SentNotifications")
-  profile               Profile?
-  reports               Report[]
-  seatBooking           SeatBooking[]
-  sessions              Session[]
-  sentStaffAlerts       StaffAlert[]           @relation("SentStaffAlerts")
-  StaffAlertRecipients  StaffAlertRecipients[]
-  userCohort            UserCohort[]
+  id                                    String                 @id @default(cuid())
+  email                                 String                 @unique
+  emailVerified                         DateTime?
+  image                                 String?
+  firstName                             String?
+  lastName                              String?
+  createdAt                             DateTime               @default(now())
+  role                                  Role                   @default(APPLICANT)
+  password                              String
+  thinkific_user_id                     String?
+  middleName                            String?
+  type                                  RegistrationType?
+  // mobilizerId removed - using Referrer table instead
+  accounts                              Account[]
+  assessment                            Assessment?
+  receivedNotifications                 Notification[]         @relation("ReceivedNotifications")
+  sentNotifications                     Notification[]         @relation("SentNotifications")
+  profile                               Profile?
+  reports                               Report[]
+  seatBooking                           SeatBooking[]
+  sessions                              Session[]
+  sentStaffAlerts                       StaffAlert[]           @relation("SentStaffAlerts")
+  StaffAlertRecipients                  StaffAlertRecipients[]
+  userCohort                            UserCohort[]
+  mobilizer                             Mobilizer?
 }
 
 model Profile {
-  id                    String                    @id @default(cuid())
-  userId                String                    @unique
-  taftaCenter           String?
-  homeAddress           String?
-  zipCode               String?
-  phoneNumber           String?
-  gender                Gender?
-  ageRange              String?
-  stateOfResidence      String?
-  dob                   DateTime?
-  communityArea         CommunityArea?
-  disability            String?
-  educationLevel        EducationLevel?
-  source                String?
-  employmentStatus      String?
-  residencyStatus       String?
-  selfEmployedType      String?
-  stateOfOrigin         String?
-  lGADetails            String?
-  LGADetails            String?
-  businessName          String?
-  businessSupport       String[]
-  businessSupportNeeds  String[]
-  businessType          BusinessType?
-  currentSalary         Float?
-  jobReadiness          String[]
-  registrationMode      String?
-  registrationPath      RegistrationType          @default(INDIVIDUAL)
-  registrationType      BusinessRegistrationType?
-  revenueRange          String?
-  salaryExpectation     Float?
-  talpOther             String?
-  talpParticipation     Boolean?
-  talpType              String?
-  type                  RegistrationType          @default(INDIVIDUAL)
-  internshipProgram     InternshipProgramOption?
-  projectType           ProjectTypeOption?
-  cohortId              String?
-  selectedCourse        String?
-  selectedCourseId      String?
-  selectedCourseName    String?
-  additionalPhoneNumber String?
-  businessLGA           String?
-  businessPartners      String?
-  businessSector        String?
-  businessSize          BusinessSize?
-  businessState         String?
-  companyEmail          String?
-  companyPhoneNumber    String?
-  countryOfBusiness     String?
-  salaryRange           String?
-  employmentSector      String?
-  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  referrer              Referrer?
+  id                           String                    @id @default(cuid())
+  userId                       String                    @unique
+  taftaCenter                  String?
+  homeAddress                  String?
+  zipCode                      String?
+  phoneNumber                  String?
+  gender                       Gender?
+  ageRange                     String?
+  stateOfResidence             String?
+  dob                          DateTime?
+  communityArea                CommunityArea?
+  disability                   String?
+  educationLevel               EducationLevel?
+  source                       String?
+  employmentStatus             String?
+  residencyStatus              String?
+  selfEmployedType             String?
+  stateOfOrigin                String?
+  lGADetails                   String?
+  LGADetails                   String?
+  businessName                 String?
+  businessSupport              String[]
+  businessSupportNeeds         String[]
+  businessType                 BusinessType?
+  currentSalary                Float?
+  jobReadiness                 String[]
+  registrationMode             String?
+  registrationPath             RegistrationType          @default(INDIVIDUAL)
+  registrationType             BusinessRegistrationType?
+  revenueRange                 String?
+  salaryExpectation            Float?
+  talpOther                    String?
+  talpParticipation            Boolean?
+  talpType                     String?
+  type                         RegistrationType          @default(INDIVIDUAL)
+  internshipProgram            InternshipProgramOption?
+  projectType                  ProjectTypeOption?
+  cohortId                     String?
+  selectedCourse               String?
+  selectedCourseId             String?
+  selectedCourseName           String?
+  additionalPhoneNumber        String?
+  businessLGA                  String?
+  businessPartners             String?
+  businessSector               String?
+  businessSize                 BusinessSize?
+  businessState                String?
+  companyEmail                 String?
+  companyPhoneNumber           String?
+  countryOfBusiness            String?
+  salaryRange                  String?
+  employmentSector             String?
+  // mobilizerId and mobilizerCode removed - using Referrer table instead
+  user                         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrer                     Referrer?
 }
 
 model Enrollment {
@@ -246,9 +249,9 @@ model RehydrationDate {
 
 model RehydrationProgress {
   id                String   @id @default(cuid())
+  updatedAt         DateTime @updatedAt
   lastPageProcessed Int?
   totalPages        Int?
-  updatedAt         DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -377,6 +380,29 @@ model StaffAlertRecipients {
   @@index([userId])
 }
 
+// MobilizerCode table removed - using existing Referrer table instead
+
+model Mobilizer {
+  id                               String          @id @default(cuid())
+  code                             String          @unique
+  fullName                         String
+  email                            String          @unique
+  phoneNumber                      String?
+  organization                     String?
+  status                           MobilizerStatus @default(ACTIVE)
+  createdAt                        DateTime        @default(now())
+  updatedAt                        DateTime        @updatedAt
+  userId                           String?           @unique
+  totalReferrals                   Int             @default(0)
+  activeReferrals                  Int             @default(0)
+  completedReferrals               Int             @default(0)
+  user                             User?           @relation(fields: [userId], references: [id])
+  // Note: Referrals are tracked via Referrer table, not direct relationship
+
+  @@index([code])
+  @@index([status])
+}
+
 view EnrollmentCompletionGraph {
   id    BigInt    @unique
   date  DateTime? @db.Date
@@ -454,6 +480,7 @@ enum Role {
   APPLICANT
   SUPPORT
   GUEST
+  MOBILIZER
 }
 
 enum Gender {
@@ -537,4 +564,10 @@ enum StaffAlertType {
   INFO
   WARNING
   ALERT
+}
+
+enum MobilizerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }

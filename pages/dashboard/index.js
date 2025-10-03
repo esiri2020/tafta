@@ -291,7 +291,9 @@ const Account = () => {
     session?.userData.userId,
     {skip: session?.userData.userId ? false : true},
   );
-  const seatDataQueryRes = useGetSeatBookingsQuery({});
+  const seatDataQueryRes = useGetSeatBookingsQuery({}, {
+    skip: session?.userData?.role === 'MOBILIZER'
+  });
 
   // Check if userCohort exists and has elements before accessing cohortId
   const hasUserCohort =
@@ -312,6 +314,8 @@ const Account = () => {
   } = useGetNotificationsQuery({
     page: 0,
     limit: 10,
+  }, {
+    skip: session?.userData?.role === 'MOBILIZER'
   });
 
   const handleNotificationUpdate = () => {

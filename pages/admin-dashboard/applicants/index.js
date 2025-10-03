@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import {
   ArrowUpDown,
   ChevronDown,
@@ -210,7 +211,7 @@ const FilteredOutApplicantsCard = ({
                     </TableCell>
                     <TableCell className='text-right'>
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
+                        <DropdownMenuTrigger asChild>
                           <Button variant='ghost' size='sm' type='button'>
                             <span className='sr-only'>Open menu</span>
                             <ChevronDown className='h-4 w-4' />
@@ -239,6 +240,8 @@ const FilteredOutApplicantsCard = ({
 };
 
 function ApplicantList() {
+  const router = useRouter();
+  
   // State for filters
   const [filters, setFilters] = useState({
     gender: [],
@@ -252,6 +255,7 @@ function ApplicantList() {
     type: [],
     location: [], // State of residence
     lga: [], // Local Government Area
+    mobilizer: [], // Mobilizer codes
   });
 
   const [page, setPage] = useState(0);
@@ -261,9 +265,40 @@ function ApplicantList() {
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [showFilteredOut, setShowFilteredOut] = useState(false);
+  const [availableMobilizerCodes, setAvailableMobilizerCodes] = useState([]);
 
   // Get the selected cohort from redux state
   const selectedCohort = useAppSelector(selectCohort);
+
+  // Fetch all mobilizer codes for filtering (including unavailable ones)
+  useEffect(() => {
+    const fetchMobilizerCodes = async () => {
+      try {
+        const response = await fetch('/api/mobilizers/all-codes');
+        const data = await response.json();
+        if (data.codes) {
+          setAvailableMobilizerCodes(data.codes);
+        }
+      } catch (error) {
+        console.error('Error fetching mobilizer codes:', error);
+      }
+    };
+
+    fetchMobilizerCodes();
+  }, []);
+
+  // Handle URL parameters for mobilizer filtering
+  useEffect(() => {
+    if (router.isReady && router.query.referrerName) {
+      const referrerName = router.query.referrerName;
+      if (typeof referrerName === 'string') {
+        setFilters(prev => ({
+          ...prev,
+          mobilizer: [referrerName]
+        }));
+      }
+    }
+  }, [router.isReady, router.query.referrerName]);
 
   // Update cohortId when the selected cohort changes
   useEffect(() => {
@@ -323,6 +358,7 @@ function ApplicantList() {
     type: filters.type.length > 0 ? filters.type : undefined,
     location: filters.location.length > 0 ? filters.location : undefined,
     lga: filters.lga.length > 0 ? filters.lga : undefined,
+    mobilizer: filters.mobilizer.length > 0 ? filters.mobilizer : undefined,
   };
 
   // Remove undefined values to avoid sending empty object
@@ -826,14 +862,14 @@ function ApplicantList() {
                 ? `Send Notifications (${data.applicants.length})`
                 : 'Send Notifications'}
             </Button>
-            <Button>
-              <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
+            <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
+              <Button asChild>
                 <a className='flex items-center'>
                   <UserPlus className='mr-2 h-4 w-4' />
                   Add Applicant
                 </a>
-              </Link>
-            </Button>
+              </Button>
+            </Link>
             <CSVLink
               data={csvData}
               filename={`applicants-export-${
@@ -883,7 +919,7 @@ function ApplicantList() {
 
               <div className='flex flex-wrap gap-2 items-center'>
                 <Sheet>
-                  <SheetTrigger>
+                  <SheetTrigger asChild>
                     <Button variant='outline' size='sm' type='button'>
                       <Filter className='mr-2 h-4 w-4' />
                       Filters
@@ -1275,6 +1311,29 @@ function ApplicantList() {
                           )}
                         </div>
                       </div>
+
+                      <Separator />
+
+                      {/* Mobilizer Filter */}
+                      <div className='space-y-2'>
+                        <h3 className='text-sm font-medium'>Mobilizer</h3>
+                        <div className='space-y-2'>
+                          {availableMobilizerCodes.map(code => (
+                            <div
+                              key={code}
+                              className='flex items-center space-x-2'>
+                              <Checkbox
+                                id={`mobilizer-${code}`}
+                                checked={filters.mobilizer.includes(code)}
+                                onCheckedChange={checked =>
+                                  handleFilterChange('mobilizer', code)
+                                }
+                              />
+                              <Label htmlFor={`mobilizer-${code}`}>{code}</Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                     <SheetFooter>
                       <Button
@@ -1291,7 +1350,7 @@ function ApplicantList() {
                 </Sheet>
 
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild>
                     <Button variant='outline' size='sm' type='button'>
                       <ArrowUpDown className='mr-2 h-4 w-4' />
                       Sort
@@ -1332,7 +1391,7 @@ function ApplicantList() {
               <div className='bg-muted p-2 mb-4 rounded-md flex items-center'>
                 <Checkbox
                   checked={allApplicantsSelected}
-                  indeterminate={someApplicantsSelected}
+                  indeterminate={someApplicantsSelected || undefined}
                   onCheckedChange={handleSelectAllApplicants}
                   className='mr-2'
                 />
@@ -1367,7 +1426,7 @@ function ApplicantList() {
                     <TableHead className='w-[40px]'>
                       <Checkbox
                         checked={allApplicantsSelected}
-                        indeterminate={someApplicantsSelected}
+                        indeterminate={someApplicantsSelected || undefined}
                         onCheckedChange={handleSelectAllApplicants}
                       />
                     </TableHead>
@@ -1486,7 +1545,7 @@ function ApplicantList() {
                       </TableCell>
                       <TableCell className='text-right'>
                         <DropdownMenu>
-                          <DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild>
                             <Button variant='ghost' size='sm' type='button'>
                               <span className='sr-only'>Open menu</span>
                               <ChevronDown className='h-4 w-4' />
@@ -1539,14 +1598,14 @@ function ApplicantList() {
                           <p className='text-muted-foreground mb-2'>
                             No applicants found
                           </p>
-                          <Button variant='outline'>
-                            <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
+                          <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
+                            <Button variant='outline' asChild>
                               <a className='flex items-center'>
                                 <Plus className='mr-2 h-4 w-4' />
                                 Add Applicant
                               </a>
-                            </Link>
-                          </Button>
+                            </Button>
+                          </Link>
                         </div>
                       </TableCell>
                     </TableRow>

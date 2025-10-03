@@ -36,6 +36,11 @@ export const RegisterStepNew = ({handlers, ...other}) => {
   const router = useRouter();
   const {cohortId, userId} = router.query;
   const [registrationType, setRegistrationType] = useState('INDIVIDUAL');
+  
+  // Debug router query
+  useEffect(() => {
+    console.log('🔍 Router query:', { cohortId, userId, routerQuery: router.query });
+  }, [cohortId, userId, router.query]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -103,6 +108,25 @@ export const RegisterStepNew = ({handlers, ...other}) => {
         const selectedCourseActualId =
           sessionStorage.getItem('selectedCourseActualId') || '';
 
+        // Try to get cohortId from multiple sources
+        const finalCohortId = selectedCohortId || cohortId || router.query.cohortId;
+        
+        console.log('🔍 Registration form data:', {
+          selectedCohortId,
+          cohortId,
+          routerCohortId: router.query.cohortId,
+          finalCohortId,
+          firstName,
+          lastName,
+          email,
+          registrationType
+        });
+        
+        // If still no cohortId, show warning but continue
+        if (!finalCohortId) {
+          console.warn('⚠️ No cohortId found, registration will continue without cohort assignment');
+        }
+
         const userData = {
           firstName,
           middleName,
@@ -111,14 +135,14 @@ export const RegisterStepNew = ({handlers, ...other}) => {
             registrationType === 'ENTERPRISE' ? businessName : undefined,
           email,
           password,
-          cohortId: selectedCohortId || cohortId,
+          cohortId: finalCohortId,
           registrationType,
           type: registrationType,
           profile: {
             selectedCourse: selectedCourse || '',
             selectedCourseName: selectedCourseName || '',
             selectedCourseId: selectedCourseActualId || '',
-            cohortId: selectedCohortId || cohortId || '',
+            cohortId: finalCohortId || '',
             type: registrationType,
             registrationPath: registrationType,
             businessName:
@@ -126,11 +150,21 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           },
         };
 
+        console.log('📤 Sending userData to API:', userData);
+        
         let req = await createApplicant({
           body: userData,
         });
-        if (req.data?.message === 'User created') resolve(req);
-        else reject(req);
+        
+        console.log('📥 API Response:', req);
+        
+        if (req.data?.message === 'User created') {
+          console.log('✅ User created successfully');
+          resolve(req);
+        } else {
+          console.error('❌ User creation failed:', req);
+          reject(req);
+        }
       });
       toast
         .promise(promise, {
@@ -165,7 +199,13 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           }
         })
         .catch(err => {
-          console.error(err);
+          console.error('❌ Registration error:', err);
+          console.error('❌ Error details:', {
+            message: err?.error?.data?.message,
+            status: err?.error?.status,
+            data: err?.error?.data,
+            error: err
+          });
           helpers.setStatus({success: false});
           helpers.setErrors({submit: err.error?.data?.message});
           if (err.error?.status === 422) {
@@ -286,6 +326,7 @@ export const RegisterStepNew = ({handlers, ...other}) => {
                     onChange={formik.handleChange}
                     required
                     value={formik.values.email}
+                    autoComplete='username'
                   />
                 </Grid>
 
@@ -305,6 +346,7 @@ export const RegisterStepNew = ({handlers, ...other}) => {
                     onChange={formik.handleChange}
                     required
                     value={formik.values.password}
+                    autoComplete='new-password'
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -337,6 +379,7 @@ export const RegisterStepNew = ({handlers, ...other}) => {
                     onChange={formik.handleChange}
                     required
                     value={formik.values.confirmPassword}
+                    autoComplete='new-password'
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">

@@ -4,7 +4,6 @@ interface SubmissionOptions {
   userId: string;
   applicant: Applicant;
   editApplicant: (params: {id: string; body: any}) => Promise<any>;
-  createEnrollment: (params: {body: any}) => Promise<any>;
   handleNext: () => void;
 }
 
@@ -12,7 +11,6 @@ export const useFormSubmission = ({
   userId,
   applicant,
   editApplicant,
-  createEnrollment,
   handleNext,
 }: SubmissionOptions) => {
   /**
@@ -152,38 +150,8 @@ export const useFormSubmission = ({
       });
 
       if (updateResult.data?.message === 'Applicant Updated') {
-        // Create enrollment if course info is available
-        if (
-          selectedCourse &&
-          cohortId &&
-          selectedCourseId &&
-          selectedCourseName
-        ) {
-          console.log('Attempting to create enrollment with:', {
-            userCohortId: cohortId,
-            course_id: Number.parseInt(selectedCourseId),
-            course_name: selectedCourseName,
-            user_email: email,
-          });
-          try {
-            await createEnrollment({
-              body: {
-                userCohortId: cohortId,
-                course_id: Number.parseInt(selectedCourseId),
-                course_name: selectedCourseName,
-                user_email: email,
-              },
-            });
-            console.log('Enrollment created successfully');
-            handleNext();
-          } catch (enrollErr) {
-            console.error('Error creating enrollment:', enrollErr);
-          }
-        } else {
-          console.log('Skipping enrollment creation - missing required fields');
-        }
-
-        // Move to next step
+        console.log('✅ Profile updated successfully - enrollment will happen after email verification');
+        handleNext();
         return true;
       }
 

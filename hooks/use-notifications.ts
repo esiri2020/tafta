@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface StaffAlert {
   id: string;
@@ -14,12 +15,21 @@ interface StaffAlert {
 }
 
 export const useNotifications = () => {
+  const { data: session } = useSession();
   const [notifications, setNotifications] = useState<StaffAlert[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Skip notifications for mobilizers
+  const shouldFetchNotifications = session?.userData?.role !== 'MOBILIZER';
+
   const fetchAlerts = useCallback(async () => {
+    if (!shouldFetchNotifications) {
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const res = await fetch('/api/staff-alerts?page=0&limit=10');
@@ -39,7 +49,7 @@ export const useNotifications = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [shouldFetchNotifications]);
 
   useEffect(() => {
     fetchAlerts();

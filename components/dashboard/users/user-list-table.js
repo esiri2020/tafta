@@ -148,9 +148,11 @@ export const UsersListTable = (props) => {
                         {getInitials(`${user.firstName} ${user.lastName}`)}
                       </Avatar>
                       <Box sx={{ ml: 1 }}>
-                        <Link href={`/admin-dashboard/users/${user.id}`} passHref legacyBehavior color="inherit" variant="subtitle2">
-                          {`${user.firstName} ${user.lastName}`}
-                        </Link>
+                        <NextLink href={`/admin-dashboard/users/${user.id}`}>
+                          <Link color="inherit" variant="subtitle2">
+                            {`${user.firstName} ${user.lastName}`}
+                          </Link>
+                        </NextLink>
                         <Typography
                           color="textSecondary"
                           variant="body2"

@@ -82,11 +82,29 @@ export default async function handler(
         }
       : {}; // Empty object means no filter, so include all cohorts
 
+    // Get the course IDs that belong to this cohort (reused throughout the function)
+    const cohortCourseIds = cohortId ? await prisma.cohortCourse.findMany({
+      where: { cohortId },
+      select: { course_id: true },
+    }).then(results => results.map(r => r.course_id)) : [];
+
+    // Debug logging
+    console.log('Dashboard API - cohortId:', cohortId);
+    console.log('Dashboard API - cohortCourseIds:', cohortCourseIds);
+
     const total_enrolled_by_courses = await prisma.enrollment.count({
       where: {
         userCohort: cohortId ? {cohortId} : undefined,
+        // Only include enrollments for courses that belong to this cohort
+        ...(cohortId ? {
+          course_id: {
+            in: cohortCourseIds,
+          },
+        } : {}),
       },
     });
+
+    console.log('Dashboard API - total_enrolled_by_courses:', total_enrolled_by_courses);
 
     const total_enrolled_applicants = await prisma.user.count({
       where: {
@@ -210,6 +228,12 @@ export default async function handler(
         userCohort: {
           cohortId: cohortId || undefined,
         },
+        // Only include enrollments for courses that belong to this cohort
+        ...(cohortId ? {
+          course_id: {
+            in: cohortCourseIds,
+          },
+        } : {}),
       },
     });
 
@@ -549,63 +573,81 @@ export default async function handler(
       count: item._count.employmentStatus,
     }));
 
-    // 7. Course Enrollment Distribution
-    const courseEnrollmentData = await prisma.enrollment.groupBy({
-      by: ['course_id'],
+    // 7. Course Enrollment Distribution - Get all enrollments with course and gender info in one query
+    const enrollmentsWithDetails = await prisma.enrollment.findMany({
       where: {
         userCohort: cohortId ? {cohortId} : undefined,
+        // Only include courses that belong to this cohort
+        ...(cohortId ? {
+          course_id: {
+            in: cohortCourseIds,
+          },
+        } : {}),
       },
-      _count: {
-        course_id: true,
+      include: {
+        userCohort: {
+          include: {
+            user: {
+              include: {
+                profile: {
+                  select: {
+                    gender: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
-    // Get course names and gender breakdown for the enrollment data
-    const courseEnrollmentDataWithNames = await Promise.all(
-      courseEnrollmentData.map(async (enrollment: { course_id: bigint; _count?: { course_id?: number } }) => {
-        const course = await prisma.course.findUnique({
-          where: {
-            id: enrollment.course_id,
-          },
-          select: {
-            name: true,
-          },
-        });
-        // Count male and female enrollments for this course
-        const male_enrollments = await prisma.enrollment.count({
-          where: {
-            course_id: enrollment.course_id,
-            userCohort: {
-              cohortId: cohortId || undefined,
-              user: {
-                profile: {
-                  gender: 'MALE',
-                },
-              },
-            },
-          },
-        });
-        const female_enrollments = await prisma.enrollment.count({
-          where: {
-            course_id: enrollment.course_id,
-            userCohort: {
-              cohortId: cohortId || undefined,
-              user: {
-                profile: {
-                  gender: 'FEMALE',
-                },
-              },
-            },
-          },
-        });
-        return {
-          name: course?.name || 'Unknown Course',
-          count: enrollment._count?.course_id?.toString() || '0',
-          male_enrollments: male_enrollments.toString(),
-          female_enrollments: female_enrollments.toString(),
-        };
-      })
-    );
+    // Get course information
+    const courseIds = Array.from(new Set(enrollmentsWithDetails.map(e => e.course_id)));
+    const courses = await prisma.course.findMany({
+      where: {
+        id: { in: courseIds },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    const courseMap = new Map(courses.map(c => [c.id, c.name]));
+
+    // Aggregate enrollment data by course
+    const courseEnrollmentDataWithNames = Array.from(
+      enrollmentsWithDetails.reduce((acc, enrollment) => {
+        const courseId = enrollment.course_id;
+        const courseName = courseMap.get(courseId) || 'Unknown Course';
+        const gender = enrollment.userCohort?.user?.profile?.gender;
+
+        if (!acc.has(courseId)) {
+          acc.set(courseId, {
+            name: courseName,
+            total: 0,
+            male: 0,
+            female: 0,
+          });
+        }
+
+        const courseData = acc.get(courseId)!;
+        courseData.total += 1;
+
+        if (gender === 'MALE') {
+          courseData.male += 1;
+        } else if (gender === 'FEMALE') {
+          courseData.female += 1;
+        }
+
+        return acc;
+      }, new Map())
+    ).map(([courseId, data]) => ({
+      name: data.name,
+      count: data.total.toString(),
+      male_enrollments: data.male.toString(),
+      female_enrollments: data.female.toString(),
+    }));
 
     // 8. Internship Program Distribution
     const internshipPrograms = [
@@ -670,6 +712,12 @@ export default async function handler(
         userCohort: {
           cohortId: cohortId || undefined,
         },
+        // Only include enrollments for courses that belong to this cohort
+        ...(cohortId ? {
+          course_id: {
+            in: cohortCourseIds,
+          },
+        } : {}),
       },
     });
 
@@ -700,6 +748,12 @@ export default async function handler(
         userCohort: {
           cohortId: cohortId || undefined,
         },
+        // Only include enrollments for courses that belong to this cohort
+        ...(cohortId ? {
+          course_id: {
+            in: cohortCourseIds,
+          },
+        } : {}),
       },
     });
 
@@ -767,6 +821,12 @@ export default async function handler(
                   },
                 },
               },
+              // Only include enrollments for courses that belong to this cohort
+              ...(cohortId ? {
+                course_id: {
+                  in: cohortCourseIds,
+                },
+              } : {}),
             },
           });
 

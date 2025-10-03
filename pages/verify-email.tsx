@@ -1,10 +1,9 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {MainLayout} from '../components/main-layout';
 import Head from 'next/head';
 import {Box, Grid, Container, Typography} from '@mui/material';
-import ForgotPassword from '../components/home/forgot-password';
 import {useSession} from 'next-auth/react';
-import {useEditApplicantMutation} from '../services/api';
+import {useEditApplicantMutation, useCreateEnrollmentMutation} from '../services/api';
 import toast from 'react-hot-toast';
 import {useRouter} from 'next/router';
 
@@ -13,6 +12,8 @@ export default function VerifyEmail() {
   const router = useRouter();
   const {courseId, cohortId, courseName, actualCourseId} = router.query;
   const [editApplicant, result] = useEditApplicantMutation();
+  const [createEnrollment] = useCreateEnrollmentMutation();
+  const verificationProcessed = useRef(false);
 
   useEffect(() => {
     // Store course information from URL parameters in sessionStorage
@@ -39,7 +40,17 @@ export default function VerifyEmail() {
   }, [courseId, cohortId, courseName, actualCourseId]);
 
   useEffect(() => {
-    if ((session as any)?.userData?.userId) {
+    if ((session as any)?.userData?.userId && !verificationProcessed.current) {
+      // Check if we've already processed this verification to prevent multiple tabs
+      const verificationKey = `verified_${(session as any)?.userData?.userId}`;
+      if (sessionStorage.getItem(verificationKey)) {
+        console.log('✅ Email verification already processed, skipping...');
+        return;
+      }
+      
+      // Mark as processing to prevent duplicate execution
+      verificationProcessed.current = true;
+
       const promise = new Promise(async (resolve, reject) => {
         let req: any = await editApplicant({
           id: (session as any)?.userData?.userId,
@@ -59,11 +70,109 @@ export default function VerifyEmail() {
             return <b>An error occurred.</b>;
           },
         })
-        .then(res => {
+        .then(async (res) => {
+          // Mark verification as processed to prevent multiple tabs
+          sessionStorage.setItem(verificationKey, 'true');
+          
+          console.log('🔍 Full editApplicant response:', res);
+          console.log('🔍 Applicant data:', (res as any)?.data?.applicant);
+          console.log('🔍 UserCohort data:', (res as any)?.data?.applicant?.userCohort);
+          console.log('🔍 Enrollments data:', (res as any)?.data?.applicant?.userCohort?.[0]?.enrollments);
+          
+          // Create enrollment after email verification
+          try {
+            // Get course information from user profile instead of sessionStorage
+            const userProfile = (res as any)?.data?.applicant?.profile;
+            const selectedCourse = userProfile?.selectedCourse || '';
+            const selectedCohortId = userProfile?.cohortId || '';
+            const selectedCourseName = userProfile?.selectedCourseName || '';
+            const selectedCourseActualId = userProfile?.selectedCourseId || '';
+            
+            console.log('🔍 User profile data for enrollment:', {
+              selectedCourse,
+              selectedCohortId,
+              selectedCourseName,
+              selectedCourseActualId,
+              userProfile,
+              fullResponse: (res as any)?.data
+            });
+            
+            // Get existing enrollment from user data
+            const existingEnrollment = (res as any)?.data?.applicant?.userCohort?.[0]?.enrollments?.[0];
+            
+            if (existingEnrollment) {
+              console.log('🎯 Activating existing enrollment after email verification:', {
+                enrollmentUid: existingEnrollment.uid,
+                course_id: existingEnrollment.course_id,
+                course_name: existingEnrollment.course_name,
+                user_email: (session as any)?.userData?.email,
+              });
+              
+              // Use the enrollment retry API to activate the existing enrollment
+              const enrollmentResult = await fetch('/api/enrollments/retry', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  uid: existingEnrollment.uid,
+                  user_email: (session as any)?.userData?.email,
+                }),
+              });
+              
+              if (enrollmentResult.ok) {
+                console.log('✅ Enrollment activated successfully after email verification');
+              } else {
+                console.error('❌ Failed to activate enrollment:', await enrollmentResult.text());
+              }
+            } else {
+              console.log('⚠️ No existing enrollment found, creating new enrollment');
+              
+              // Fallback: create new enrollment if none exists
+              const courseData = {
+                selectedCourse: userProfile?.selectedCourse || sessionStorage.getItem('selectedCourse') || '',
+                selectedCohortId: userProfile?.cohortId || sessionStorage.getItem('selectedCohortId') || '',
+                selectedCourseName: userProfile?.selectedCourseName || sessionStorage.getItem('selectedCourseName') || '',
+                selectedCourseActualId: userProfile?.selectedCourseId || sessionStorage.getItem('selectedCourseActualId') || '',
+              };
+              
+              if (courseData.selectedCourse && courseData.selectedCohortId && courseData.selectedCourseActualId && courseData.selectedCourseName) {
+                console.log('🔄 Creating new enrollment as fallback:', {
+                  userCohortId: courseData.selectedCohortId,
+                  course_id: Number.parseInt(courseData.selectedCourseActualId),
+                  course_name: courseData.selectedCourseName,
+                  user_email: (session as any)?.userData?.email,
+                });
+                
+                const fallbackEnrollmentResult = await createEnrollment({
+                  body: {
+                    userCohortId: courseData.selectedCohortId,
+                    course_id: Number.parseInt(courseData.selectedCourseActualId),
+                    course_name: courseData.selectedCourseName,
+                    user_email: (session as any)?.userData?.email,
+                  },
+                });
+                
+                console.log('✅ Fallback enrollment created successfully:', fallbackEnrollmentResult);
+              } else {
+                console.log('❌ No course data available for enrollment');
+              }
+            }
+          } catch (enrollErr) {
+            console.error('❌ Error creating enrollment after email verification:', enrollErr);
+          }
+          
+          // Redirect current tab to personal information form first
           router.replace({
             pathname: '/register-new',
             query: { step: 3 },
           });
+          
+          // Open TAFTA portal sign-in in new tab after redirect
+          setTimeout(() => {
+            const lmsUrl = 'https://portal.terraacademyforarts.com/users/sign_in';
+            window.open(lmsUrl, '_blank');
+          }, 100);
         })
         .catch(err => {
           console.error(err);
@@ -118,7 +227,17 @@ export default function VerifyEmail() {
               display: 'flex',
               padding: 5,
             }}>
-            Verify Email
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant='h4' sx={{ mb: 2 }}>
+                Email Verification
+              </Typography>
+              <Typography variant='body1' sx={{ mb: 3 }}>
+                Please check your email and click the verification link to continue with your registration.
+              </Typography>
+              <Typography variant='body2' color='text.secondary'>
+                After verification, you'll be redirected to complete your personal information, and a new tab will open for you to access your learning platform.
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
       </Box>

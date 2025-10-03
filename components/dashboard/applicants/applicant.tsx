@@ -658,12 +658,11 @@ const ApplicantCreateForm: React.FC = () => {
                 ? 'Creating...'
                 : 'Create Applicant'}
             </Button>
-            <NextLink href='/admin-dashboard/applicants' passHref legacyBehavior>
+            <NextLink href='/admin-dashboard/applicants'>
               <Button
                 variant='outline'
                 className='ml-2'
                 disabled={formik.isSubmitting || isSubmitting}
-                as='a'
               >
                 Cancel
               </Button>

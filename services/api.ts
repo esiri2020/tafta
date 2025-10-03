@@ -63,6 +63,7 @@ export const apiService = createApi({
     'Notifications',
     'ProfileChanges',
     'Assessments',
+    'Mobilizer',
     'UNAUTHORIZED',
     'NOT ALLOWED',
     'UNKNOWN_ERROR',
@@ -162,7 +163,7 @@ export const apiService = createApi({
         result ? [{type: 'Enrollments', id: result.id}] : ['Enrollments'],
     }),
     getApplicants: builder.query({
-      query: ({page, limit, filter, query, cohortId}) => {
+      query: ({page, limit, filter, query, cohortId, mobilizerId}) => {
         // Build query parameters dynamically
         const params = new URLSearchParams();
         
@@ -171,6 +172,7 @@ export const apiService = createApi({
         if (filter !== undefined && filter !== null) params.append('filter', filter);
         if (query !== undefined && query !== null) params.append('query', query);
         if (cohortId !== undefined && cohortId !== null) params.append('cohortId', cohortId);
+        if (mobilizerId !== undefined && mobilizerId !== null) params.append('mobilizerId', mobilizerId);
         
         return `applicants?${params.toString()}`;
       },
@@ -363,6 +365,30 @@ export const apiService = createApi({
       query: () => `courses`,
       providesTags: (result, error, arg) =>
         result
+          ? [
+              ...result.courses.map((course: ResultData) => ({
+                type: 'Courses',
+                id: course.id,
+              })),
+            ]
+          : ['Courses'],
+    }),
+    getCohortCoursesForEnrollments: builder.query({
+      query: (cohortId: string) => `cohorts/${cohortId}/courses`,
+      providesTags: (result, error, arg) =>
+        result && result.courses && Array.isArray(result.courses)
+          ? [
+              ...result.courses.map((course: ResultData) => ({
+                type: 'Courses',
+                id: course.id,
+              })),
+            ]
+          : ['Courses'],
+    }),
+    getEnrollmentCourses: builder.query({
+      query: (cohortId?: string) => `enrollments/courses${cohortId ? `?cohortId=${cohortId}` : ''}`,
+      providesTags: (result, error, arg) =>
+        result && result.courses && Array.isArray(result.courses)
           ? [
               ...result.courses.map((course: ResultData) => ({
                 type: 'Courses',
@@ -676,6 +702,59 @@ export const apiService = createApi({
       providesTags: (result, error, arg) =>
         result ? [{type: 'CohortCourses', id: arg.id}] : ['CohortCourses'],
     }),
+
+    // Mobilizer endpoints
+    getAllMobilizerCodes: builder.query<{ mobilizers: any[]; total: number }, { cohortId?: string }>({
+      query: ({ cohortId }) => ({
+        url: '/mobilizers/all-codes',
+        method: 'GET',
+        params: cohortId ? { cohortId } : {},
+      }),
+      providesTags: ['Mobilizer'],
+    }),
+
+    getMobilizerById: builder.query<any, string>({
+      query: (id) => ({
+        url: `/mobilizers/${id}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, id) => [{ type: 'Mobilizer', id }],
+    }),
+
+    createMobilizer: builder.mutation<any, any>({
+      query: (data) => ({
+        url: '/mobilizers',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Mobilizer'],
+    }),
+
+    updateMobilizer: builder.mutation<any, { id: string; data: any }>({
+      query: ({ id, data }) => ({
+        url: `/mobilizers/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'Mobilizer', id }],
+    }),
+
+    deleteMobilizer: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/mobilizers/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Mobilizer'],
+    }),
+
+    registerMobilizer: builder.mutation<any, any>({
+      query: (data) => ({
+        url: '/mobilizers/register',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Mobilizer'],
+    }),
   }),
 });
 
@@ -706,6 +785,8 @@ export const {
   useDeleteCohortMutation,
   useGetCoursesQuery,
   useGetCohortCoursesQuery,
+  useGetCohortCoursesForEnrollmentsQuery,
+  useGetEnrollmentCoursesQuery,
   useDeleteCohortCoursesMutation,
   useGetReportsQuery,
   useCreateReportMutation,
@@ -724,4 +805,10 @@ export const {
   useGetCohortAlertsQuery,
   useTriggerCohortAlertMutation,
   useResetPasswordMutation,
+  useGetAllMobilizerCodesQuery,
+  useGetMobilizerByIdQuery,
+  useCreateMobilizerMutation,
+  useUpdateMobilizerMutation,
+  useDeleteMobilizerMutation,
+  useRegisterMobilizerMutation,
 } = apiService;
