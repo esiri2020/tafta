@@ -19,6 +19,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await client.connect();
     res.write(`data: ${JSON.stringify({ log: 'Connected to database...' })}\n\n`);
 
+    // Get mobilizer filter from query params
+    const { mobilizerId } = req.query;
+
+    // Build WHERE clause with mobilizer filtering
+    let whereClause = "WHERE u.role = 'APPLICANT'";
+    if (mobilizerId) {
+      whereClause += ` AND r.id = '${mobilizerId}'`;
+    }
+
     // Query data (add referrer join)
     const query = `
       SELECT 
@@ -101,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       LEFT JOIN "Assessment" a ON u.id = a."userId"
       LEFT JOIN "UserCohort" uc ON u.id = uc."userId"
       LEFT JOIN "Cohort" c ON uc."cohortId" = c.id
-      WHERE u.role = 'APPLICANT'
+      ${whereClause}
     `;
     const result = await client.query(query);
     res.write(`data: ${JSON.stringify({ log: 'Data fetched...' })}\n\n`);
@@ -140,7 +149,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Save to public/exports
     const timestamp = Date.now();
-    const fileName = `applicant_data_export_${timestamp}.xlsx`;
+    const fileName = mobilizerId 
+      ? `mobilizer_applicants_export_${timestamp}.xlsx`
+      : `applicant_data_export_${timestamp}.xlsx`;
     const exportsDir = path.join(process.cwd(), 'public', 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });

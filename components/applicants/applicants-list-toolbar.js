@@ -10,10 +10,27 @@ import {
 import { Search as SearchIcon } from '../../icons/search';
 import { Upload as UploadIcon } from '../../icons/upload';
 import { Download as DownloadIcon } from '../../icons/download';
-import { useGetApplicantsQuery } from '../../services/api'
+import { useGetApplicantsQuery } from '../../services/api';
+import { useSession } from 'next-auth/react';
 
 export const ApplicantsListToolbar = (props) => {
   const { mobilizerId, showMobilizerFilter = true, ...otherProps } = props;
+  const { data: session } = useSession();
+  
+  const handleExport = async () => {
+    try {
+      // Create export URL with mobilizer filter if applicable
+      let exportUrl = '/api/export-applicants';
+      if (mobilizerId) {
+        exportUrl += `?mobilizerId=${mobilizerId}`;
+      }
+      
+      // Open export in new tab
+      window.open(exportUrl, '_blank');
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  };
   
   return (
     <Box {...otherProps}>
@@ -33,15 +50,19 @@ export const ApplicantsListToolbar = (props) => {
           {mobilizerId ? 'My Applicants' : 'Applicants'}
         </Typography>
         <Box sx={{ m: 1 }}>
-          <Button
-            startIcon={(<UploadIcon fontSize="small" />)}
-            sx={{ mr: 1 }}
-          >
-            Import
-          </Button>
+          {/* Only show Import button for non-mobilizers */}
+          {!mobilizerId && (
+            <Button
+              startIcon={(<UploadIcon fontSize="small" />)}
+              sx={{ mr: 1 }}
+            >
+              Import
+            </Button>
+          )}
           <Button
             startIcon={(<DownloadIcon fontSize="small" />)}
             sx={{ mr: 1 }}
+            onClick={handleExport}
           >
             Export
           </Button>
