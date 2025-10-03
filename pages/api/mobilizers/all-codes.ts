@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import prisma from '../../../lib/prismadb';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -128,8 +128,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return a.code.localeCompare(b.code);
     });
 
+    // Extract just the codes for the dropdown
+    const codes = mobilizerData.map(m => m.code);
+
     res.status(200).json({
       message: 'success',
+      codes: codes,
       mobilizers: mobilizerData,
       total: mobilizerData.length,
     });
