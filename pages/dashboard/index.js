@@ -87,7 +87,7 @@ const tabs = [
   {label: 'Assessment', value: 'assessment'},
 ];
 
-export const Profile = () => (
+export const Profile = ({ user }) => (
   <Box
     sx={{
       alignItems: 'center',
@@ -102,7 +102,14 @@ export const Profile = () => (
       }}
     />
     <Box sx={{ml: 2}}>
-      <Typography variant='h5'>John Carter</Typography>
+      <Typography variant='h5'>
+        {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Loading...'}
+      </Typography>
+      {user?.email && (
+        <Typography variant='body2' color='text.secondary'>
+          {user.email}
+        </Typography>
+      )}
     </Box>
     <Box sx={{flexGrow: 1}} />
   </Box>
@@ -291,6 +298,16 @@ const Account = () => {
     session?.userData.userId,
     {skip: session?.userData.userId ? false : true},
   );
+
+  // Debug logging
+  console.log('🔍 Dashboard Debug:', {
+    session: session?.userData,
+    data,
+    error,
+    isLoading,
+    applicant: data?.user,
+    profile: data?.user?.profile
+  });
   const seatDataQueryRes = useGetSeatBookingsQuery({}, {
     skip: session?.userData?.role === 'MOBILIZER'
   });
@@ -495,7 +512,29 @@ const Account = () => {
           {currentTab === 'personal-information' && (
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <ApplicantBasicDetails applicant={applicant} />
+                {applicant?.profile ? (
+                  <ApplicantBasicDetails applicant={applicant} />
+                ) : (
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Personal Information
+                      </Typography>
+                      <Typography color="text.secondary">
+                        No profile information available. Please complete your registration to see your personal information here.
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <Button 
+                          component={NextLink} 
+                          href="/register-new?step=3" 
+                          variant="contained"
+                        >
+                          Complete Registration
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )}
               </Grid>
               <Grid item xs={12}>
                 <ApplicantDataManagement id={id} />

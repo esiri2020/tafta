@@ -2301,18 +2301,18 @@ export const EndOfApplication = ({ handlers }) => {
   };
 
   return (
-    <Box>
-      <Card>
-        <CardContent
+  <Box>
+    <Card>
+      <CardContent
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}>
+        <Typography
+          variant='h5'
+          align='center'
           sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}>
-          <Typography
-            variant='h5'
-            align='center'
-            sx={{
               marginBottom: '30px',
               padding: '30px',
             }}>
@@ -2357,11 +2357,11 @@ export const EndOfApplication = ({ handlers }) => {
               color: 'text.secondary',
             }}>
             You can always review your application and access your courses from your Dashboard.
-          </Typography>
-        </CardContent>
-      </Card>
-    </Box>
-  );
+        </Typography>
+      </CardContent>
+    </Card>
+  </Box>
+);
 };
 
 export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {

@@ -28,33 +28,28 @@ export const ReferralInformation = ({formik}: ReferralInformationProps) => {
   // Fetch all mobilizer codes (both available and unavailable)
   useEffect(() => {
     const fetchCodes = async () => {
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          const response = await fetch('/api/mobilizers/all-codes');
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.json();
-          if (data.codes) {
-            setAvailableCodes(data.codes);
-            break; // Success, exit retry loop
-          } else {
-            throw new Error('Invalid response format');
-          }
-        } catch (error) {
-          console.error(`Error fetching mobilizer codes (attempt ${4 - retries}):`, error);
-          retries--;
-          if (retries === 0) {
-            console.error('Failed to fetch mobilizer codes after 3 attempts');
-            setAvailableCodes([]); // Set empty array as fallback
-          } else {
-            // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
+      try {
+        console.log('🔍 Fetching mobilizer codes...');
+        const response = await fetch(`/api/mobilizers/all-codes?t=${Date.now()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const data = await response.json();
+        console.log('🔍 Mobilizer codes response:', data);
+        
+        if (data.codes && Array.isArray(data.codes)) {
+          setAvailableCodes(data.codes);
+          console.log('🔍 Set available codes:', data.codes);
+        } else {
+          console.error('Invalid response format:', data);
+          setAvailableCodes([]);
+        }
+      } catch (error) {
+        console.error('Error fetching mobilizer codes:', error);
+        setAvailableCodes([]);
+      } finally {
+        setLoadingCodes(false);
       }
-      setLoadingCodes(false);
     };
 
     fetchCodes();
