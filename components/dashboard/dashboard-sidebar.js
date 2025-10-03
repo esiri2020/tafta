@@ -348,10 +348,6 @@ const getSuperAdminSections = userId => [
             title: 'View All Mobilizers',
             path: '/admin-dashboard/mobilizers',
           },
-          {
-            title: 'Create Mobilizer',
-            path: '/admin-dashboard/mobilizers/create',
-          },
         ],
       },
       {
