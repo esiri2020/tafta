@@ -73,54 +73,67 @@ export default async function handler(
 
   if (req.method === 'PATCH') {
     const body = typeof (req.body) === 'object' ? req.body : JSON.parse(req.body)
-    const { cohortCourses, centers, values } = body
+    const { cohortCourses = [], centers = [], values } = body
+    
     try {
-      const cohort = await prisma.cohort.update({
-        where: {
-          id: id
-        },
-        data: {
-          ...values,
-          cohortCourses: cohortCourses?.length ? {
-            upsert: cohortCourses.map((c: any) => ({
-              create: {
-                course_id: BigInt(c.course_id),
-                course_limit: c.course_limit,
-                courseId: c.course_id
-              },
-              update: {
-                course_id: BigInt(c.course_id),
-                course_limit: c.course_limit,
-                courseId: c.course_id
-              },
-              where: { id: c.id || '' }
-            }))
-          } : undefined,
-          centers: centers.length ? {
-            upsert: centers.map((c: any) => ({
-              create: {
-                location: c.location,
-                seats: c.numberOfSeats,
-                name: c.centerName,
-              },
-              update: {
-                location: c.location,
-                seats: c.numberOfSeats,
-                name: c.centerName,
-              },
-              where: { id: c.id || '' }
-            }))
-          } : undefined
-        }
-      })
+      // Use transaction to handle cohort update with courses/locations
+      const result = await prisma.$transaction(async (tx) => {
+        // Update the cohort basic info
+        const updatedCohort = await tx.cohort.update({
+          where: { id },
+          data: {
+            name: String(values.name),
+            start_date: new Date(values.start_date),
+            end_date: new Date(values.end_date),
+            active: Boolean(values.active),
+            color: String(values.color),
+          },
+        });
 
-      return res.status(202).send({ message: 'success', cohort })
+        // Handle cohort courses
+        if (Array.isArray(cohortCourses)) {
+          // Delete existing cohort courses
+          await tx.cohortCourse.deleteMany({
+            where: { cohortId: id }
+          });
+
+          // Create new cohort courses
+          if (cohortCourses.length > 0) {
+            await tx.cohortCourse.createMany({
+              data: cohortCourses.map((cc: any) => ({
+                cohortId: id,
+                courseId: String(cc.course_id),
+                course_id: BigInt(cc.course_id),
+                course_limit: parseInt(cc.course_limit) || 0,
+              })),
+            });
+          }
+        }
+
+        // Handle locations (centers)
+        if (Array.isArray(centers)) {
+          // For locations, we'll just create new ones since they're not directly linked to cohorts
+          if (centers.length > 0) {
+            await tx.location.createMany({
+              data: centers.map((center: any) => ({
+                name: center.centerName,
+                location: center.location,
+                seats: parseInt(center.numberOfSeats) || 0,
+              })),
+            });
+          }
+        }
+
+        return updatedCohort;
+      });
+
+      return res.status(202).send({ message: 'success', cohort: result });
     } catch (err) {
-      console.error(err)
+      console.error(err);
       if (err instanceof Error) {
-        return res.status(400).send(err.message)
+        return res.status(400).send(err.message);
       }
-      return res.status(400).send('An error occurred')
+      return res.status(400).send('An error occurred');
     }
   }
 
@@ -143,6 +156,21 @@ export default async function handler(
     const cohort = await prisma.cohort.findUnique({
       where: {
         id
+      },
+      include: {
+        cohortCourses: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                description: true,
+              }
+            }
+          }
+        },
+        // Note: centers are stored as locations and linked via CohortToLocation
       },
     });
 

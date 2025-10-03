@@ -53,17 +53,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             await tx.cohortCourse.createMany({
               data: cohortCourses.map((cc: any) => ({
                 cohortId: cohort.id,
+                courseId: String(cc.course_id),
                 course_id: BigInt(cc.course_id),
                 course_limit: parseInt(cc.course_limit) || 0,
               })),
             });
           }
 
-          // Create centers
+          // Create locations  
           if (centers.length > 0) {
-            await tx.center.createMany({
+            await tx.location.createMany({
               data: centers.map((center: any) => ({
-                cohortId: cohort.id,
                 name: center.centerName,
                 location: center.location,
                 seats: parseInt(center.numberOfSeats) || 0,
@@ -118,6 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             await tx.cohortCourse.createMany({
               data: cohortCourses.map((cc: any) => ({
                 cohortId: id,
+                courseId: String(cc.course_id),
                 course_id: BigInt(cc.course_id),
                 course_limit: parseInt(cc.course_limit) || 0,
               })),
@@ -125,18 +126,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
-        // Handle centers
+        // Handle locations (centers)
         if (Array.isArray(centers)) {
-          // Delete existing centers
-          await tx.center.deleteMany({
-            where: { cohortId: id }
-          });
-
-          // Create new centers
+          // For now, just create new locations - they're not directly linked to cohorts in our schema
+          // In the future, you might want to create CohortToLocation relationships
           if (centers.length > 0) {
-            await tx.center.createMany({
+            await tx.location.createMany({
               data: centers.map((center: any) => ({
-                cohortId: id,
                 name: center.centerName,
                 location: center.location,
                 seats: parseInt(center.numberOfSeats) || 0,
@@ -201,6 +197,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         end_date: true,
         active: true,
         color: true,
+        cohortCourses: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                description: true,
+              }
+            }
+          }
+        }
       }
     });
 
@@ -217,6 +225,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({
       message: 'success',
       cohorts,
+      count: total, // Frontend expects count directly
       pagination: {
         page: Number(page),
         limit: Number(limit),

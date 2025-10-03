@@ -331,6 +331,7 @@ export const CohortEditForm = ({ cohort, cancel, ...other }) => {
               cohortCourses: courses,
               centers,
               values: {
+                id: cohort?.id,
                 name,
                 color,
                 start_date,
