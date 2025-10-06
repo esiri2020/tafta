@@ -162,17 +162,11 @@ export default function VerifyEmail() {
             console.error('❌ Error creating enrollment after email verification:', enrollErr);
           }
           
-          // Redirect current tab to personal information form first
+          // Redirect to personal information form to complete registration
           router.replace({
             pathname: '/register-new',
             query: { step: 3 },
           });
-          
-          // Open TAFTA portal sign-in in new tab after redirect
-          setTimeout(() => {
-            const lmsUrl = 'https://portal.terraacademyforarts.com/users/sign_in';
-            window.open(lmsUrl, '_blank');
-          }, 100);
         })
         .catch(err => {
           console.error(err);

@@ -45,9 +45,8 @@ export const getServerSideProps: GetServerSideProps = async context => {
           },
         };
       }
-      // If the user has a verified profile but no enrollment, redirect to personal information
-      const enrollments = session?.userData?.enrollments || [];
-      if (Array.isArray(enrollments) && enrollments.length === 0) {
+      // If the user has a verified profile but no profile data, redirect to personal information
+      if (!session?.userData?.profile) {
         return {
           redirect: {
             permanent: false,
@@ -55,11 +54,11 @@ export const getServerSideProps: GetServerSideProps = async context => {
           },
         };
       }
-      // If the user has a verified profile and enrollments, redirect to TAFTA portal
+      // If the user has a verified profile and profile data, redirect to dashboard
       return {
         redirect: {
           permanent: false,
-          destination: `https://portal.terraacademyforarts.com/users/sign_in`,
+          destination: `/dashboard`,
         },
       };
     }

@@ -141,7 +141,7 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
-        // Fetch enrollments and mobilizer data for the user
+        // Fetch enrollments, mobilizer data, and profile for the user
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           include: {
@@ -151,6 +151,7 @@ export const authOptions: AuthOptions = {
               },
             },
             mobilizer: true, // Include mobilizer data
+            profile: true, // Include profile data
           },
         });
 
@@ -172,7 +173,7 @@ export const authOptions: AuthOptions = {
           type: user.type,
           email: user.email,
           role: user.role,
-          profile: user.profile ? true : false,
+          profile: dbUser?.profile ? true : false, // Use dbUser profile instead of user profile
           emailVerified: user.emailVerified,
           enrollments: enrollmentIds,
           mobilizerId: dbUser?.mobilizer?.id || null, // Include mobilizer ID

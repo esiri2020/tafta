@@ -306,7 +306,9 @@ const Account = () => {
     error,
     isLoading,
     applicant: data?.user,
-    profile: data?.user?.profile
+    profile: data?.user?.profile,
+    hasProfile: !!data?.user?.profile,
+    profileData: data?.user?.profile ? Object.keys(data.user.profile) : 'No profile'
   });
   const seatDataQueryRes = useGetSeatBookingsQuery({}, {
     skip: session?.userData?.role === 'MOBILIZER'
@@ -553,6 +555,29 @@ const Account = () => {
           )}
         </Container>
       </Box>
+      
+      {/* LMS Dialog */}
+      <Dialog open={openLMSDialog} onClose={handleCloseLMSDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Access Learning Management System
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            You're about to access the TAFTA Learning Management System. You'll be redirected to the portal where you can start your courses.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Make sure you have completed your profile information before starting your courses.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseLMSDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleContinueToLMS} variant="contained" color="primary">
+            Continue to LMS
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
