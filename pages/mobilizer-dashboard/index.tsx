@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { Box, Container, Typography, Alert } from '@mui/material';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { useGetMobilizerByIdQuery } from '@/services/api';
+import { useGetMobilizerByIdQuery, useGetMobilizerStatsQuery } from '@/services/api';
 import { SplashScreen } from '@/components/splash-screen';
 import dynamic from 'next/dynamic';
 
@@ -48,10 +48,12 @@ const MobilizerDashboard = () => {
   // Get mobilizer data based on user's mobilizer code
   const mobilizerId = (session as any)?.userData?.mobilizerId;
   console.log('🔍 Mobilizer Dashboard Debug:', {
-    session: session,
-    userData: (session as any)?.userData,
+    hasSession: !!session,
+    hasUserData: !!(session as any)?.userData,
     mobilizerId: mobilizerId,
-    role: (session as any)?.userData?.role
+    role: (session as any)?.userData?.role,
+    email: (session as any)?.userData?.email,
+    userId: (session as any)?.userData?.userId
   });
   
   const { data: mobilizerData, isLoading: mobilizerLoading, error: mobilizerError } = useGetMobilizerByIdQuery(
@@ -60,11 +62,23 @@ const MobilizerDashboard = () => {
       skip: !mobilizerId,
     }
   );
+
+  // Fetch mobilizer stats
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useGetMobilizerStatsQuery(
+    mobilizerId || '',
+    {
+      skip: !mobilizerId,
+    }
+  );
   
   console.log('🔍 Mobilizer Query Debug:', {
-    mobilizerData,
-    mobilizerLoading,
-    mobilizerError
+    querySkipped: !mobilizerId,
+    mobilizerData: mobilizerData,
+    mobilizerLoading: mobilizerLoading,
+    mobilizerError: mobilizerError,
+    hasMobilizer: !!mobilizerData?.mobilizer,
+    statsData: statsData,
+    statsLoading: statsLoading
   });
 
   useEffect(() => {
@@ -74,10 +88,11 @@ const MobilizerDashboard = () => {
   }, [status, router]);
 
   useEffect(() => {
-    if ((session as any)?.userData?.role !== 'MOBILIZER') {
+    // Only redirect if session is loaded and role is not MOBILIZER
+    if (status === 'authenticated' && (session as any)?.userData?.role && (session as any)?.userData?.role !== 'MOBILIZER') {
       router.push('/dashboard');
     }
-  }, [session, router]);
+  }, [session, router, status]);
 
   // Force session refresh if mobilizerId is missing
   useEffect(() => {
@@ -89,18 +104,8 @@ const MobilizerDashboard = () => {
     }
   }, [session, mobilizerId]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || mobilizerLoading || statsLoading) {
     return <SplashScreen />;
-  }
-  
-  if (mobilizerLoading) {
-    return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="info">
-          Loading mobilizer data...
-        </Alert>
-      </Container>
-    );
   }
 
   if (!(session as any)?.userData || (session as any).userData.role !== 'MOBILIZER') {
@@ -123,28 +128,59 @@ const MobilizerDashboard = () => {
     );
   }
 
-  if (!mobilizerData?.mobilizer) {
+  // Check if mobilizerId is missing from session
+  if (!mobilizerId && (session as any)?.userData?.role === 'MOBILIZER') {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="warning">
-          Mobilizer profile not found. Please contact support.
+        <Alert severity="error" sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom>Mobilizer ID Missing</Typography>
+          <Typography variant="body2">
+            Your account is marked as a mobilizer, but no mobilizer record is linked to your user account.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            User ID: {(session as any)?.userData?.userId}
+          </Typography>
+          <Typography variant="body2">
+            Email: {(session as any)?.userData?.email}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Please contact support to link your mobilizer profile.
+          </Typography>
         </Alert>
       </Container>
     );
   }
 
-  const mobilizer = mobilizerData.mobilizer;
+  if (!mobilizerData?.mobilizer && !mobilizerLoading && mobilizerId) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom>Mobilizer Profile Not Found</Typography>
+          <Typography variant="body2">
+            No mobilizer profile found with ID: {mobilizerId}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Please contact support.
+          </Typography>
+        </Alert>
+      </Container>
+    );
+  }
 
-  // Mock data for mobilizer dashboard - in real implementation, this would come from API
-  const mobilizerDashboardData = {
-    total_enrolled_by_courses: mobilizer.totalReferrals,
-    total_enrolled_applicants: mobilizer.totalReferrals,
-    female_enrollments: Math.floor(mobilizer.totalReferrals * 0.6), // Mock data
-    male_enrollments: Math.floor(mobilizer.totalReferrals * 0.4), // Mock data
-    active_enrollees: mobilizer.activeReferrals,
-    certified_enrollees: mobilizer.completedReferrals,
-    total_applicants: mobilizer.totalReferrals,
-    inactive_enrollments: mobilizer.totalReferrals - mobilizer.activeReferrals,
+  // At this point, we should have a mobilizer
+  if (!mobilizerData?.mobilizer) {
+    return <SplashScreen />;
+  }
+
+  const mobilizer = mobilizerData.mobilizer;
+  const stats = statsData?.stats || {
+    totalReferrals: mobilizer.totalReferrals,
+    activeReferrals: mobilizer.activeReferrals,
+    completedReferrals: mobilizer.completedReferrals,
+    completionRate: 0,
+    averageCompletionPercentage: 0,
+    referralsByCourse: [],
+    referralsByStatus: [],
   };
 
   return (
@@ -182,21 +218,55 @@ const MobilizerDashboard = () => {
                 <MetricsCards data={mobilizerDashboardData} />
               </Box> */}
               
-              {/* Simple stats display */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+              {/* Stats display */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
                 <Box sx={{ p: 3, border: '1px solid #ddd', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="h3" color="primary">{mobilizer.totalReferrals}</Typography>
+                  <Typography variant="h3" color="primary">{stats.totalReferrals}</Typography>
                   <Typography variant="body2" color="text.secondary">Total Referrals</Typography>
                 </Box>
                 <Box sx={{ p: 3, border: '1px solid #ddd', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="h3" color="success.main">{mobilizer.activeReferrals}</Typography>
+                  <Typography variant="h3" color="success.main">{stats.activeReferrals}</Typography>
                   <Typography variant="body2" color="text.secondary">Active Referrals</Typography>
                 </Box>
                 <Box sx={{ p: 3, border: '1px solid #ddd', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="h3" color="info.main">{mobilizer.completedReferrals}</Typography>
+                  <Typography variant="h3" color="info.main">{stats.completedReferrals}</Typography>
                   <Typography variant="body2" color="text.secondary">Completed Referrals</Typography>
                 </Box>
+                <Box sx={{ p: 3, border: '1px solid #ddd', borderRadius: 2, textAlign: 'center' }}>
+                  <Typography variant="h3" color="warning.main">{stats.completionRate}%</Typography>
+                  <Typography variant="body2" color="text.secondary">Completion Rate</Typography>
+                </Box>
               </Box>
+
+              {/* Referrals by Course */}
+              {stats.referralsByCourse && stats.referralsByCourse.length > 0 && (
+                <Box sx={{ mt: 3, p: 3, border: '1px solid #ddd', borderRadius: 2 }}>
+                  <Typography variant="h6" gutterBottom>Referrals by Course</Typography>
+                  <Box sx={{ display: 'grid', gap: 2 }}>
+                    {stats.referralsByCourse.map((course: any, index: number) => (
+                      <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2">{course.courseName}</Typography>
+                        <Typography variant="body1" fontWeight="bold">{course.count}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Referrals by Status */}
+              {stats.referralsByStatus && stats.referralsByStatus.length > 0 && (
+                <Box sx={{ mt: 3, p: 3, border: '1px solid #ddd', borderRadius: 2 }}>
+                  <Typography variant="h6" gutterBottom>Referrals by Status</Typography>
+                  <Box sx={{ display: 'grid', gap: 2 }}>
+                    {stats.referralsByStatus.map((status: any, index: number) => (
+                      <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>{status.status}</Typography>
+                        <Typography variant="body1" fontWeight="bold">{status.count}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
 
               {/* Charts Grid - Temporarily commented out to isolate loading issue */}
               {/* <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 3 }}>

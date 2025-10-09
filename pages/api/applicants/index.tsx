@@ -280,23 +280,37 @@ export default async function handler(
     : undefined;
 
   // Add mobilizer filter for MOBILIZER role users or when filtering by mobilizer
-  const mobilizerFilter = mobilizerId
+  // If mobilizerId is provided, fetch the mobilizer's code first
+  let mobilizerCodeToFilter: string | undefined = mobilizerCode;
+  
+  if (mobilizerId && !mobilizerCode) {
+    const mobilizer = await prisma.mobilizer.findUnique({
+      where: { id: mobilizerId },
+      select: { code: true },
+    });
+    mobilizerCodeToFilter = mobilizer?.code;
+    console.log('🔍 Applicants API - Mobilizer lookup:', {
+      mobilizerId,
+      mobilizerCode: mobilizer?.code,
+    });
+  }
+
+  const mobilizerFilter = mobilizerCodeToFilter
     ? {
         profile: {
           referrer: {
-            id: mobilizerId, // Filter by referrer ID (mobilizer ID)
-          },
-        },
-      }
-    : mobilizerCode
-    ? {
-        profile: {
-          referrer: {
-            fullName: mobilizerCode, // Filter by referrer fullName instead of mobilizerCode
+            fullName: mobilizerCodeToFilter, // Filter by referrer fullName (mobilizer code)
           },
         },
       }
     : undefined;
+
+  console.log('🔍 Applicants API - Filter:', {
+    mobilizerId,
+    mobilizerCode,
+    mobilizerCodeToFilter,
+    hasMobilizerFilter: !!mobilizerFilter,
+  });
 
   // Check if user is a mobilizer and should only see their referrals
   const isMobilizerUser = token?.userData?.role === 'MOBILIZER';
@@ -858,6 +872,14 @@ export default async function handler(
         });
       }
     }
+
+    console.log('🔍 Applicants API - Response:', {
+      applicantsCount: applicants?.length,
+      totalCount: count,
+      filteredOutCount,
+      hasMobilizerFilter: !!mobilizerFilter,
+      mobilizerCodeToFilter,
+    });
 
     return res.status(200).json(
       bigint_filter({

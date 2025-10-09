@@ -755,6 +755,14 @@ export const apiService = createApi({
       }),
       invalidatesTags: ['Mobilizer'],
     }),
+
+    getMobilizerStats: builder.query<any, string>({
+      query: (id) => ({
+        url: `/mobilizers/${id}/stats`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, id) => [{ type: 'Mobilizer', id: `${id}-stats` }],
+    }),
   }),
 });
 
@@ -811,4 +819,5 @@ export const {
   useUpdateMobilizerMutation,
   useDeleteMobilizerMutation,
   useRegisterMobilizerMutation,
+  useGetMobilizerStatsQuery,
 } = apiService;

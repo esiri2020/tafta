@@ -33,6 +33,37 @@ export const ApplicantsList = (props) => {
     cohortId: cohortId || undefined
   })
   
+  // Debug logging
+  console.log('🔍 ApplicantsList Debug:', {
+    isLoading,
+    hasData: !!data,
+    hasApplicants: !!data?.applicants,
+    applicantsCount: data?.applicants?.length,
+    error,
+    mobilizerId
+  });
+
+  // Early return checks
+  if(isLoading) {
+    return (
+      <div>Loading...</div>
+    )
+  }
+  if(!data) return null;
+  const { applicants, count } = data;
+  
+  // Handle case where applicants is undefined or null
+  if (!applicants || !Array.isArray(applicants)) {
+    return (
+      <Card {...otherProps}>
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            No applicants found.
+          </Typography>
+        </Box>
+      </Card>
+    );
+  }
 
   const handleSelectAll = (event) => {
     let newSelectedCustomerIds;
@@ -74,14 +105,6 @@ export const ApplicantsList = (props) => {
     setPage(newPage);
   };
 
-  if(isLoading) {
-    return (
-      <div>Loading...</div>
-      )
-  }
-  if(!data) return;
-  const { applicants, count } = data
-
   return (
     <Card {...props}>
       <PerfectScrollbar>
@@ -91,7 +114,7 @@ export const ApplicantsList = (props) => {
               <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    checked={selectedCustomerIds.length === applicants.length}
+                    checked={applicants.length > 0 && selectedCustomerIds.length === applicants.length}
                     color="primary"
                     indeterminate={
                       selectedCustomerIds.length > 0
@@ -157,85 +180,89 @@ export const ApplicantsList = (props) => {
                   </TableCell>
                   <TableCell>
                     {
-                      customer.enrollments.length > 0 ?
+                      customer.enrollments && customer.enrollments.length > 0 ?
                       customer.enrollments.map(e => e.course_name).join(", ") :
                       'No Enrollments'
                     }
                   </TableCell>
                   <TableCell>
                     {
-                      customer.profile ?
-                      customer.enrollments[0]?.enrolled ?
-                      <Box 
-                        as="span" 
-                        bgcolor={'secondary.main'}
-                        sx={{
-                          borderRadius: 1,
-                          padding: 1
-                        }}
-                      >
-                        Approved 
-                      </Box>
-                      :
-                      <Box 
-                        as="span" 
-                        bgcolor={'warning.main'}
-                        sx={{
-                          borderRadius: 1,
-                          padding: 1
-                        }}
-                      >
-                        Completed
-                      </Box>
-                      :
-                      <Box 
-                        as="span" 
-                        bgcolor={'action.disabled'}
-                        sx={{
-                          borderRadius: 1,
-                          padding: 1
-                        }}
-                      >
-                        Pending
-                      </Box>
+                      customer.profile ? (
+                        (customer.enrollments && customer.enrollments.length > 0 && customer.enrollments[0]?.enrolled) ? (
+                          <Box 
+                            as="span" 
+                            bgcolor={'secondary.main'}
+                            sx={{
+                              borderRadius: 1,
+                              padding: 1
+                            }}
+                          >
+                            Approved 
+                          </Box>
+                        ) : (
+                          <Box 
+                            as="span" 
+                            bgcolor={'warning.main'}
+                            sx={{
+                              borderRadius: 1,
+                              padding: 1
+                            }}
+                          >
+                            Completed
+                          </Box>
+                        )
+                      ) : (
+                        <Box 
+                          as="span" 
+                          bgcolor={'action.disabled'}
+                          sx={{
+                            borderRadius: 1,
+                            padding: 1
+                          }}
+                        >
+                          Pending
+                        </Box>
+                      )
                     }
                   </TableCell>
                   <TableCell>
                     {
-                      customer.enrollments.length > 0 ?
-                      customer.enrollments[0].enrolled ?
-                      <Box 
-                        as="span" 
-                        bgcolor={'secondary.main'}
-                        sx={{
-                          borderRadius: 1,
-                          padding: 1
-                        }}
-                      >
-                        Enrolled 
-                      </Box>
-                      :
-                      <Box 
-                      as="span" 
-                      bgcolor={'warning.main'}
-                      sx={{
-                        borderRadius: 1,
-                        padding: 1
-                      }}
-                    >
-                      Pending 
-                    </Box> 
-                      :
-                      <Box 
-                        as="span" 
-                        bgcolor={'action.disabled'}
-                        sx={{
-                          borderRadius: 1,
-                          padding: 1
-                        }}
-                      >
-                        None
-                      </Box>
+                      (customer.enrollments && customer.enrollments.length > 0) ? (
+                        customer.enrollments[0]?.enrolled ? (
+                          <Box 
+                            as="span" 
+                            bgcolor={'secondary.main'}
+                            sx={{
+                              borderRadius: 1,
+                              padding: 1
+                            }}
+                          >
+                            Enrolled 
+                          </Box>
+                        ) : (
+                          <Box 
+                            as="span" 
+                            bgcolor={'warning.main'}
+                            sx={{
+                              borderRadius: 1,
+                              padding: 1
+                            }}
+                          >
+                            Pending 
+                          </Box>
+                        )
+                      ) : (
+                        <Box 
+                          as="span" 
+                          bgcolor={'action.disabled'}
+                          sx={{
+                            borderRadius: 1,
+                            padding: 1
+                          }}
+                        >
+                          None
+                        </Box>
+                      )
                     }
                   </TableCell>
                 </TableRow>

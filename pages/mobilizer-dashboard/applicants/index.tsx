@@ -50,10 +50,11 @@ const MobilizerApplicants = () => {
   }, [status, router]);
 
   useEffect(() => {
-    if ((session as any)?.userData?.role !== 'MOBILIZER') {
+    // Only redirect if session is loaded and role is not MOBILIZER
+    if (status === 'authenticated' && (session as any)?.userData?.role && (session as any)?.userData?.role !== 'MOBILIZER') {
       router.push('/dashboard');
     }
-  }, [session, router]);
+  }, [session, router, status]);
 
   useEffect(() => {
     if (mobilizerData?.mobilizer?.id) {
