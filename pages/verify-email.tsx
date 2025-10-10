@@ -16,21 +16,21 @@ export default function VerifyEmail() {
   const verificationProcessed = useRef(false);
 
   useEffect(() => {
-    // Store course information from URL parameters in sessionStorage
+    // ✅ Store course information from URL parameters in localStorage (more persistent)
     if (typeof window !== 'undefined') {
       if (courseId)
-        sessionStorage.setItem('selectedCourse', courseId as string);
+        localStorage.setItem('selectedCourse', courseId as string);
       if (cohortId)
-        sessionStorage.setItem('selectedCohortId', cohortId as string);
+        localStorage.setItem('selectedCohortId', cohortId as string);
       if (courseName)
-        sessionStorage.setItem('selectedCourseName', courseName as string);
+        localStorage.setItem('selectedCourseName', courseName as string);
       if (actualCourseId)
-        sessionStorage.setItem(
+        localStorage.setItem(
           'selectedCourseActualId',
           actualCourseId as string,
         );
 
-      console.log('Stored course parameters in sessionStorage:', {
+      console.log('✅ Stored course parameters in localStorage:', {
         courseId,
         cohortId,
         courseName,
@@ -43,7 +43,8 @@ export default function VerifyEmail() {
     if ((session as any)?.userData?.userId && !verificationProcessed.current) {
       // Check if we've already processed this verification to prevent multiple tabs
       const verificationKey = `verified_${(session as any)?.userData?.userId}`;
-      if (sessionStorage.getItem(verificationKey)) {
+      // ✅ USE LOCALSTORAGE to persist across tabs
+      if (localStorage.getItem(verificationKey)) {
         console.log('✅ Email verification already processed, skipping...');
         return;
       }
@@ -71,8 +72,8 @@ export default function VerifyEmail() {
           },
         })
         .then(async (res) => {
-          // Mark verification as processed to prevent multiple tabs
-          sessionStorage.setItem(verificationKey, 'true');
+          // ✅ Mark verification as processed to prevent multiple tabs
+          localStorage.setItem(verificationKey, 'true');
           
           console.log('🔍 Full editApplicant response:', res);
           console.log('🔍 Applicant data:', (res as any)?.data?.applicant);
@@ -129,11 +130,12 @@ export default function VerifyEmail() {
               console.log('⚠️ No existing enrollment found, creating new enrollment');
               
               // Fallback: create new enrollment if none exists
+              // ✅ Try profile first, then localStorage as fallback
               const courseData = {
-                selectedCourse: userProfile?.selectedCourse || sessionStorage.getItem('selectedCourse') || '',
-                selectedCohortId: userProfile?.cohortId || sessionStorage.getItem('selectedCohortId') || '',
-                selectedCourseName: userProfile?.selectedCourseName || sessionStorage.getItem('selectedCourseName') || '',
-                selectedCourseActualId: userProfile?.selectedCourseId || sessionStorage.getItem('selectedCourseActualId') || '',
+                selectedCourse: userProfile?.selectedCourse || localStorage.getItem('selectedCourse') || '',
+                selectedCohortId: userProfile?.cohortId || localStorage.getItem('selectedCohortId') || '',
+                selectedCourseName: userProfile?.selectedCourseName || localStorage.getItem('selectedCourseName') || '',
+                selectedCourseActualId: userProfile?.selectedCourseId || localStorage.getItem('selectedCourseActualId') || '',
               };
               
               if (courseData.selectedCourse && courseData.selectedCohortId && courseData.selectedCourseActualId && courseData.selectedCourseName) {

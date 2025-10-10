@@ -61,6 +61,7 @@ model User {
   StaffAlertRecipients                  StaffAlertRecipients[]
   userCohort                            UserCohort[]
   mobilizer                             Mobilizer?
+  failedEnrollments                     FailedEnrollment[]
 }
 
 model Profile {
@@ -401,6 +402,23 @@ model Mobilizer {
 
   @@index([code])
   @@index([status])
+}
+
+model FailedEnrollment {
+  id            String    @id @default(cuid())
+  userId        String
+  enrollmentUid String?
+  error         String
+  errorDetails  Json?
+  retryCount    Int       @default(0)
+  lastRetryAt   DateTime?
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([resolvedAt])
 }
 
 view EnrollmentCompletionGraph {

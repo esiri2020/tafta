@@ -90,8 +90,95 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const user = enrollment.userCohort?.user;
-    if (!user || !user.thinkific_user_id) {
-      return safeJson(res, { error: 'User or Thinkific user ID missing' }, 400);
+    if (!user) {
+      return safeJson(res, { error: 'User not found' }, 400);
+    }
+
+    // If Thinkific user ID is missing, create it now
+    let thinkificUserId = user.thinkific_user_id;
+    if (!thinkificUserId) {
+      console.log('⚠️ Thinkific user ID missing, creating now...');
+      
+      try {
+        const taftaAPIData = {
+          email: user.email,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          skip_custom_fields_validation: true,
+          send_welcome_email: false,
+        };
+        
+        const response = await api.post('/users', taftaAPIData);
+        
+        if (response?.status === 201) {
+          thinkificUserId = response.data.id;
+          
+          // Update user with Thinkific ID
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { thinkific_user_id: thinkificUserId },
+          });
+          
+          console.log(`✅ Thinkific user created with ID: ${thinkificUserId}`);
+          
+          // Add to cohort group if available
+          if (enrollment.userCohort?.cohort) {
+            try {
+              await api.post('/group_users', {
+                group_names: [enrollment.userCohort.cohort.name],
+                user_id: thinkificUserId,
+              });
+              console.log(`✅ Added to cohort group: ${enrollment.userCohort.cohort.name}`);
+            } catch (groupError) {
+              console.error('Failed to add to group (non-fatal):', groupError);
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error('❌ Failed to create Thinkific user during retry:', error);
+        
+        // Check if user already exists in Thinkific
+        if (error.response?.status === 422) {
+          try {
+            // Try to find existing user
+            const searchResponse = await api.get(`/users?query[email]=${user.email}`);
+            if (searchResponse.data.items && searchResponse.data.items.length > 0) {
+              thinkificUserId = searchResponse.data.items[0].id;
+              
+              // Update DB with found ID
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { thinkific_user_id: thinkificUserId },
+              });
+              
+              console.log(`✅ Found existing Thinkific user with ID: ${thinkificUserId}`);
+            }
+          } catch (searchError) {
+            console.error('Failed to find existing user:', searchError);
+          }
+        }
+        
+        // If still no Thinkific user ID, fail
+        if (!thinkificUserId) {
+          // Log to FailedEnrollment table for manual intervention
+          await prisma.failedEnrollment.create({
+            data: {
+              userId: user.id,
+              enrollmentUid: enrollment.uid,
+              error: 'Failed to create/find Thinkific user during retry',
+              errorDetails: {
+                message: error.message,
+                response: error.response?.data,
+              },
+            },
+          });
+          
+          return safeJson(res, { 
+            error: 'Failed to create Thinkific user. Support has been notified.',
+            details: error.message 
+          }, 500);
+        }
+      }
     }
 
     // 3. Attempt to re-activate with LMS
@@ -100,7 +187,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         enrollment_uid: enrollment.uid,
         course_id: enrollment.course_id,
         course_name: enrollment.course_name,
-        thinkific_user_id: user.thinkific_user_id,
+        thinkific_user_id: thinkificUserId,
         user_email: user.email,
         enrolled: enrollment.enrolled,
         activated_at: enrollment.activated_at
@@ -108,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       const thinkific_data = {
         course_id: enrollment.course_id.toString(),
-        user_id: user.thinkific_user_id,
+        user_id: thinkificUserId,
         activated_at: new Date().toISOString(),
       };
       

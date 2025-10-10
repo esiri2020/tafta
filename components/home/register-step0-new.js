@@ -48,7 +48,8 @@ export const RegisterStepNew = ({handlers, ...other}) => {
     if (userId) setActiveStep(2);
     // Get registration type from previous step
     if (typeof window !== 'undefined') {
-      const savedType = sessionStorage.getItem('registrationType');
+      // ✅ USE LOCALSTORAGE instead of sessionStorage
+      const savedType = localStorage.getItem('registrationType');
       if (savedType) {
         setRegistrationType(savedType);
       }
@@ -99,14 +100,49 @@ export const RegisterStepNew = ({handlers, ...other}) => {
       } = values;
 
       const promise = new Promise(async (resolve, reject) => {
-        // Get course information from sessionStorage
-        const selectedCourse = sessionStorage.getItem('selectedCourse') || '';
-        const selectedCohortId =
-          sessionStorage.getItem('selectedCohortId') || '';
-        const selectedCourseName =
-          sessionStorage.getItem('selectedCourseName') || '';
-        const selectedCourseActualId =
-          sessionStorage.getItem('selectedCourseActualId') || '';
+        // ✅ USE LOCALSTORAGE instead of sessionStorage - More persistent!
+        const selectedCourse = localStorage.getItem('selectedCourse') || '';
+        const selectedCohortId = localStorage.getItem('selectedCohortId') || '';
+        const selectedCourseName = localStorage.getItem('selectedCourseName') || '';
+        const selectedCourseActualId = localStorage.getItem('selectedCourseActualId') || '';
+
+        console.log('🔍 Retrieved course data from localStorage:', {
+          selectedCourse,
+          selectedCohortId,
+          selectedCourseName,
+          selectedCourseActualId,
+        });
+
+        // ❌ FAIL FAST - Break if course selection is missing!
+        if (!selectedCourse || !selectedCourseName || !selectedCourseActualId) {
+          const errorMsg = '❌ CRITICAL: Course selection is missing! Please go back to Step 1 and select a course.';
+          console.error(errorMsg, {
+            selectedCourse,
+            selectedCourseName,
+            selectedCourseActualId,
+            localStorage: {
+              selectedCourse: localStorage.getItem('selectedCourse'),
+              selectedCohortId: localStorage.getItem('selectedCohortId'),
+              selectedCourseName: localStorage.getItem('selectedCourseName'),
+              selectedCourseActualId: localStorage.getItem('selectedCourseActualId'),
+            }
+          });
+          
+          // Show error to user
+          toast.error('Course selection is missing. Please go back and select a course.');
+          
+          // Reject the promise to stop registration
+          reject({
+            error: {
+              status: 400,
+              data: {
+                message: errorMsg,
+                code: 'MISSING_COURSE_SELECTION'
+              }
+            }
+          });
+          return; // Stop execution
+        }
 
         // Try to get cohortId from multiple sources
         const finalCohortId = selectedCohortId || cohortId || router.query.cohortId;
@@ -122,9 +158,21 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           registrationType
         });
         
-        // If still no cohortId, show warning but continue
+        // ❌ FAIL FAST - Break if cohortId is missing!
         if (!finalCohortId) {
-          console.warn('⚠️ No cohortId found, registration will continue without cohort assignment');
+          const errorMsg = '❌ CRITICAL: Cohort ID is missing! Cannot proceed with registration.';
+          console.error(errorMsg);
+          toast.error('Cohort information is missing. Please contact support.');
+          reject({
+            error: {
+              status: 400,
+              data: {
+                message: errorMsg,
+                code: 'MISSING_COHORT_ID'
+              }
+            }
+          });
+          return; // Stop execution
         }
 
         const userData = {
@@ -180,13 +228,13 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           helpers.setStatus({success: true});
           helpers.setSubmitting(false);
 
-          // Store the user ID in sessionStorage
+          // ✅ Store the user ID in localStorage (more persistent than sessionStorage)
           if (res.data && res.data.user && res.data.user.id) {
-            sessionStorage.setItem('userId', res.data.user.id);
+            localStorage.setItem('userId', res.data.user.id);
           }
-          // Store the email in sessionStorage for later steps
+          // Store the email in localStorage for later steps
           if (email) {
-            sessionStorage.setItem('email', email);
+            localStorage.setItem('email', email);
           }
 
           let req = await signIn('email', {

@@ -2381,7 +2381,8 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
   useEffect(() => {
     // Get registration type from previous step
     if (typeof window !== 'undefined') {
-      const savedType = sessionStorage.getItem('registrationType');
+      // ✅ USE LOCALSTORAGE instead of sessionStorage
+      const savedType = localStorage.getItem('registrationType');
       if (savedType) {
         setRegistrationType(savedType);
       }
@@ -2391,7 +2392,8 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
   const handleRegistrationTypeChange = event => {
     const type = event.target.value;
     setRegistrationType(type);
-    sessionStorage.setItem('registrationType', type);
+    // ✅ USE LOCALSTORAGE instead of sessionStorage
+    localStorage.setItem('registrationType', type);
   };
 
   const formik = useFormik({
@@ -2407,19 +2409,38 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
         course => course.id === values.enrollmentId,
       );
 
-      if (selectedCourse) {
-        // Store all course information
-        sessionStorage.setItem('selectedCourse', selectedCourse.id);
-        sessionStorage.setItem('selectedCohortId', selectedCourse.cohortId);
-        sessionStorage.setItem(
-          'selectedCourseName',
-          selectedCourse.course.name,
-        );
-        sessionStorage.setItem(
-          'selectedCourseActualId',
-          selectedCourse.course.id,
-        );
+      // ❌ FAIL FAST - Break if course selection is invalid
+      if (!selectedCourse) {
+        const error = new Error('❌ CRITICAL: Course selection failed. Please refresh and try again.');
+        console.error('❌ Course selection error:', {
+          enrollmentId: values.enrollmentId,
+          availableCourses: cohortCourses,
+        });
+        toast.error('Course selection failed. Please try again.');
+        throw error;
       }
+
+      // ❌ FAIL FAST - Validate all required fields exist
+      if (!selectedCourse.id || !selectedCourse.cohortId || !selectedCourse.course?.name || !selectedCourse.course?.id) {
+        const error = new Error('❌ CRITICAL: Incomplete course data. Contact support.');
+        console.error('❌ Incomplete course data:', selectedCourse);
+        toast.error('Course data is incomplete. Please contact support.');
+        throw error;
+      }
+
+      // ✅ USE LOCALSTORAGE instead of sessionStorage - More persistent!
+      localStorage.setItem('selectedCourse', selectedCourse.id);
+      localStorage.setItem('selectedCohortId', selectedCourse.cohortId);
+      localStorage.setItem('selectedCourseName', selectedCourse.course.name);
+      localStorage.setItem('selectedCourseActualId', selectedCourse.course.id.toString());
+
+      // ✅ Log success for debugging
+      console.log('✅ Course selection saved to localStorage:', {
+        selectedCourse: selectedCourse.id,
+        selectedCohortId: selectedCourse.cohortId,
+        selectedCourseName: selectedCourse.course.name,
+        selectedCourseActualId: selectedCourse.course.id,
+      });
 
       handleNext();
     },

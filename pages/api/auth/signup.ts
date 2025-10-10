@@ -180,6 +180,39 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           otherProfileFields,
         });
 
+        // ❌ FAIL FAST - Server-side validation for course selection
+        // This prevents users from registering without selecting a course
+        if (!selectedCourse || !selectedCourseName || !selectedCourseId) {
+          console.error('❌ CRITICAL SERVER ERROR: Course selection is missing!', {
+            selectedCourse,
+            selectedCourseName,
+            selectedCourseId,
+            email,
+            firstName,
+            lastName,
+            fullProfile: profile,
+          });
+          
+          return res.status(400).json({
+            message: 'Course selection is required. Please go back to Step 1 and select a course before continuing.',
+            error: 'MISSING_COURSE_SELECTION',
+            details: {
+              missingFields: {
+                selectedCourse: !selectedCourse ? 'MISSING' : 'OK',
+                selectedCourseName: !selectedCourseName ? 'MISSING' : 'OK',
+                selectedCourseId: !selectedCourseId ? 'MISSING' : 'OK',
+              }
+            }
+          });
+        }
+
+        // ✅ Log successful course validation
+        console.log('✅ Course selection validated on server:', {
+          selectedCourse,
+          selectedCourseName,
+          selectedCourseId,
+        });
+
         // Create base user data
         const userData = {
           email,
@@ -192,16 +225,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         };
 
         // Create profile data
+        // ✅ ALWAYS SAVE course fields (not conditional) - They were validated above
         const profileData = {
           ...otherProfileFields,
-          ...(selectedCourse && {selectedCourse}),
-          ...(selectedCourseName && {selectedCourseName}),
-          ...(selectedCourseId && {selectedCourseId}),
+          selectedCourse: selectedCourse,
+          selectedCourseName: selectedCourseName,
+          selectedCourseId: selectedCourseId,
           cohortId: profileCohortId || cohortId || '',
           // Note: Referrer information is stored in the separate Referrer table, not in Profile
         };
 
-        console.log('Profile data being sent to Prisma:', profileData);
+        console.log('✅ Profile data being sent to Prisma (validated):', profileData);
 
         // Create Thinkific user first
         let thinkificUserId = null;
