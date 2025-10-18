@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import crypto from 'crypto';
+import { revalidateAfterChange } from '../../../lib/cache-revalidator';
+import { cacheManager } from '../../../lib/redis';
 
 // Redis connection
 const redis = new Redis({
@@ -179,6 +181,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     console.log(`✅ Queued enrollment event: ${webhookEvent.id} (Job: ${job.id})`);
+
+    // Invalidate relevant caches immediately for real-time updates
+    try {
+      await revalidateAfterChange('enrollment');
+      console.log('🔄 Cache invalidated for enrollment webhook');
+    } catch (error) {
+      console.error('❌ Cache invalidation error:', error);
+    }
 
     // Get queue metrics
     const waiting = await enrollmentQueue.getWaiting();

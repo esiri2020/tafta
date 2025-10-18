@@ -1,6 +1,7 @@
 const { Worker, Job, Queue } = require('bullmq');
 const { Redis } = require('ioredis');
 const prisma = require('../lib/prismadb').default;
+const { cacheManager } = require('../lib/redis');
 
 // Redis connection
 const redis = new Redis({
@@ -107,6 +108,16 @@ async function processEnrollmentEvent(job) {
     metrics.lastProcessedAt = new Date().toISOString();
 
     console.log(`✅ Successfully processed enrollment ${enrollmentData.id} in ${processingTime}ms`);
+
+    // Invalidate relevant caches after successful processing
+    try {
+      await cacheManager.delPattern('enrollments:*');
+      await cacheManager.delPattern('dashboard:*');
+      await cacheManager.delPattern('statistics:*');
+      console.log('🔄 Cache invalidated after enrollment processing');
+    } catch (error) {
+      console.error('❌ Cache invalidation error:', error);
+    }
 
     return {
       status: 'success',

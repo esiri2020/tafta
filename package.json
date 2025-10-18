@@ -14,7 +14,12 @@
     "simulate-completion": "ts-node scripts/simulate-completion-data.ts",
     "worker:enrollment": "node workers/start-enrollment-worker.js",
     "worker:dev": "nodemon workers/start-enrollment-worker.js",
-    "test:sync": "node scripts/test-realtime-sync.js"
+    "test:sync": "node scripts/test-realtime-sync.js",
+    "redis:start": "docker-compose up redis -d",
+    "redis:stop": "docker-compose down redis",
+    "redis:status": "redis-cli ping",
+    "cache:clear": "node scripts/clear-cache.js",
+    "cache:stats": "node scripts/cache-stats.js"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

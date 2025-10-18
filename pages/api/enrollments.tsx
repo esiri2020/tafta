@@ -91,11 +91,228 @@ export default async function handler(
 
   if (req.method === 'GET') {
     try {
-      const { user_email } = req.query;
+      const { user_email, page, limit, cohort } = req.query;
       
+      // Handle pagination requests (admin dashboard)
+      if (page !== undefined && limit !== undefined) {
+        const pageNum = parseInt(page as string) || 0;
+        const limitNum = parseInt(limit as string) || 10;
+        const offset = pageNum * limitNum;
+        
+        let whereClause: any = {};
+        
+        // Add cohort filter if provided
+        if (cohort) {
+          whereClause.userCohort = {
+            cohortId: cohort as string
+          };
+        }
+        
+        const enrollments = await prisma.enrollment.findMany({
+          where: whereClause,
+          include: {
+            userCohort: {
+              include: {
+                cohort: true,
+                user: {
+                  include: {
+                    profile: true
+                  }
+                }
+              }
+            }
+          },
+          skip: offset,
+          take: limitNum,
+          orderBy: {
+            created_at: 'desc'
+          }
+        });
+        
+        const totalCount = await prisma.enrollment.count({
+          where: whereClause
+        });
+        
+        // Calculate statistics for the admin dashboard
+        const whereCondition: any = cohort ? { userCohort: { cohortId: cohort as string } } : {};
+        
+        // Count total enrollments
+        const count = await prisma.enrollment.count({
+          where: whereCondition
+        });
+
+        // Count male and female enrollments
+        let maleCount = 0;
+        let femaleCount = 0;
+        
+        if (count > 0) {
+          maleCount = await prisma.user.count({
+            where: {
+              profile: {
+                gender: 'MALE',
+              },
+              userCohort: {
+                some: {
+                  // Apply cohort filter if specified
+                  ...(whereCondition.userCohort?.cohortId ? {
+                    cohortId: whereCondition.userCohort.cohortId,
+                  } : {}),
+                  enrollments: {
+                    some: {
+                      // Only count users with actual enrollments (not pending/expired)
+                      enrolled: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          femaleCount = await prisma.user.count({
+            where: {
+              profile: {
+                gender: 'FEMALE',
+              },
+              userCohort: {
+                some: {
+                  // Apply cohort filter if specified
+                  ...(whereCondition.userCohort?.cohortId ? {
+                    cohortId: whereCondition.userCohort.cohortId,
+                  } : {}),
+                  enrollments: {
+                    some: {
+                      // Only count users with actual enrollments (not pending/expired)
+                      enrolled: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        // Count unique users by status (not enrollment records) - consistent with dashboard logic
+        const baseUserWhere = {
+          userCohort: {
+            some: {
+              // Apply cohort filter if specified
+              ...(whereCondition.userCohort?.cohortId ? {
+                cohortId: whereCondition.userCohort.cohortId,
+              } : {}),
+              enrollments: {
+                some: {
+                  // Apply course filter if specified
+                  ...(whereCondition.course_id ? {
+                    course_id: whereCondition.course_id,
+                  } : {}),
+                },
+              },
+            },
+          },
+        };
+
+        const activeCount = await prisma.user.count({
+          where: {
+            ...baseUserWhere,
+            userCohort: {
+              some: {
+                ...baseUserWhere.userCohort.some,
+                enrollments: {
+                  some: {
+                    ...baseUserWhere.userCohort.some.enrollments.some,
+                    completed: false,
+                    expired: false,
+                    enrolled: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const completedCount = await prisma.user.count({
+          where: {
+            ...baseUserWhere,
+            userCohort: {
+              some: {
+                ...baseUserWhere.userCohort.some,
+                enrollments: {
+                  some: {
+                    ...baseUserWhere.userCohort.some.enrollments.some,
+                    completed: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const expiredCount = await prisma.user.count({
+          where: {
+            ...baseUserWhere,
+            userCohort: {
+              some: {
+                ...baseUserWhere.userCohort.some,
+                enrollments: {
+                  some: {
+                    ...baseUserWhere.userCohort.some.enrollments.some,
+                    expired: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const pendingCount = await prisma.user.count({
+          where: {
+            ...baseUserWhere,
+            userCohort: {
+              some: {
+                ...baseUserWhere.userCohort.some,
+                enrollments: {
+                  some: {
+                    ...baseUserWhere.userCohort.some.enrollments.some,
+                    activated_at: null,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        console.log('Enrollments API - Final counts:', {
+          count,
+          maleCount,
+          femaleCount,
+          activeCount,
+          completedCount,
+          expiredCount,
+          pendingCount,
+        });
+
+        return res.status(200).json(bigint_filter({
+          enrollments,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: totalCount,
+            totalPages: Math.ceil(totalCount / limitNum)
+          },
+          count,
+          maleCount,
+          femaleCount,
+          activeCount,
+          completedCount,
+          expiredCount,
+          pendingCount,
+        }));
+      }
+      
+      // Handle user-specific enrollment requests
       if (!user_email) {
         return res.status(400).send({
-          error: 'user_email parameter is required',
+          error: 'user_email parameter is required for user-specific requests',
         });
       }
 
@@ -124,9 +341,9 @@ export default async function handler(
         enrollments: user.userCohort?.[0]?.enrollments || []
       };
       
-      return res.status(200).json(response);
+      return res.status(200).json(bigint_filter(response));
     } catch (error) {
-      console.error('Error fetching user enrollments:', error);
+      console.error('Error fetching enrollments:', error);
       return res.status(500).send({
         error: 'Internal server error',
       });
@@ -806,117 +1023,9 @@ export default async function handler(
     }
 
     enrollments = bigint_filter(enrollments);
-    console.log(count, maleCount, femaleCount);
-
-    // Count unique users by status (not enrollment records) - consistent with dashboard logic
-    const baseUserWhere = {
-      userCohort: {
-        some: {
-          // Apply cohort filter if specified
-          ...(whereCondition.userCohort?.cohortId ? {
-            cohortId: whereCondition.userCohort.cohortId,
-          } : {}),
-          enrollments: {
-            some: {
-              // Apply course filter if specified
-              ...(whereCondition.course_id ? {
-                course_id: whereCondition.course_id,
-              } : {}),
-            },
-          },
-        },
-      },
-    };
-
-    const activeCount = await prisma.user.count({
-      where: {
-        ...baseUserWhere,
-        userCohort: {
-          some: {
-            ...baseUserWhere.userCohort.some,
-            enrollments: {
-              some: {
-                ...baseUserWhere.userCohort.some.enrollments.some,
-                completed: false,
-                expired: false,
-                enrolled: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const completedCount = await prisma.user.count({
-      where: {
-        ...baseUserWhere,
-        userCohort: {
-          some: {
-            ...baseUserWhere.userCohort.some,
-            enrollments: {
-              some: {
-                ...baseUserWhere.userCohort.some.enrollments.some,
-                completed: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const expiredCount = await prisma.user.count({
-      where: {
-        ...baseUserWhere,
-        userCohort: {
-          some: {
-            ...baseUserWhere.userCohort.some,
-            enrollments: {
-              some: {
-                ...baseUserWhere.userCohort.some.enrollments.some,
-                expired: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const pendingCount = await prisma.user.count({
-      where: {
-        ...baseUserWhere,
-        userCohort: {
-          some: {
-            ...baseUserWhere.userCohort.some,
-            enrollments: {
-              some: {
-                ...baseUserWhere.userCohort.some.enrollments.some,
-                activated_at: null,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    console.log('Enrollments API - Final counts:', {
-      count,
-      maleCount,
-      femaleCount,
-      activeCount,
-      completedCount,
-      expiredCount,
-      pendingCount,
-    });
 
     return res.status(200).send({
       enrollments,
-      count,
-      maleCount,
-      femaleCount,
-      activeCount,
-      completedCount,
-      expiredCount,
-      pendingCount,
     });
   } catch (err) {
     console.error(err);
