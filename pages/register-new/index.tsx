@@ -38,6 +38,7 @@ import {GetServerSideProps, NextPageContext} from 'next';
 import {SplashScreen} from '../../components/splash-screen';
 import {signIn, useSession} from 'next-auth/react';
 import PersonalInformation from '../../components/home/personal-information-main';
+import toast from 'react-hot-toast';
 
 const steps = [
   'Course Selection',
@@ -160,6 +161,90 @@ function RegisterNew() {
     );
 
   const [editApplicant] = useEditApplicantMutation();
+
+  // Function to handle enrollment activation after finishing registration
+  const handleFinishAndEnroll = async () => {
+    try {
+      console.log('🎯 Starting enrollment activation after registration completion...');
+      
+      // Get user data
+      const userData = await fetch('/api/users/me', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!userData.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      
+      const user = await userData.json();
+      console.log('👤 User data:', user);
+      
+      // Find existing enrollment
+      const enrollmentResponse = await fetch(`/api/enrollments?user_email=${user.email}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!enrollmentResponse.ok) {
+        throw new Error('Failed to fetch enrollment data');
+      }
+      
+      const enrollmentData = await enrollmentResponse.json();
+      console.log('📚 Enrollment data:', enrollmentData);
+      
+      if (enrollmentData.enrollments && enrollmentData.enrollments.length > 0) {
+        const enrollment = enrollmentData.enrollments[0];
+        
+        // Activate enrollment using retry API
+        const retryResponse = await fetch('/api/enrollments/retry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: enrollment.uid,
+            user_email: user.email,
+            course_id: enrollment.course_id,
+            course_name: enrollment.course_name,
+            userCohortId: enrollment.userCohortId
+          }),
+        });
+        
+        if (retryResponse.ok) {
+          console.log('✅ Enrollment activated successfully!');
+          toast.success('Registration completed! You are now enrolled in your course.');
+          
+          // Store enrollment success in session storage for dashboard refresh
+          sessionStorage.setItem('enrollmentActivated', 'true');
+          sessionStorage.setItem('enrollmentCourse', enrollment.course_name);
+          
+          // Redirect to dashboard
+          router.push('/dashboard');
+        } else {
+          const errorData = await retryResponse.text();
+          console.error('❌ Failed to activate enrollment:', errorData);
+          toast.error('Registration completed, but enrollment activation failed. Please contact support.');
+          
+          // Still redirect to dashboard
+          router.push('/dashboard');
+        }
+      } else {
+        console.log('⚠️ No enrollment found for user');
+        toast.error('No enrollment found. Please contact support.');
+      }
+    } catch (error: any) {
+      console.error('❌ Error during enrollment activation:', error);
+      toast.error('Registration completed, but there was an issue with enrollment. Please contact support.');
+      
+      // Still redirect to dashboard
+      router.push('/dashboard');
+    }
+  };
 
   // Stepper navigation functions
   const isStepOptional = (step: number) => {
@@ -348,9 +433,13 @@ function RegisterNew() {
                   </Box>
                   <Grid sx={{display: 'flex', flexDirection: 'row', pt: 2}}>
                     <Grid sx={{flex: '1 1 auto'}} />
-                    <NextLink href='/dashboard' passHref>
-                      <Button variant='contained'>Finish</Button>
-                    </NextLink>
+                    <Button 
+                      variant='contained' 
+                      onClick={handleFinishAndEnroll}
+                      sx={{ minWidth: '120px' }}
+                    >
+                      Finish
+                    </Button>
                   </Grid>
                 </React.Fragment>
               ) : (

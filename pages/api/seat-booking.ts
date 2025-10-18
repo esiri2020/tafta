@@ -160,9 +160,22 @@ export default async function handler(
         return res.status(401).json({ error: 'Unauthorized' })
       }
 
+      // Debug token structure
+      console.log('🔍 Token structure:', {
+        id: token.id,
+        sub: token.sub,
+        email: token.email,
+        userData: token.userData
+      });
+
+      const userId = token.userData?.userId || token.sub;
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID not found in token' });
+      }
+
       const user = await prisma.user.findUnique({
         where: {
-          id: token.id as string
+          id: userId
         },
         include: {
           userCohort: {

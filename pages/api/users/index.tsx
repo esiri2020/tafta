@@ -14,7 +14,7 @@ export default async function handler(
         error: "You must be signed in to view the protected content on this page.",
       })
     }
-    if(token?.userData?.role !== "SUPERADMIN" && token?.userData?.role !== "GUEST"){
+    if(token?.userData?.role !== "SUPERADMIN" && token?.userData?.role !== "GUEST" && token?.userData?.role !== "USER" && token?.userData?.role !== "APPLICANT"){
         return res.status(403).send({
             error: "Unauthorized.",
         })

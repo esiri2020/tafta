@@ -89,6 +89,50 @@ export default async function handler(
     });
   }
 
+  if (req.method === 'GET') {
+    try {
+      const { user_email } = req.query;
+      
+      if (!user_email) {
+        return res.status(400).send({
+          error: 'user_email parameter is required',
+        });
+      }
+
+      // Find user by email
+      const user = await prisma.user.findUnique({
+        where: { email: (user_email as string).toLowerCase() },
+        include: {
+          userCohort: {
+            include: {
+              cohort: true,
+              enrollments: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        return res.status(404).send({
+          error: 'User not found',
+        });
+      }
+
+      // Return user with enrollments in the expected format
+      const response = {
+        ...user,
+        enrollments: user.userCohort?.[0]?.enrollments || []
+      };
+      
+      return res.status(200).json(response);
+    } catch (error) {
+      console.error('Error fetching user enrollments:', error);
+      return res.status(500).send({
+        error: 'Internal server error',
+      });
+    }
+  }
+
   if (req.method === 'POST') {
     let {user_email, userCohortId, ...data} =
       typeof req.body === 'object' ? req.body : JSON.parse(req.body);
@@ -194,10 +238,8 @@ export default async function handler(
 
       console.log('is_eligible: ', is_eligible);
 
-      let eligible = true;
-
-      // If all requirements are met, register on LMS
-      if (eligible) {
+      // Always allow enrollment - remove restrictive eligibility requirements
+      // Users can be enrolled regardless of age, location, or education level
         const promises: Promise<User>[] = [];
         const enrollment_promises: Promise<Enrollment>[] = [];
 
@@ -378,13 +420,6 @@ export default async function handler(
         return res
           .status(201)
           .send(bigint_filter({message: 'Enrollment created', ...enrollment}));
-      } else {
-        // Send a response indicating that the user doesn't meet the requirements but has been enrolled
-        return res.status(400).send({
-          error:
-            'User does not meet one or more requirements but has been enrolled.',
-        });
-      }
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {

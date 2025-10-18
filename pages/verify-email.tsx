@@ -80,89 +80,8 @@ export default function VerifyEmail() {
           console.log('🔍 UserCohort data:', (res as any)?.data?.applicant?.userCohort);
           console.log('🔍 Enrollments data:', (res as any)?.data?.applicant?.userCohort?.[0]?.enrollments);
           
-          // Create enrollment after email verification
-          try {
-            // Get course information from user profile instead of sessionStorage
-            const userProfile = (res as any)?.data?.applicant?.profile;
-            const selectedCourse = userProfile?.selectedCourse || '';
-            const selectedCohortId = userProfile?.cohortId || '';
-            const selectedCourseName = userProfile?.selectedCourseName || '';
-            const selectedCourseActualId = userProfile?.selectedCourseId || '';
-            
-            console.log('🔍 User profile data for enrollment:', {
-              selectedCourse,
-              selectedCohortId,
-              selectedCourseName,
-              selectedCourseActualId,
-              userProfile,
-              fullResponse: (res as any)?.data
-            });
-            
-            // Get existing enrollment from user data
-            const existingEnrollment = (res as any)?.data?.applicant?.userCohort?.[0]?.enrollments?.[0];
-            
-            if (existingEnrollment) {
-              console.log('🎯 Activating existing enrollment after email verification:', {
-                enrollmentUid: existingEnrollment.uid,
-                course_id: existingEnrollment.course_id,
-                course_name: existingEnrollment.course_name,
-                user_email: (session as any)?.userData?.email,
-              });
-              
-              // Use the enrollment retry API to activate the existing enrollment
-              const enrollmentResult = await fetch('/api/enrollments/retry', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  uid: existingEnrollment.uid,
-                  user_email: (session as any)?.userData?.email,
-                }),
-              });
-              
-              if (enrollmentResult.ok) {
-                console.log('✅ Enrollment activated successfully after email verification');
-              } else {
-                console.error('❌ Failed to activate enrollment:', await enrollmentResult.text());
-              }
-            } else {
-              console.log('⚠️ No existing enrollment found, creating new enrollment');
-              
-              // Fallback: create new enrollment if none exists
-              // ✅ Try profile first, then localStorage as fallback
-              const courseData = {
-                selectedCourse: userProfile?.selectedCourse || localStorage.getItem('selectedCourse') || '',
-                selectedCohortId: userProfile?.cohortId || localStorage.getItem('selectedCohortId') || '',
-                selectedCourseName: userProfile?.selectedCourseName || localStorage.getItem('selectedCourseName') || '',
-                selectedCourseActualId: userProfile?.selectedCourseId || localStorage.getItem('selectedCourseActualId') || '',
-              };
-              
-              if (courseData.selectedCourse && courseData.selectedCohortId && courseData.selectedCourseActualId && courseData.selectedCourseName) {
-                console.log('🔄 Creating new enrollment as fallback:', {
-                  userCohortId: courseData.selectedCohortId,
-                  course_id: Number.parseInt(courseData.selectedCourseActualId),
-                  course_name: courseData.selectedCourseName,
-                  user_email: (session as any)?.userData?.email,
-                });
-                
-                const fallbackEnrollmentResult = await createEnrollment({
-                  body: {
-                    userCohortId: courseData.selectedCohortId,
-                    course_id: Number.parseInt(courseData.selectedCourseActualId),
-                    course_name: courseData.selectedCourseName,
-                    user_email: (session as any)?.userData?.email,
-                  },
-                });
-                
-                console.log('✅ Fallback enrollment created successfully:', fallbackEnrollmentResult);
-              } else {
-                console.log('❌ No course data available for enrollment');
-              }
-            }
-          } catch (enrollErr) {
-            console.error('❌ Error creating enrollment after email verification:', enrollErr);
-          }
+          // Enrollment will be activated after completing registration Step 3
+          console.log('✅ Email verified successfully. Enrollment will be activated after completing registration.');
           
           // Redirect to personal information form to complete registration
           router.replace({
@@ -231,7 +150,7 @@ export default function VerifyEmail() {
                 Please check your email and click the verification link to continue with your registration.
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                After verification, you'll be redirected to complete your personal information, and a new tab will open for you to access your learning platform.
+                After verification, you'll be redirected to complete your personal information. Your enrollment will be activated when you complete the registration process.
               </Typography>
             </Box>
           </Grid>

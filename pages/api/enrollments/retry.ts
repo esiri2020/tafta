@@ -12,6 +12,66 @@ function safeJson(res: NextApiResponse, data: any, status: number = 200) {
   );
 }
 
+// Automatic retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  retryDelay: 2000, // 2 seconds
+  exponentialBackoff: true,
+};
+
+// Sleep function for delays
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Automatic retry function for Thinkific API calls
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = RETRY_CONFIG.maxRetries
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 ${operationName} - Attempt ${attempt}/${maxRetries}`);
+      const result = await operation();
+      console.log(`✅ ${operationName} - Success on attempt ${attempt}`);
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      console.log(`❌ ${operationName} - Attempt ${attempt} failed:`, error.message);
+      
+      // Don't retry on certain errors
+      if (error.response?.status === 422) {
+        console.log(`🚫 ${operationName} - Not retrying 422 error (user already exists)`);
+        throw error;
+      }
+      
+      if (error.response?.status === 404) {
+        console.log(`🚫 ${operationName} - Not retrying 404 error (resource not found)`);
+        throw error;
+      }
+      
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries) {
+        console.log(`💥 ${operationName} - All ${maxRetries} attempts failed`);
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = RETRY_CONFIG.exponentialBackoff 
+        ? RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1)
+        : RETRY_CONFIG.retryDelay;
+      
+      console.log(`⏳ ${operationName} - Waiting ${delay}ms before retry...`);
+      await sleep(delay);
+    }
+  }
+  
+  throw lastError;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -94,10 +154,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return safeJson(res, { error: 'User not found' }, 400);
     }
 
-    // If Thinkific user ID is missing, create it now
+    // If Thinkific user ID is missing, create it now with automatic retry
     let thinkificUserId = user.thinkific_user_id;
     if (!thinkificUserId) {
-      console.log('⚠️ Thinkific user ID missing, creating now...');
+      console.log('⚠️ Thinkific user ID missing, creating now with automatic retry...');
       
       try {
         const taftaAPIData = {
@@ -108,7 +168,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           send_welcome_email: false,
         };
         
-        const response = await api.post('/users', taftaAPIData);
+        // Use automatic retry for user creation
+        const response = await retryWithBackoff(
+          () => api.post('/users', taftaAPIData),
+          'Create Thinkific User'
+        );
         
         if (response?.status === 201) {
           thinkificUserId = response.data.id;
@@ -121,13 +185,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           console.log(`✅ Thinkific user created with ID: ${thinkificUserId}`);
           
-          // Add to cohort group if available
+          // Add to cohort group if available (with retry)
           if (enrollment.userCohort?.cohort) {
             try {
-              await api.post('/group_users', {
-                group_names: [enrollment.userCohort.cohort.name],
-                user_id: thinkificUserId,
-              });
+              await retryWithBackoff(
+                () => api.post('/group_users', {
+                  group_names: [enrollment.userCohort.cohort.name],
+                  user_id: thinkificUserId,
+                }),
+                'Add User to Cohort Group'
+              );
               console.log(`✅ Added to cohort group: ${enrollment.userCohort.cohort.name}`);
             } catch (groupError) {
               console.error('Failed to add to group (non-fatal):', groupError);
@@ -135,13 +202,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       } catch (error: any) {
-        console.error('❌ Failed to create Thinkific user during retry:', error);
+        console.error('❌ Failed to create Thinkific user after retries:', error);
         
-        // Check if user already exists in Thinkific
+        // Check if user already exists in Thinkific (with retry)
         if (error.response?.status === 422) {
           try {
-            // Try to find existing user
-            const searchResponse = await api.get(`/users?query[email]=${user.email}`);
+            const searchResponse = await retryWithBackoff(
+              () => api.get(`/users?query[email]=${user.email}`),
+              'Search Existing Thinkific User'
+            );
+            
             if (searchResponse.data.items && searchResponse.data.items.length > 0) {
               thinkificUserId = searchResponse.data.items[0].id;
               
@@ -154,34 +224,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               console.log(`✅ Found existing Thinkific user with ID: ${thinkificUserId}`);
             }
           } catch (searchError) {
-            console.error('Failed to find existing user:', searchError);
+            console.error('Failed to find existing user after retries:', searchError);
           }
         }
         
-        // If still no Thinkific user ID, fail
+        // If still no Thinkific user ID, fail gracefully
         if (!thinkificUserId) {
-          // Log to FailedEnrollment table for manual intervention
-          await prisma.failedEnrollment.create({
-            data: {
-              userId: user.id,
-              enrollmentUid: enrollment.uid,
-              error: 'Failed to create/find Thinkific user during retry',
-              errorDetails: {
-                message: error.message,
-                response: error.response?.data,
-              },
-            },
-          });
+          console.error('❌ CRITICAL: Failed to create/find Thinkific user after all retries');
+          console.error('❌ User:', { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
+          console.error('❌ Enrollment:', { uid: enrollment.uid, course_id: enrollment.course_id, course_name: enrollment.course_name });
+          console.error('❌ Final error:', { message: error.message, response: error.response?.data });
           
           return safeJson(res, { 
-            error: 'Failed to create Thinkific user. Support has been notified.',
-            details: error.message 
+            error: 'Failed to create Thinkific user after automatic retries. Please contact support.',
+            details: error.message,
+            userEmail: user.email,
+            enrollmentUid: enrollment.uid,
+            retriesAttempted: RETRY_CONFIG.maxRetries
           }, 500);
         }
       }
     }
 
-    // 3. Attempt to re-activate with LMS
+    // 3. Attempt to re-activate with LMS using automatic retry
     try {
       console.log('🔍 Enrollment data for Thinkific API:', {
         enrollment_uid: enrollment.uid,
@@ -199,8 +264,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         activated_at: new Date().toISOString(),
       };
       
-      console.log('📤 Sending to Thinkific API:', thinkific_data);
-      const response = await api.post('/enrollments', thinkific_data);
+      console.log('📤 Sending to Thinkific API with automatic retry...');
+      
+      // Use automatic retry for enrollment activation
+      const response = await retryWithBackoff(
+        () => api.post('/enrollments', thinkific_data),
+        'Activate Thinkific Enrollment'
+      );
+      
       if (response.status === 201) {
         const { data: enrollment_data } = response;
         let { user_email, user_name, ...data } = enrollment_data;
@@ -216,12 +287,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ...data,
           },
         });
-        return safeJson(res, { message: 'Enrollment re-activated successfully' }, 200);
+        return safeJson(res, { message: 'Enrollment re-activated successfully with automatic retry' }, 200);
       } else {
         return safeJson(res, { error: 'LMS did not accept re-activation', details: response.data }, 400);
       }
     } catch (err: any) {
-      console.error('❌ Thinkific enrollment API error:', err);
+      console.error('❌ Thinkific enrollment API error after retries:', err);
       console.error('❌ Error details:', {
         status: err.response?.status,
         data: err.response?.data,
@@ -243,8 +314,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return safeJson(res, { message: 'User already enrolled in LMS. Local DB updated.' }, 200);
         }
       }
+      
       // Improved error serialization: include full Thinkific error response if available
-      console.error('Retry enrollment error:', err);
+      console.error('Retry enrollment error after all attempts:', err);
       let details = '';
       if (err && err.response && err.response.data) {
         details = err.response.data;
@@ -255,9 +327,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         details = 'Unknown error';
       }
-      return safeJson(res, { error: 'Failed to re-activate enrollment', details }, 500);
+      return safeJson(res, { 
+        error: 'Failed to re-activate enrollment after automatic retries', 
+        details,
+        retriesAttempted: RETRY_CONFIG.maxRetries
+      }, 500);
     }
   } catch (error: any) {
     return safeJson(res, { error: 'Server error', details: error.message }, 500);
   }
-} 
+}

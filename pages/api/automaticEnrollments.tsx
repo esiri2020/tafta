@@ -273,25 +273,11 @@ export default async function handler(
             }
           }
         }
-        // Based on the condition, add the response to the array
-        if (
-          minRange >= 16 &&
-          maxRange <= 35 &&
-          (location === "lagos" ||
-            location === "ogun" ||
-            location === "kano") &&
-          (educationLevel === "bsc" || educationLevel === "msc")
-        ) {
-          responses.push({
-            success: true,
-            message: `${_users[0].firstName} is enrolled successfully.`,
-          });
-        } else {
-          responses.push({
-            success: false,
-            message: `${_users[0].firstName} does not meet the enrollment criteria.`,
-          });
-        }
+        // Always allow enrollment - remove restrictive eligibility requirements
+        responses.push({
+          success: true,
+          message: `${_users[0].firstName} is enrolled successfully.`,
+        });
       }
 
       // After the loop is finished, check if a response has been sent, and if not, send a default response

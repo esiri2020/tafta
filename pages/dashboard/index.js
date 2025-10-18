@@ -294,10 +294,21 @@ const Account = () => {
     window.location.href = 'https://portal.terraacademyforarts.com/users/sign_in';
   };
 
-  const {data, error, isLoading} = useGetApplicantQuery(
+  const {data, error, isLoading, refetch} = useGetApplicantQuery(
     session?.userData.userId,
     {skip: session?.userData.userId ? false : true},
   );
+
+  // Check for recent enrollment activation and refresh data
+  useEffect(() => {
+    const enrollmentActivated = sessionStorage.getItem('enrollmentActivated');
+    if (enrollmentActivated === 'true') {
+      console.log('🔄 Enrollment was recently activated, refreshing data...');
+      refetch();
+      sessionStorage.removeItem('enrollmentActivated');
+      sessionStorage.removeItem('enrollmentCourse');
+    }
+  }, [refetch]);
 
   // Debug logging
   console.log('🔍 Dashboard Debug:', {
