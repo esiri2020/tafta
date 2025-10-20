@@ -323,7 +323,7 @@ const ApplicantCreateForm: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const cohortsRes = await fetch('/api/cohorts/active');
+        const cohortsRes = await fetch('/api/cohorts/active/cached');
         if (!cohortsRes.ok) throw new Error('Failed to fetch cohorts');
         const cohortsData = await cohortsRes.json();
         setCohorts(cohortsData);
@@ -438,7 +438,7 @@ const ApplicantCreateForm: React.FC = () => {
               user_email: values.email.toLowerCase(),
             };
 
-            const enrollmentResponse = await fetch('/api/enrollments', {
+            const enrollmentResponse = await fetch('/api/enrollments/cached', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -487,14 +487,14 @@ const ApplicantCreateForm: React.FC = () => {
       setError(null);
 
       try {
-        const coursesRes = await fetch(`/api/cohort/${cohortId}/courses`);
+        const coursesRes = await fetch(`/api/cohorts/${cohortId}/courses/cached`);
         if (!coursesRes.ok) throw new Error('Failed to fetch cohort courses');
-        const cohortCoursesData: {cohortCourses: CohortCourse[]} =
+        const cohortCoursesData: {courses: CohortCourse[]} =
           await coursesRes.json();
 
         // Transform the data to match the expected format
         const transformedCourses: Course[] =
-          cohortCoursesData.cohortCourses.map(cohortCourse => ({
+          cohortCoursesData.courses.map(cohortCourse => ({
             id: cohortCourse.id,
             name: cohortCourse.course.name,
             slug: cohortCourse.course.slug,

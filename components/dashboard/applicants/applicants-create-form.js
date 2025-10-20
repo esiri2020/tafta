@@ -166,7 +166,7 @@ const ApplicantCreateForm = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const cohortsRes = await fetch('/api/cohorts/active');
+        const cohortsRes = await fetch('/api/cohorts/active/cached');
         if (!cohortsRes.ok) throw new Error('Failed to fetch cohorts');
         const cohortsData = await cohortsRes.json();
         setCohorts(cohortsData);
@@ -299,11 +299,11 @@ const ApplicantCreateForm = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const coursesRes = await fetch(`/api/cohort/${cohortId}/courses`);
+        const coursesRes = await fetch(`/api/cohorts/${cohortId}/courses/cached`);
         if (!coursesRes.ok) throw new Error('Failed to fetch cohort courses');
         const cohortCoursesData = await coursesRes.json();
         // Transform the data to match the expected format
-        const transformedCourses = cohortCoursesData.cohortCourses.map(
+        const transformedCourses = (cohortCoursesData.courses || cohortCoursesData.cohortCourses || []).map(
           cohortCourse => ({
             id: cohortCourse.id,
             name: cohortCourse.course.name,

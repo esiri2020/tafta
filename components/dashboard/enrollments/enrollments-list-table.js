@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import React, {useState} from 'react';
 import Link from 'next/link';
 import {format} from 'date-fns';
 import {
@@ -127,8 +127,8 @@ export function EnrollmentListTable({
               </TableRow>
             ) : (
               enrollments.map(enrollment => (
-                <>
-                  <TableRow key={enrollment.uid}>
+                <React.Fragment key={enrollment.uid}>
+                  <TableRow>
                     <TableCell>
                       <Button
                         variant='ghost'
@@ -430,7 +430,7 @@ export function EnrollmentListTable({
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               ))
             )}
           </TableBody>

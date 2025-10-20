@@ -31,6 +31,12 @@ export class CachedPrismaClient extends PrismaClient {
     page?: number;
     limit?: number;
     cohort?: string;
+    course?: string[];
+    status?: string;
+    gender?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
     user_email?: string;
   }) {
     const cacheKey = CacheKeys.enrollments(params);
@@ -39,17 +45,21 @@ export class CachedPrismaClient extends PrismaClient {
       'enrollments',
       cacheKey,
       async () => {
-        const { page = 0, limit = 10, cohort, user_email } = params;
+        const { 
+          page = 0, 
+          limit = 10, 
+          cohort, 
+          course, 
+          status, 
+          gender, 
+          search, 
+          dateFrom, 
+          dateTo, 
+          user_email 
+        } = params;
         const offset = page * limit;
         
-        let whereClause: any = {};
-        
-        if (cohort) {
-          whereClause.userCohort = {
-            cohortId: cohort
-          };
-        }
-        
+        // Handle user-specific requests
         if (user_email) {
           const user = await this.user.findUnique({
             where: { email: user_email.toLowerCase() },
@@ -71,6 +81,113 @@ export class CachedPrismaClient extends PrismaClient {
             ...user,
             enrollments: user.userCohort?.[0]?.enrollments || []
           };
+        }
+        
+        // Build where clause for filtering
+        let whereClause: any = {};
+        
+        // Cohort filter
+        if (cohort) {
+          whereClause.userCohort = {
+            cohortId: cohort
+          };
+        }
+        
+        // Course filter
+        if (course && course.length > 0) {
+          const courseIds = course.map(c => BigInt(c));
+          whereClause.course_id = {
+            in: courseIds
+          };
+        }
+        
+        // Status filter
+        if (status) {
+          switch (status) {
+            case 'expired':
+              whereClause.expired = true;
+              break;
+            case 'completed':
+              whereClause.completed = true;
+              break;
+            case 'active':
+              whereClause.completed = false;
+              whereClause.expired = false;
+              whereClause.enrolled = true;
+              break;
+            case 'pending':
+              whereClause.activated_at = null;
+              break;
+          }
+        }
+        
+        // Date range filter
+        if (dateFrom || dateTo) {
+          console.log('🔍 Enrollment Date Filter Debug:', {
+            dateFrom,
+            dateTo,
+            dateFromParsed: dateFrom ? new Date(dateFrom).toISOString() : null,
+            dateToParsed: dateTo ? new Date(dateTo).toISOString() : null,
+            whereClauseBefore: JSON.stringify(whereClause, null, 2)
+          });
+          
+          whereClause.activated_at = {
+            ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+            ...(dateTo ? { lte: new Date(dateTo) } : {}),
+          };
+          
+          console.log('🔍 Enrollment Date Filter - Final whereClause:', {
+            activated_at: whereClause.activated_at,
+            fullWhereClause: JSON.stringify(whereClause, null, 2)
+          });
+        }
+        
+        // Search filter
+        if (search) {
+          if (whereClause.userCohort) {
+            whereClause.userCohort.user = {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+              ],
+            };
+          } else {
+            whereClause.userCohort = {
+              user: {
+                OR: [
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                  { email: { contains: search, mode: 'insensitive' } },
+                ],
+              },
+            };
+          }
+        }
+        
+        // Gender filter
+        if (gender) {
+          if (whereClause.userCohort) {
+            if (whereClause.userCohort.user) {
+              whereClause.userCohort.user.profile = {
+                gender: gender.toUpperCase(),
+              };
+            } else {
+              whereClause.userCohort.user = {
+                profile: {
+                  gender: gender.toUpperCase(),
+                },
+              };
+            }
+          } else {
+            whereClause.userCohort = {
+              user: {
+                profile: {
+                  gender: gender.toUpperCase(),
+                },
+              },
+            };
+          }
         }
         
         const [enrollments, totalCount] = await Promise.all([

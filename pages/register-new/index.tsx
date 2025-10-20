@@ -183,7 +183,7 @@ function RegisterNew() {
       console.log('👤 User data:', user);
       
       // Find existing enrollment
-      const enrollmentResponse = await fetch(`/api/enrollments?user_email=${user.email}`, {
+      const enrollmentResponse = await fetch(`/api/enrollments/cached?user_email=${user.email}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

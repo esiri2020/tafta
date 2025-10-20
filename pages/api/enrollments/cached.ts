@@ -189,7 +189,18 @@ export default async function handler(
 
   if (req.method === 'GET') {
     try {
-      const { user_email, page, limit, cohort } = req.query;
+      const { 
+        user_email, 
+        page, 
+        limit, 
+        cohort, 
+        course, 
+        status, 
+        gender, 
+        search, 
+        dateFrom, 
+        dateTo 
+      } = req.query;
       
       // Handle pagination requests (admin dashboard)
       if (page !== undefined && limit !== undefined) {
@@ -197,11 +208,20 @@ export default async function handler(
         const limitNum = parseInt(limit as string) || 10;
         const cohortId = cohort as string;
         
-        // Get cached enrollment data
+        // Parse course filter (can be comma-separated)
+        const courseFilter = course ? (course as string).split(',') : [];
+        
+        // Get cached enrollment data with all filters
         const enrollmentData = await cachedPrisma.getCachedEnrollments({
           page: pageNum,
           limit: limitNum,
           cohort: cohortId,
+          course: courseFilter,
+          status: status as string,
+          gender: gender as string,
+          search: search as string,
+          dateFrom: dateFrom as string,
+          dateTo: dateTo as string,
         });
         
         // Get cached statistics
@@ -210,6 +230,8 @@ export default async function handler(
         return res.status(200).json(bigint_filter({
           ...enrollmentData,
           ...stats,
+          // Ensure filtered count takes precedence over unfiltered stats count
+          count: enrollmentData.pagination?.total || stats.count,
         }));
       }
       

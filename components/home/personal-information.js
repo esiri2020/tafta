@@ -1720,7 +1720,7 @@ export const MoreInformation = ({
   );
 };
 
-export const VerifyEmail = () => (
+export const VerifyEmail = ({ email, onBack }) => (
   <Box>
     <Card>
       <CardContent

@@ -34,7 +34,7 @@ export const CreateReport = (props) => {
     // Fetch available cohorts
     const fetchCohorts = async () => {
       try {
-        const response = await fetch('/api/cohorts/active')
+        const response = await fetch('/api/cohorts/active/cached')
         const data = await response.json()
         if (Array.isArray(data)) {
           setCohorts(data)

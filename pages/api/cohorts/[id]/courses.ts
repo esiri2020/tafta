@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getToken } from 'next-auth/jwt';
-import { prisma } from '../../../../lib/prisma';
+import prisma from '../../../../lib/prismadb';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { id: cohortId } = req.query;
+    const { id: cohortId, includeAll } = req.query;
     
     console.log('Cohort courses API - cohortId:', cohortId);
 
@@ -27,39 +27,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Invalid cohort ID' });
     }
 
+    // If includeAll is truthy, return the full catalog of courses as well
+    const shouldIncludeAll = includeAll === '1' || includeAll === 'true';
+
     // Get courses that belong to this cohort
     const cohortCourses = await prisma.cohortCourse.findMany({
-      where: {
-        cohortId: cohortId as string,
-      },
+      where: { cohortId: cohortId as string },
       include: {
         course: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            active: true,
-          },
+          select: { id: true, name: true, slug: true, description: true, active: true },
         },
       },
     });
 
-    // Transform the data to match the expected format
-    const courses = cohortCourses
-      .filter(cc => cc.course?.active) // Only include active courses
+    const cohortCoursesList = cohortCourses
+      .filter(cc => cc.course)
       .map(cc => ({
         id: cc.course!.id.toString(),
         name: cc.course!.name,
         slug: cc.course!.slug,
         description: cc.course!.description,
+        active: cc.course!.active ?? true,
       }));
 
-    console.log('Cohort courses API - cohortCourses found:', cohortCourses.length);
-    console.log('Cohort courses API - courses after filtering:', courses.length);
-    console.log('Cohort courses API - returning:', { courses });
+    if (!shouldIncludeAll) {
+      console.log('Cohort courses API - returning cohort-only courses:', cohortCoursesList.length);
+      return res.status(200).json({ courses: cohortCoursesList });
+    }
 
-    return res.status(200).json({ courses });
+    // Include full catalog (useful for UI to add courses to cohort)
+    const allCourses = await prisma.course.findMany({
+      select: { id: true, name: true, slug: true, description: true, active: true },
+      orderBy: { name: 'asc' },
+    });
+
+    const allCoursesList = allCourses.map(c => ({
+      id: c.id.toString(),
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      active: c.active ?? true,
+    }));
+
+    console.log('Cohort courses API - returning cohort + all courses:', {
+      cohortCourses: cohortCoursesList.length,
+      allCourses: allCoursesList.length,
+    });
+
+    return res.status(200).json({ courses: cohortCoursesList, allCourses: allCoursesList });
   } catch (error) {
     console.error('Error fetching cohort courses:', error);
     // Return empty courses array instead of error to prevent frontend crashes

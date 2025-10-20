@@ -108,7 +108,11 @@ export class CacheManager {
    */
   async set(key: string, data: any, ttlSeconds: number = 300): Promise<void> {
     try {
-      await this.redis.setex(key, ttlSeconds, JSON.stringify(data));
+      // Convert BigInt to string for JSON serialization
+      const serializedData = JSON.stringify(data, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+      );
+      await this.redis.setex(key, ttlSeconds, serializedData);
     } catch (error) {
       console.error('❌ Cache set error:', error);
     }

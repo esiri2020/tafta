@@ -30,7 +30,7 @@ export function CourseCompletionStats() {
   useEffect(() => {
     const fetchStatistics = async () => {
       try {
-        const response = await fetch('/api/statistics');
+        const response = await fetch('/api/statistics/cached');
         if (!response.ok) {
           throw new Error('Failed to fetch statistics');
         }

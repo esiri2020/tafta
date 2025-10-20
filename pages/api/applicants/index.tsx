@@ -253,6 +253,7 @@ export default async function handler(
     includeAssessment,
     mobilizerId, // Add mobilizerId parameter
     mobilizerCode, // Add mobilizerCode parameter
+    sort, // new optional sort param
   }: {
     page?: string;
     limit?: string;
@@ -262,7 +263,17 @@ export default async function handler(
     includeAssessment?: string;
     mobilizerId?: string; // Add mobilizerId type
     mobilizerCode?: string; // Add mobilizerCode type
+    sort?: string; // new optional sort param
   } = req.query;
+
+  // Map sort param to Prisma orderBy
+  const orderByMap: any = {
+    'name_asc': [{ firstName: 'asc' }, { lastName: 'asc' }],
+    'name_desc': [{ firstName: 'desc' }, { lastName: 'desc' }],
+    'date_newest': [{ createdAt: 'desc' }],
+    'date_oldest': [{ createdAt: 'asc' }],
+  };
+  const orderBy = orderByMap[(sort as string) || 'name_asc'] || [{ firstName: 'asc' }, { lastName: 'asc' }];
 
   const take = parseInt(typeof limit == 'string' && limit ? limit : '30');
   const skip = take * parseInt(typeof page == 'string' ? page : '0');
@@ -347,6 +358,37 @@ export default async function handler(
     parsedFilter = undefined;
   }
 
+  // Build registration date range clause for applicants (separate from enrollment date filter)
+  const dateFrom = (typeof parsedFilter === 'object' && parsedFilter && (parsedFilter as any).dateFrom)
+    ? new Date((parsedFilter as any).dateFrom)
+    : undefined;
+  const dateTo = (typeof parsedFilter === 'object' && parsedFilter && (parsedFilter as any).dateTo)
+    ? new Date((parsedFilter as any).dateTo)
+    : undefined;
+
+  // Adjust dateTo to end of day to include the full day
+  if (dateTo) {
+    dateTo.setHours(23, 59, 59, 999);
+  }
+
+  const registrationDateClause = (dateFrom || dateTo)
+    ? {
+        createdAt: {
+          ...(dateFrom ? { gte: dateFrom } : {}),
+          ...(dateTo ? { lte: dateTo } : {}),
+        },
+      }
+    : undefined;
+
+  console.log('🔍 Applicant Registration Date Filter Debug:', {
+    parsedFilter,
+    dateFrom: dateFrom?.toISOString(),
+    dateTo: dateTo?.toISOString(),
+    hasDateFilter: !!(dateFrom || dateTo),
+    registrationDateClause
+  });
+
+
   try {
     let filteredOutCount = 0;
     let filteredOutSample: any[] = [];
@@ -366,15 +408,17 @@ export default async function handler(
             ...(mobilizerFilter || {}),
           },
         });
-        applicants = await prisma.user.findMany({
-          where: {
+      applicants = await prisma.user.findMany({
+        where: {
             role: 'APPLICANT',
             email: {
               search: query,
             },
             // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
             ...(mobilizerFilter || {}),
-          },
+            // Add registration date filter directly
+            ...(registrationDateClause || {}),
+        },
           include: {
             profile: {
               include: {
@@ -401,6 +445,7 @@ export default async function handler(
           },
           take,
           skip,
+          orderBy,
         });
       } else {
         count = await prisma.user.count({
@@ -420,8 +465,8 @@ export default async function handler(
             ...(mobilizerFilter || {}),
           },
         });
-        applicants = await prisma.user.findMany({
-          where: {
+      applicants = await prisma.user.findMany({
+        where: {
             role: 'APPLICANT',
             OR: [
               {
@@ -435,7 +480,9 @@ export default async function handler(
             ],
             // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
             ...(mobilizerFilter || {}),
-          },
+            // Add registration date filter directly
+            ...(registrationDateClause || {}),
+        },
           include: {
             profile: {
               include: {
@@ -462,6 +509,7 @@ export default async function handler(
           },
           take,
           skip,
+          orderBy,
         });
       }
     }
@@ -477,6 +525,8 @@ export default async function handler(
         userCohort: userCohortFilter,
         // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
         ...(mobilizerFilter || {}),
+        // Add registration date filter directly to filterConditions
+        ...(registrationDateClause || {}),
       };
 
       // Add profile conditions if there are any profile-related filters
@@ -613,6 +663,7 @@ export default async function handler(
         },
         take,
         skip,
+        orderBy,
       });
     }
     // Handle case when no filters are applied (parsedFilter is undefined)
@@ -623,6 +674,8 @@ export default async function handler(
           userCohort: userCohortFilter,
           // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
           ...(mobilizerFilter || {}),
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
       });
       applicants = await prisma.user.findMany({
@@ -649,6 +702,7 @@ export default async function handler(
         },
         take,
         skip,
+        orderBy,
       });
     }
     // Handle the existing string filter types
@@ -660,6 +714,8 @@ export default async function handler(
             gender: filter,
           },
           userCohort: userCohortFilter,
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
       });
       applicants = await prisma.user.findMany({
@@ -669,6 +725,8 @@ export default async function handler(
             gender: filter,
           },
           userCohort: userCohortFilter,
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
         include: {
           profile: {
@@ -687,6 +745,7 @@ export default async function handler(
         },
         take,
         skip,
+        orderBy,
       });
     } else if (filter === 'Active') {
       count = await prisma.user.count({
@@ -703,6 +762,8 @@ export default async function handler(
               cohortId,
             },
           },
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
       });
       applicants = await prisma.user.findMany({
@@ -719,6 +780,8 @@ export default async function handler(
               cohortId,
             },
           },
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
         include: {
           profile: {
@@ -737,6 +800,7 @@ export default async function handler(
         },
         take,
         skip,
+        orderBy,
       });
     } else if (filter === 'awaiting_approval') {
       count = await prisma.user.count({
@@ -744,6 +808,8 @@ export default async function handler(
           role: 'APPLICANT',
           thinkific_user_id: null,
           userCohort: userCohortFilter,
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
       });
       applicants = await prisma.user.findMany({
@@ -751,6 +817,8 @@ export default async function handler(
           role: 'APPLICANT',
           thinkific_user_id: null,
           userCohort: userCohortFilter,
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
         include: {
           profile: {
@@ -769,6 +837,7 @@ export default async function handler(
         },
         take,
         skip,
+        orderBy,
       });
     } else {
       count = await prisma.user.count({
@@ -777,6 +846,8 @@ export default async function handler(
           userCohort: userCohortFilter,
           // Note: mobilizerId was removed from Profile model - mobilizer filtering now uses referrer table
           ...(mobilizerFilter || {}),
+          // Add registration date filter directly
+          ...(registrationDateClause || {}),
         },
       });
       applicants = await prisma.user.findMany({
@@ -803,6 +874,7 @@ export default async function handler(
         },
         take,
         skip,
+        orderBy,
       });
     }
 

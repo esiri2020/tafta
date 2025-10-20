@@ -10,12 +10,14 @@ import {EnrollmentListFilters} from '@/components/dashboard/enrollments/enrollme
 import {EnrollmentListTable} from '@/components/dashboard/enrollments/enrollments-list-table';
 import {EnrollmentSummary} from '@/components/dashboard/enrollments/enrollment-summary';
 import {DashboardHeader} from '@/components/dashboard/dashboard-header';
-import {RefreshCcw} from 'lucide-react';
+import {RefreshCcw, Download, Loader2} from 'lucide-react';
 import {useGetEnrollmentsQuery} from '@/services/api';
 import {LoadingSpinner} from '@/components/ui/loading-spinner';
 import {DashboardLayout} from '../../../components/dashboard/dashboard-layout';
 import {useAppSelector} from '../../../hooks/rtkHook';
 import {selectCohort} from '../../../services/cohortSlice';
+import {CSVLink} from 'react-csv';
+import React from 'react';
 
 export default function EnrollmentsPage() {
   const router = useRouter();
@@ -58,6 +60,79 @@ export default function EnrollmentsPage() {
   );
 
   const {data, error, isLoading, refetch} = useGetEnrollmentsQuery(queryParams);
+
+  // Get all filtered data for export (without pagination)
+  const {
+    data: exportData,
+    isLoading: isExportLoading,
+    isFetching: isExportFetching,
+  } = useGetEnrollmentsQuery(
+    {
+      ...queryParams,
+      page: 0,
+      limit: 100000, // Very large number to get all records
+    },
+    {
+      skip: !data, // Only fetch after main data is loaded
+    },
+  );
+
+  // Determine if export is loading
+  const isExporting = isExportLoading || isExportFetching;
+
+  // Format data for CSV export
+  const csvData = React.useMemo(() => {
+    if (!exportData?.enrollments) return [];
+
+    return [
+      // Headers
+      [
+        'Student ID',
+        'First Name',
+        'Last Name',
+        'Email',
+        'Gender',
+        'Course Name',
+        'Course ID',
+        'Cohort Name',
+        'Cohort Status',
+        'Enrollment Status',
+        'Progress (%)',
+        'Enrollment Date',
+        'Activation Date',
+        'Completion Date',
+        'Expiry Date',
+        'Is Free Trial',
+        'Is Completed',
+        'Is Expired',
+        'Started At',
+        'Updated At',
+      ],
+      // Data rows
+      ...exportData.enrollments.map(enrollment => [
+        enrollment.userCohort?.user?.id || '',
+        enrollment.userCohort?.user?.firstName || '',
+        enrollment.userCohort?.user?.lastName || '',
+        enrollment.userCohort?.user?.email || '',
+        enrollment.userCohort?.user?.profile?.gender || '',
+        enrollment.course_name || '',
+        enrollment.course_id?.toString() || '',
+        enrollment.userCohort?.cohort?.name || '',
+        enrollment.userCohort?.cohort?.active ? 'Active' : 'Inactive',
+        enrollment.enrolled ? 'Enrolled' : 'Not Enrolled',
+        enrollment.percentage_completed ? (enrollment.percentage_completed * 100).toFixed(0) : '0',
+        enrollment.created_at ? new Date(enrollment.created_at).toISOString() : '',
+        enrollment.activated_at ? new Date(enrollment.activated_at).toISOString() : '',
+        enrollment.completed_at ? new Date(enrollment.completed_at).toISOString() : '',
+        enrollment.expiry_date ? new Date(enrollment.expiry_date).toISOString() : '',
+        enrollment.is_free_trial ? 'Yes' : 'No',
+        enrollment.completed ? 'Yes' : 'No',
+        enrollment.expired ? 'Yes' : 'No',
+        enrollment.started_at ? new Date(enrollment.started_at).toISOString() : '',
+        enrollment.updated_at ? new Date(enrollment.updated_at).toISOString() : '',
+      ]),
+    ];
+  }, [exportData?.enrollments]);
 
   const handleFiltersChange = useCallback(filters => {
     // Handle course filter (array)
@@ -152,10 +227,35 @@ export default function EnrollmentsPage() {
             : 'Enrollments across all cohorts'
         }
         actions={
-          <Button onClick={rehydrate} className='ml-auto'>
-            <RefreshCcw className='mr-2 h-4 w-4' />
-            Rehydrate
-          </Button>
+          <div className='flex gap-2'>
+            <CSVLink
+              data={csvData}
+              filename={`enrollments-export-${
+                new Date().toISOString().split('T')[0]
+              }.csv`}
+              className={`inline-flex items-center ${
+                isExporting ? 'pointer-events-none' : ''
+              }`}
+              title="Export includes: Student details, Course information, Enrollment status, Progress data, and Cohort information">
+              <Button variant='outline' disabled={isExporting}>
+                {isExporting ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Preparing Export...
+                  </>
+                ) : (
+                  <>
+                    <Download className='mr-2 h-4 w-4' />
+                    Export Data ({exportData?.count || 0} records)
+                  </>
+                )}
+              </Button>
+            </CSVLink>
+            <Button onClick={rehydrate}>
+              <RefreshCcw className='mr-2 h-4 w-4' />
+              Rehydrate
+            </Button>
+          </div>
         }
       />
 

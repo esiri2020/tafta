@@ -260,12 +260,14 @@ function ApplicantList() {
 
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
+  const [sort, setSort] = useState('name_asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [cohortId, setCohortId] = useState(null);
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [showFilteredOut, setShowFilteredOut] = useState(false);
   const [availableMobilizerCodes, setAvailableMobilizerCodes] = useState([]);
+  const [enrollmentDate, setEnrollmentDate] = useState({ from: null, to: null });
 
   // Get the selected cohort from redux state
   const selectedCohort = useAppSelector(selectCohort);
@@ -359,6 +361,8 @@ function ApplicantList() {
     location: filters.location.length > 0 ? filters.location : undefined,
     lga: filters.lga.length > 0 ? filters.lga : undefined,
     mobilizer: filters.mobilizer.length > 0 ? filters.mobilizer : undefined,
+    dateFrom: enrollmentDate.from ? enrollmentDate.from.toISOString() : undefined,
+    dateTo: enrollmentDate.to ? enrollmentDate.to.toISOString() : undefined,
   };
 
   // Remove undefined values to avoid sending empty object
@@ -374,6 +378,7 @@ function ApplicantList() {
   // Log the current filter state for debugging
   useEffect(() => {
     console.log('Current filters object:', filters);
+    console.log('Enrollment date state:', enrollmentDate);
     console.log('Stringified filter params for API:', filterParams);
     // Try parsing it back to verify it's valid JSON (only if filterParams exists)
     if (filterParams) {
@@ -386,7 +391,7 @@ function ApplicantList() {
     } else {
       console.log('No filters applied - filterParams is undefined');
     }
-  }, [filters, filterParams]);
+  }, [filters, enrollmentDate, filterParams]);
 
   // Get paginated applicants data for display
   const {data, error, isLoading} = useGetApplicantsQuery({
@@ -395,6 +400,7 @@ function ApplicantList() {
     ...(filterParams && { filter: filterParams }),
     query: searchQuery,
     cohortId,
+    sort,
   });
 
   // Get all filtered data for export (without pagination)
@@ -409,6 +415,7 @@ function ApplicantList() {
       ...(filterParams && { filter: filterParams }),
       query: searchQuery,
       cohortId,
+      sort,
       includeAssessment: true, // Add this to request assessment data
     },
     {
@@ -862,14 +869,12 @@ function ApplicantList() {
                 ? `Send Notifications (${data.applicants.length})`
                 : 'Send Notifications'}
             </Button>
-            <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
-              <Button asChild>
-                <a className='flex items-center'>
-                  <UserPlus className='mr-2 h-4 w-4' />
-                  Add Applicant
-                </a>
-              </Button>
-            </Link>
+            <Button asChild>
+              <Link href='/admin-dashboard/applicants/create' className='flex items-center'>
+                <UserPlus className='mr-2 h-4 w-4' />
+                Add Applicant
+              </Link>
+            </Button>
             <CSVLink
               data={csvData}
               filename={`applicants-export-${
@@ -949,391 +954,411 @@ function ApplicantList() {
                       </SheetDescription>
                     </SheetHeader>
                     <div className='grid gap-6 p-4 overflow-y-auto max-h-[calc(100vh-200px)]'>
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>Gender</h3>
+                        {/* Registration Date Range */}
                         <div className='space-y-2'>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='gender-male'
-                              checked={filters.gender.includes('MALE')}
-                              onCheckedChange={checked =>
-                                handleFilterChange('gender', 'MALE')
-                              }
+                          <h3 className='text-sm font-medium'>Registration Date</h3>
+                          <div className='flex items-center gap-2'>
+                            <input
+                              type='date'
+                              value={enrollmentDate.from ? new Date(enrollmentDate.from).toISOString().slice(0,10) : ''}
+                              onChange={(e) => setEnrollmentDate(prev => ({...prev, from: e.target.value ? new Date(e.target.value + 'T00:00:00') : null}))}
+                              className='border rounded px-2 py-1 text-sm'
                             />
-                            <Label htmlFor='gender-male'>Male</Label>
-                          </div>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='gender-female'
-                              checked={filters.gender.includes('FEMALE')}
-                              onCheckedChange={checked =>
-                                handleFilterChange('gender', 'FEMALE')
-                              }
+                            <span className='text-muted-foreground text-sm'>to</span>
+                            <input
+                              type='date'
+                              value={enrollmentDate.to ? new Date(enrollmentDate.to).toISOString().slice(0,10) : ''}
+                              onChange={(e) => setEnrollmentDate(prev => ({...prev, to: e.target.value ? new Date(e.target.value + 'T23:59:59') : null}))}
+                              className='border rounded px-2 py-1 text-sm'
                             />
-                            <Label htmlFor='gender-female'>Female</Label>
+                            <Button variant='outline' size='sm' type='button' onClick={() => setEnrollmentDate({from: null, to: null})}>Clear</Button>
                           </div>
                         </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Filter by type of applicant */}
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>
-                          Type of Applicant
-                        </h3>
                         <div className='space-y-2'>
-                          {['INDIVIDUAL', 'ENTERPRISE'].map(type => (
-                            <div
-                              key={type}
-                              className='flex items-center space-x-2'>
+                          <h3 className='text-sm font-medium'>Gender</h3>
+                          <div className='space-y-2'>
+                            <div className='flex items-center space-x-2'>
                               <Checkbox
-                                id={type}
-                                checked={filters.type.includes(type)}
+                                id='gender-male'
+                                checked={filters.gender.includes('MALE')}
                                 onCheckedChange={checked =>
-                                  handleFilterChange('type', type)
+                                  handleFilterChange('gender', 'MALE')
                                 }
                               />
-                              <Label htmlFor={type}>{type}</Label>
+                              <Label htmlFor='gender-male'>Male</Label>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>Age Range</h3>
-                        <div className='space-y-2'>
-                          {[
-                            '16 - 20',
-                            '21 - 25',
-                            '26 - 29',
-                            '30 - 34',
-                            '35 - 39',
-                            '40+',
-                          ].map(range => (
-                            <div
-                              key={range}
-                              className='flex items-center space-x-2'>
+                            <div className='flex items-center space-x-2'>
                               <Checkbox
-                                id={`age-${range}`}
-                                checked={filters.ageRange.includes(range)}
+                                id='gender-female'
+                                checked={filters.gender.includes('FEMALE')}
                                 onCheckedChange={checked =>
-                                  handleFilterChange('ageRange', range)
+                                  handleFilterChange('gender', 'FEMALE')
                                 }
                               />
-                              <Label htmlFor={`age-${range}`}>{range}</Label>
+                              <Label htmlFor='gender-female'>Female</Label>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>Education Level</h3>
-                        <div className='space-y-2'>
-                          {[
-                            {value: 'PRIMARY_SCHOOL', label: 'Primary School'},
-                            {
-                              value: 'SECONDARY_SCHOOL',
-                              label: 'Secondary School',
-                            },
-                            {value: 'ND_HND', label: 'ND/HND'},
-                            {value: 'BSC', label: 'BSc'},
-                            {value: 'MSC', label: 'MSc'},
-                            {value: 'PHD', label: 'PhD'},
-                          ].map(edu => (
-                            <div
-                              key={edu.value}
-                              className='flex items-center space-x-2'>
-                              <Checkbox
-                                id={`edu-${edu.value}`}
-                                checked={filters.educationLevel.includes(
-                                  edu.value,
-                                )}
-                                onCheckedChange={checked =>
-                                  handleFilterChange(
-                                    'educationLevel',
-                                    edu.value,
-                                  )
-                                }
-                              />
-                              <Label htmlFor={`edu-${edu.value}`}>
-                                {edu.label}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>
-                          Employment Status
-                        </h3>
-                        <div className='space-y-2'>
-                          {[
-                            {value: 'employed', label: 'Employed'},
-                            {value: 'self-employed', label: 'Self-employed'},
-                            {value: 'student', label: 'Student'},
-                            {value: 'unemployed', label: 'Unemployed'},
-                          ].map(status => (
-                            <div
-                              key={status.value}
-                              className='flex items-center space-x-2'>
-                              <Checkbox
-                                id={`emp-${status.value}`}
-                                checked={filters.employmentStatus.includes(
-                                  status.value,
-                                )}
-                                onCheckedChange={checked =>
-                                  handleFilterChange(
-                                    'employmentStatus',
-                                    status.value,
-                                  )
-                                }
-                              />
-                              <Label htmlFor={`emp-${status.value}`}>
-                                {status.label}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>
-                          Residency Status
-                        </h3>
-                        <div className='space-y-2'>
-                          {[
-                            {value: 'resident', label: 'Resident'},
-                            {value: 'non-resident', label: 'Non-resident'},
-                            {value: 'refugee', label: 'Refugee'},
-                            {value: 'migrant-worker', label: 'Migrant Worker'},
-                          ].map(status => (
-                            <div
-                              key={status.value}
-                              className='flex items-center space-x-2'>
-                              <Checkbox
-                                id={`res-${status.value}`}
-                                checked={filters.residencyStatus.includes(
-                                  status.value,
-                                )}
-                                onCheckedChange={checked =>
-                                  handleFilterChange(
-                                    'residencyStatus',
-                                    status.value,
-                                  )
-                                }
-                              />
-                              <Label htmlFor={`res-${status.value}`}>
-                                {status.label}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>Community Area</h3>
-                        <div className='space-y-2'>
-                          {[
-                            {value: 'URBAN', label: 'Urban'},
-                            {value: 'RURAL', label: 'Rural'},
-                          ].map(area => (
-                            <div
-                              key={area.value}
-                              className='flex items-center space-x-2'>
-                              <Checkbox
-                                id={`area-${area.value}`}
-                                checked={filters.communityArea.includes(
-                                  area.value,
-                                )}
-                                onCheckedChange={checked =>
-                                  handleFilterChange(
-                                    'communityArea',
-                                    area.value,
-                                  )
-                                }
-                              />
-                              <Label htmlFor={`area-${area.value}`}>
-                                {area.label}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>
-                          TALP Participation
-                        </h3>
-                        <div className='space-y-2'>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='talp-yes'
-                              checked={filters.talpParticipation === true}
-                              onCheckedChange={checked =>
-                                handleFilterChange(
-                                  'talpParticipation',
-                                  checked ? true : null,
-                                )
-                              }
-                            />
-                            <Label htmlFor='talp-yes'>Yes</Label>
-                          </div>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='talp-no'
-                              checked={filters.talpParticipation === false}
-                              onCheckedChange={checked =>
-                                handleFilterChange(
-                                  'talpParticipation',
-                                  checked ? false : null,
-                                )
-                              }
-                            />
-                            <Label htmlFor='talp-no'>No</Label>
                           </div>
                         </div>
-                      </div>
 
-                      <Separator />
+                        <Separator />
 
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>
-                          Application Status
-                        </h3>
+                        {/* Filter by type of applicant */}
                         <div className='space-y-2'>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='status-approved'
-                              checked={filters.status.includes('approved')}
-                              onCheckedChange={checked =>
-                                handleFilterChange('status', 'approved')
-                              }
-                            />
-                            <Label htmlFor='status-approved'>Approved</Label>
-                          </div>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='status-pending'
-                              checked={filters.status.includes('pending')}
-                              onCheckedChange={checked =>
-                                handleFilterChange('status', 'pending')
-                              }
-                            />
-                            <Label htmlFor='status-pending'>Pending</Label>
-                          </div>
-                          <div className='flex items-center space-x-2'>
-                            <Checkbox
-                              id='status-completed'
-                              checked={filters.status.includes('completed')}
-                              onCheckedChange={checked =>
-                                handleFilterChange('status', 'completed')
-                              }
-                            />
-                            <Label htmlFor='status-completed'>Completed</Label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>
-                          Location (State)
-                        </h3>
-                        <div className='space-y-2'>
-                          {nigeria_states.map(state => (
-                            <div
-                              key={state}
-                              className='flex items-center space-x-2'>
-                              <Checkbox
-                                id={`location-${state}`}
-                                checked={filters.location.includes(state)}
-                                onCheckedChange={checked =>
-                                  handleFilterChange('location', state)
-                                }
-                              />
-                              <Label htmlFor={`location-${state}`}>
-                                {state}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>LGA</h3>
-                        <div className='space-y-2 max-h-[200px] overflow-y-auto'>
-                          {filters.location.length > 0 ? (
-                            filters.location.map(state => (
-                              <div key={state}>
-                                <div className='font-semibold text-xs mt-2 mb-1'>
-                                  {state}
-                                </div>
-                                {Object.values(LGAs[state] || {})
-                                  .flat()
-                                  .map(lga => (
-                                    <div
-                                      key={lga}
-                                      className='flex items-center space-x-2 ml-2 mb-2'>
-                                      <Checkbox
-                                        id={`lga-${lga}`}
-                                        checked={filters.lga.includes(lga)}
-                                        onCheckedChange={checked =>
-                                          handleFilterChange('lga', lga)
-                                        }
-                                      />
-                                      <Label htmlFor={`lga-${lga}`}>
-                                        {lga}
-                                      </Label>
-                                    </div>
-                                  ))}
+                          <h3 className='text-sm font-medium'>
+                            Type of Applicant
+                          </h3>
+                          <div className='space-y-2'>
+                            {['INDIVIDUAL', 'ENTERPRISE'].map(type => (
+                              <div
+                                key={type}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={type}
+                                  checked={filters.type.includes(type)}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange('type', type)
+                                  }
+                                />
+                                <Label htmlFor={type}>{type}</Label>
                               </div>
-                            ))
-                          ) : (
-                            <div className='text-sm text-muted-foreground italic'>
-                              Select a state first to view LGAs
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
-                      </div>
 
-                      <Separator />
-
-                      {/* Mobilizer Filter */}
-                      <div className='space-y-2'>
-                        <h3 className='text-sm font-medium'>Mobilizer</h3>
+                        <Separator />
                         <div className='space-y-2'>
-                          {availableMobilizerCodes.map(code => (
-                            <div
-                              key={code}
-                              className='flex items-center space-x-2'>
+                          <h3 className='text-sm font-medium'>Age Range</h3>
+                          <div className='space-y-2'>
+                            {[
+                              '16 - 20',
+                              '21 - 25',
+                              '26 - 29',
+                              '30 - 34',
+                              '35 - 39',
+                              '40+',
+                            ].map(range => (
+                              <div
+                                key={range}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`age-${range}`}
+                                  checked={filters.ageRange.includes(range)}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange('ageRange', range)
+                                  }
+                                />
+                                <Label htmlFor={`age-${range}`}>{range}</Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>Education Level</h3>
+                          <div className='space-y-2'>
+                            {[
+                              {value: 'PRIMARY_SCHOOL', label: 'Primary School'},
+                              {
+                                value: 'SECONDARY_SCHOOL',
+                                label: 'Secondary School',
+                              },
+                              {value: 'ND_HND', label: 'ND/HND'},
+                              {value: 'BSC', label: 'BSc'},
+                              {value: 'MSC', label: 'MSc'},
+                              {value: 'PHD', label: 'PhD'},
+                            ].map(edu => (
+                              <div
+                                key={edu.value}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`edu-${edu.value}`}
+                                  checked={filters.educationLevel.includes(
+                                    edu.value,
+                                  )}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange(
+                                      'educationLevel',
+                                      edu.value,
+                                    )
+                                  }
+                                />
+                                <Label htmlFor={`edu-${edu.value}`}>
+                                  {edu.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>
+                            Employment Status
+                          </h3>
+                          <div className='space-y-2'>
+                            {[
+                              {value: 'employed', label: 'Employed'},
+                              {value: 'self-employed', label: 'Self-employed'},
+                              {value: 'student', label: 'Student'},
+                              {value: 'unemployed', label: 'Unemployed'},
+                            ].map(status => (
+                              <div
+                                key={status.value}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`emp-${status.value}`}
+                                  checked={filters.employmentStatus.includes(
+                                    status.value,
+                                  )}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange(
+                                      'employmentStatus',
+                                      status.value,
+                                    )
+                                  }
+                                />
+                                <Label htmlFor={`emp-${status.value}`}>
+                                  {status.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>
+                            Residency Status
+                          </h3>
+                          <div className='space-y-2'>
+                            {[
+                              {value: 'resident', label: 'Resident'},
+                              {value: 'non-resident', label: 'Non-resident'},
+                              {value: 'refugee', label: 'Refugee'},
+                              {value: 'migrant-worker', label: 'Migrant Worker'},
+                            ].map(status => (
+                              <div
+                                key={status.value}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`res-${status.value}`}
+                                  checked={filters.residencyStatus.includes(
+                                    status.value,
+                                  )}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange(
+                                      'residencyStatus',
+                                      status.value,
+                                    )
+                                  }
+                                />
+                                <Label htmlFor={`res-${status.value}`}>
+                                  {status.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>Community Area</h3>
+                          <div className='space-y-2'>
+                            {[
+                              {value: 'URBAN', label: 'Urban'},
+                              {value: 'RURAL', label: 'Rural'},
+                            ].map(area => (
+                              <div
+                                key={area.value}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`area-${area.value}`}
+                                  checked={filters.communityArea.includes(
+                                    area.value,
+                                  )}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange(
+                                      'communityArea',
+                                      area.value,
+                                    )
+                                  }
+                                />
+                                <Label htmlFor={`area-${area.value}`}>
+                                  {area.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>
+                            TALP Participation
+                          </h3>
+                          <div className='space-y-2'>
+                            <div className='flex items-center space-x-2'>
                               <Checkbox
-                                id={`mobilizer-${code}`}
-                                checked={filters.mobilizer.includes(code)}
+                                id='talp-yes'
+                                checked={filters.talpParticipation === true}
                                 onCheckedChange={checked =>
-                                  handleFilterChange('mobilizer', code)
+                                  handleFilterChange(
+                                    'talpParticipation',
+                                    checked ? true : null,
+                                  )
                                 }
                               />
-                              <Label htmlFor={`mobilizer-${code}`}>{code}</Label>
+                              <Label htmlFor='talp-yes'>Yes</Label>
                             </div>
-                          ))}
+                            <div className='flex items-center space-x-2'>
+                              <Checkbox
+                                id='talp-no'
+                                checked={filters.talpParticipation === false}
+                                onCheckedChange={checked =>
+                                  handleFilterChange(
+                                    'talpParticipation',
+                                    checked ? false : null,
+                                  )
+                                }
+                              />
+                              <Label htmlFor='talp-no'>No</Label>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>
+                            Application Status
+                          </h3>
+                          <div className='space-y-2'>
+                            <div className='flex items-center space-x-2'>
+                              <Checkbox
+                                id='status-approved'
+                                checked={filters.status.includes('approved')}
+                                onCheckedChange={checked =>
+                                  handleFilterChange('status', 'approved')
+                                }
+                              />
+                              <Label htmlFor='status-approved'>Approved</Label>
+                            </div>
+                            <div className='flex items-center space-x-2'>
+                              <Checkbox
+                                id='status-pending'
+                                checked={filters.status.includes('pending')}
+                                onCheckedChange={checked =>
+                                  handleFilterChange('status', 'pending')
+                                }
+                              />
+                              <Label htmlFor='status-pending'>Pending</Label>
+                            </div>
+                            <div className='flex items-center space-x-2'>
+                              <Checkbox
+                                id='status-completed'
+                                checked={filters.status.includes('completed')}
+                                onCheckedChange={checked =>
+                                  handleFilterChange('status', 'completed')
+                                }
+                              />
+                              <Label htmlFor='status-completed'>Completed</Label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>
+                            Location (State)
+                          </h3>
+                          <div className='space-y-2'>
+                            {nigeria_states.map(state => (
+                              <div
+                                key={state}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`location-${state}`}
+                                  checked={filters.location.includes(state)}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange('location', state)
+                                  }
+                                />
+                                <Label htmlFor={`location-${state}`}>
+                                  {state}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>LGA</h3>
+                          <div className='space-y-2 max-h-[200px] overflow-y-auto'>
+                            {filters.location.length > 0 ? (
+                              filters.location.map(state => (
+                                <div key={state}>
+                                  <div className='font-semibold text-xs mt-2 mb-1'>
+                                    {state}
+                                  </div>
+                                  {Object.values(LGAs[state] || {})
+                                    .flat()
+                                    .map(lga => (
+                                      <div
+                                        key={lga}
+                                        className='flex items-center space-x-2 ml-2 mb-2'>
+                                        <Checkbox
+                                          id={`lga-${lga}`}
+                                          checked={filters.lga.includes(lga)}
+                                          onCheckedChange={checked =>
+                                            handleFilterChange('lga', lga)
+                                          }
+                                        />
+                                        <Label htmlFor={`lga-${lga}`}>
+                                          {lga}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                </div>
+                              ))
+                            ) : (
+                              <div className='text-sm text-muted-foreground italic'>
+                                Select a state first to view LGAs
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Mobilizer Filter */}
+                        <div className='space-y-2'>
+                          <h3 className='text-sm font-medium'>Mobilizer</h3>
+                          <div className='space-y-2'>
+                            {availableMobilizerCodes.map(code => (
+                              <div
+                                key={code}
+                                className='flex items-center space-x-2'>
+                                <Checkbox
+                                  id={`mobilizer-${code}`}
+                                  checked={filters.mobilizer.includes(code)}
+                                  onCheckedChange={checked =>
+                                    handleFilterChange('mobilizer', code)
+                                  }
+                                />
+                                <Label htmlFor={`mobilizer-${code}`}>{code}</Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                     </div>
                     <SheetFooter>
                       <Button
@@ -1342,7 +1367,7 @@ function ApplicantList() {
                         type='button'>
                         Clear Filters
                       </Button>
-                      <SheetClose>
+                      <SheetClose asChild>
                         <Button type='button'>Apply Filters</Button>
                       </SheetClose>
                     </SheetFooter>
@@ -1360,10 +1385,10 @@ function ApplicantList() {
                   <DropdownMenuContent align='end' className='w-[200px]'>
                     <DropdownMenuLabel>Sort by</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Name (A-Z)</DropdownMenuItem>
-                    <DropdownMenuItem>Name (Z-A)</DropdownMenuItem>
-                    <DropdownMenuItem>Date (Newest)</DropdownMenuItem>
-                    <DropdownMenuItem>Date (Oldest)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSort('name_asc'); setPage(0); }}>Name (A-Z)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSort('name_desc'); setPage(0); }}>Name (Z-A)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSort('date_newest'); setPage(0); }}>Date (Newest)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSort('date_oldest'); setPage(0); }}>Date (Oldest)</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -1598,14 +1623,12 @@ function ApplicantList() {
                           <p className='text-muted-foreground mb-2'>
                             No applicants found
                           </p>
-                          <Link href='/admin-dashboard/applicants/create' passHref legacyBehavior>
-                            <Button variant='outline' asChild>
-                              <a className='flex items-center'>
-                                <Plus className='mr-2 h-4 w-4' />
-                                Add Applicant
-                              </a>
-                            </Button>
-                          </Link>
+                          <Button variant='outline' asChild>
+                            <Link href='/admin-dashboard/applicants/create' className='flex items-center'>
+                              <Plus className='mr-2 h-4 w-4' />
+                              Add Applicant
+                            </Link>
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

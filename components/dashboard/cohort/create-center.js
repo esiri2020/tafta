@@ -2,14 +2,9 @@ import React, { useState } from 'react'
 import { Button, Divider, MenuItem,  Typography,    Autocomplete,    Card,    CardActions,    CardContent,    CardHeader,    BBoxider,
     FormControlLabel,    Grid,     Switch,     TextField,   } from '@mui/material';
 import { Box } from '@mui/system';
+import { useGetCoursesQuery } from '@/services/api';
 
-const course_items = [
-    "Kano",
-    "Lagos",
-    "Ogun"
-];
-
-const CourseDetails = ({ courses, updateCourse }) => {
+const CourseDetails = ({ courses, updateCourse, allCourses }) => {
     const [editingIndex, setEditingIndex] = useState(-1)
     const [tempCourse, setTempCourse] = useState({})
   
@@ -35,7 +30,9 @@ const CourseDetails = ({ courses, updateCourse }) => {
               <>
                 <Typography sx={{my: 3}}variant = 'h4'>Course {index + 1}</Typography>
                 <Box sx={{display: 'flex', justifyContent: 'space-between'}}>
-                <Typography variant = 'h5'>Course: {course.course}</Typography>
+                <Typography variant = 'h5'>Course: {(
+                  allCourses.find(c => c.id?.toString() === (course.course || ''))?.name
+                ) || course.course}</Typography>
                 <Typography variant = 'h5'>Number of Seats: {course.numberOfApplicants}</Typography>
                 </Box>
                 <Button sx={{my: 3}} variant='contained' onClick={() => handleEdit(index)}>Edit</Button>
@@ -62,13 +59,11 @@ const CourseDetails = ({ courses, updateCourse }) => {
                     }
                     required
                 >
-                    {
-                        course_items.map((course, index) => (
-                            <MenuItem key={index} value={course}>
-                                {course}
-                            </MenuItem>
-                        ))
-                    }
+                    {allCourses.map((c) => (
+                      <MenuItem key={c.id} value={c.id.toString()}>
+                        {c.name}
+                      </MenuItem>
+                    ))}
                 </TextField>
             </Grid>    
 
@@ -102,6 +97,8 @@ const CreateCourse = () => {
   const [course, setCourse] = useState('')
   const [numberOfApplicants, setNumberOfApplicants] = useState('')
   const [courses, setCourses] = useState([])
+  const { data: coursesData } = useGetCoursesQuery();
+  const allCourses = coursesData?.courses ?? [];
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -154,13 +151,11 @@ const CreateCourse = () => {
                                     onChange={(event) => setCourse(event.target.value)}
                                     required
                                 >
-                                    {
-                                        course_items.map((course, index) => (
-                                            <MenuItem key={index} value={course}>
-                                                {course}
-                                            </MenuItem>
-                                        ))
-                                    }
+                                    {allCourses.map((c) => (
+                                      <MenuItem key={c.id} value={c.id.toString()}>
+                                        {c.name}
+                                      </MenuItem>
+                                    ))}
                                 </TextField>
                             </Grid>    
 
@@ -190,7 +185,7 @@ const CreateCourse = () => {
                         </Button>
                         <Button variant='outlined' type="submit">Submit</Button>
                     </Box>
-                    <CourseDetails courses={courses}  updateCourse={updateCourse}/>
+                    <CourseDetails courses={courses}  updateCourse={updateCourse} allCourses={allCourses}/>
                 </CardContent>
 
         </Card>

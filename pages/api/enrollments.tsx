@@ -299,7 +299,8 @@ export default async function handler(
             total: totalCount,
             totalPages: Math.ceil(totalCount / limitNum)
           },
-          count,
+          // Use filtered count instead of unfiltered count
+          count: totalCount,
           maleCount,
           femaleCount,
           activeCount,

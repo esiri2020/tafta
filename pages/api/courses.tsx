@@ -80,11 +80,8 @@ export default async function handler(
                         }
                     });
                 }));
-                const courses = await prisma.course.findMany({
-                    where: {
-                        active: true
-                    }
-                });
+                // Return all courses from DB (active and inactive) so the UI can select from full LMS catalog
+                const courses = await prisma.course.findMany();
                 return res.status(200).json({ courses: bigint_filter(courses) });
             } catch (apiError) {
                 if (typeof apiError === 'object' && apiError !== null && 'response' in apiError) {

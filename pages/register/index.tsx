@@ -83,7 +83,7 @@ function _renderStepContent(
         />
       );
     case 1:
-      return <VerifyEmail />;
+      return <VerifyEmail email={applicant?.email || ''} onBack={() => {}} />;
     case 2:
       return (
         <PersonalInformation
@@ -164,7 +164,7 @@ function completeRegistration() {
       console.log('🎯 Starting enrollment activation after registration completion...');
       
       // Get user data
-      const userData = await fetch('/api/users/me', {
+        const userData = await fetch('/api/users/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ function completeRegistration() {
       console.log('👤 User data:', user);
       
       // Find existing enrollment
-      const enrollmentResponse = await fetch(`/api/enrollments?user_email=${user.email}`, {
+      const enrollmentResponse = await fetch(`/api/enrollments/cached?user_email=${user.email}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

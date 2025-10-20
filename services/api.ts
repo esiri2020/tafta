@@ -110,7 +110,7 @@ export const apiService = createApi({
         dateTo,
       }) => {
         // Build the query string with all parameters
-        let queryString = `enrollments?page=${page}&limit=${limit}`;
+        let queryString = `enrollments/cached?page=${page}&limit=${limit}`;
 
         if (course && course.length) {
           queryString += `&course=${course}`;
@@ -163,7 +163,7 @@ export const apiService = createApi({
         result ? [{type: 'Enrollments', id: result.id}] : ['Enrollments'],
     }),
     getApplicants: builder.query({
-      query: ({page, limit, filter, query, cohortId, mobilizerId}) => {
+      query: ({page, limit, filter, query, cohortId, mobilizerId, sort}) => {
         // Build query parameters dynamically
         const params = new URLSearchParams();
         
@@ -173,6 +173,7 @@ export const apiService = createApi({
         if (query !== undefined && query !== null) params.append('query', query);
         if (cohortId !== undefined && cohortId !== null) params.append('cohortId', cohortId);
         if (mobilizerId !== undefined && mobilizerId !== null) params.append('mobilizerId', mobilizerId);
+        if (sort !== undefined && sort !== null) params.append('sort', sort);
         
         return `applicants?${params.toString()}`;
       },
@@ -315,7 +316,7 @@ export const apiService = createApi({
     }),
     getCohortCourses: builder.query({
       query: ({id}) =>
-        id && id !== 'default' ? `cohort/${id}/courses` : `courses`,
+        id && id !== 'default' ? `cohort/${id}/courses?includeAll=1` : `courses`,
       providesTags: result =>
         result
           ? [

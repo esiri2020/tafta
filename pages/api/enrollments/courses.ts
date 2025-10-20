@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getToken } from 'next-auth/jwt';
-import { prisma } from '../../../lib/prisma';
+import prisma from '../../../lib/prismadb';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -23,56 +23,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('Enrollments courses API - cohortId:', cohortId);
 
-    // Get courses from actual enrollments in the database for the specified cohort
-    let enrollmentsQuery: any = {
-      include: {
-        userCohort: {
-          include: {
-            cohort: true,
+    // When a cohort is specified, return all courses configured for that cohort (not just those with enrollments)
+    if (cohortId && cohortId !== 'all') {
+      const cohortCourses = await prisma.cohortCourse.findMany({
+        where: { cohortId: cohortId as string },
+        include: {
+          course: {
+            select: { id: true, name: true, slug: true, description: true },
           },
         },
-      },
-    };
+      });
 
-    // If cohortId is provided, filter by cohort
-    if (cohortId && cohortId !== 'all') {
-      enrollmentsQuery.where = {
-        userCohort: {
-          cohortId: cohortId as string,
-        },
-      };
+      // Deduplicate by course_id
+      const seen = new Set<bigint>();
+      const coursesData = cohortCourses
+        .filter(cc => {
+          if (!cc.course_id) return false;
+          const has = seen.has(cc.course_id);
+          if (!has) seen.add(cc.course_id);
+          return !has;
+        })
+        .map(cc => ({
+          id: cc.course.id.toString(),
+          name: cc.course.name,
+          slug: cc.course.slug,
+          description: cc.course.description,
+        }));
+
+      console.log('Enrollments courses API - cohort courses:', coursesData.length);
+      return res.status(200).json({ courses: coursesData });
     }
 
-    const enrollments = await prisma.enrollment.findMany(enrollmentsQuery);
-
-    // Get unique course IDs from enrollments
-    const courseIds = Array.from(new Set(enrollments.map(e => e.course_id)));
-
-    // Get course information from the Course table
-    const courses = await prisma.course.findMany({
-      where: {
-        id: { in: courseIds },
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-      },
+    // No cohort specified: return all courses
+    const allCourses = await prisma.course.findMany({
+      select: { id: true, name: true, slug: true, description: true },
+      orderBy: { name: 'asc' },
     });
 
-    // Transform the data to match the expected format
-    const coursesData = courses.map(course => ({
-      id: course.id.toString(),
-      name: course.name,
-      slug: course.slug,
-      description: course.description,
+    const allCoursesData = allCourses.map(c => ({
+      id: c.id.toString(),
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
     }));
 
-    console.log('Enrollments courses API - found courses:', coursesData.length);
-    console.log('Enrollments courses API - returning:', { courses: coursesData });
-
-    return res.status(200).json({ courses: coursesData });
+    console.log('Enrollments courses API - all courses:', allCoursesData.length);
+    return res.status(200).json({ courses: allCoursesData });
   } catch (error) {
     console.error('Error fetching enrollment courses:', error);
     // Return empty courses array instead of error to prevent frontend crashes
