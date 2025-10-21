@@ -5,37 +5,37 @@ console.log('🔍 Redis Environment Debug:', {
   NODE_ENV: process.env.NODE_ENV,
   REDIS_URL: process.env.REDIS_URL ? 'SET' : 'NOT_SET',
   REDIS_URL_PREVIEW: process.env.REDIS_URL ? process.env.REDIS_URL.substring(0, 30) + '...' : 'N/A',
+  REDIS_URL_FULL: process.env.REDIS_URL, // Full URL for debugging
   REDIS_HOST: process.env.REDIS_HOST,
   REDIS_PORT: process.env.REDIS_PORT,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD ? 'SET' : 'NOT_SET',
 });
 
-const redisConfig = {
-  // Use REDIS_URL if available (for Upstash), otherwise fall back to individual configs
-  ...(process.env.REDIS_URL ? {
-    url: process.env.REDIS_URL,
-  } : {
+// Simple Redis configuration - just like the Upstash example
+let redisConfig: any;
+if (process.env.REDIS_URL) {
+  console.log('🔍 Using REDIS_URL for configuration');
+  // Pass REDIS_URL directly to ioredis constructor (like the screenshot shows)
+  redisConfig = process.env.REDIS_URL;
+} else {
+  console.log('🔍 Using individual config (no REDIS_URL)');
+  redisConfig = {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD,
-  }),
-  retryDelayOnFailover: 100,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-  keepAlive: 30000,
-  connectTimeout: 10000,
-  commandTimeout: 5000,
-  // Add TLS configuration for production Redis
-  ...(process.env.NODE_ENV === 'production' && process.env.REDIS_URL ? {
-    tls: {},
-  } : {}),
-};
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+    keepAlive: 30000,
+    connectTimeout: 10000,
+    commandTimeout: 5000,
+  };
+}
 
 console.log('🔍 Redis Config Debug:', {
-  hasUrl: !!(redisConfig as any).url,
-  host: (redisConfig as any).host || 'N/A',
-  port: (redisConfig as any).port || 'N/A',
-  hasTls: !!(redisConfig as any).tls,
+  configType: typeof redisConfig,
+  isString: typeof redisConfig === 'string',
+  configPreview: typeof redisConfig === 'string' ? redisConfig.substring(0, 30) + '...' : 'Object',
   usingUrl: !!process.env.REDIS_URL,
 });
 
@@ -46,7 +46,14 @@ const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 let redis: Redis | null = null;
 
 export function getRedisClient(): Redis {
+  console.log('🔍 getRedisClient called');
   if (!redis) {
+    console.log('🔍 Creating new Redis client with config:', {
+      configType: typeof redisConfig,
+      isString: typeof redisConfig === 'string',
+      configPreview: typeof redisConfig === 'string' ? redisConfig.substring(0, 30) + '...' : 'Object',
+    });
+    
     try {
       redis = new Redis(redisConfig);
       
