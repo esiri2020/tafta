@@ -4,6 +4,7 @@ import { Redis } from 'ioredis';
 console.log('🔍 Redis Environment Debug:', {
   NODE_ENV: process.env.NODE_ENV,
   REDIS_URL: process.env.REDIS_URL ? 'SET' : 'NOT_SET',
+  REDIS_URL_PREVIEW: process.env.REDIS_URL ? process.env.REDIS_URL.substring(0, 30) + '...' : 'N/A',
   REDIS_HOST: process.env.REDIS_HOST,
   REDIS_PORT: process.env.REDIS_PORT,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD ? 'SET' : 'NOT_SET',
@@ -35,53 +36,26 @@ console.log('🔍 Redis Config Debug:', {
   host: (redisConfig as any).host || 'N/A',
   port: (redisConfig as any).port || 'N/A',
   hasTls: !!(redisConfig as any).tls,
+  usingUrl: !!process.env.REDIS_URL,
 });
 
 // Check if Redis is disabled
 const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
-
-// Circuit breaker for Redis failures
-let redisFailureCount = 0;
-const MAX_REDIS_FAILURES = 5;
-let redisCircuitOpen = false;
 
 // Create Redis client instance
 let redis: Redis | null = null;
 
 export function getRedisClient(): Redis {
   if (!redis) {
-    if (isRedisDisabled || redisCircuitOpen) {
-      console.log('🚫 Redis client creation skipped: Redis caching disabled or circuit open.');
-      // Return a mock Redis client that doesn't do anything
-      redis = new Redis({
-        host: 'localhost',
-        port: 6379,
-        lazyConnect: true,
-        maxRetriesPerRequest: 0, // Don't retry
-        connectTimeout: 1000,
-        commandTimeout: 1000,
-      });
-      return redis;
-    }
-    
     try {
       redis = new Redis(redisConfig);
       
       redis.on('connect', () => {
         console.log('✅ Redis connected successfully');
-        redisFailureCount = 0; // Reset failure count on successful connection
-        redisCircuitOpen = false;
       });
       
       redis.on('error', (error) => {
         console.error('❌ Redis connection error:', error);
-        redisFailureCount++;
-        
-        if (redisFailureCount >= MAX_REDIS_FAILURES) {
-          console.log('🚫 Redis circuit breaker opened after', MAX_REDIS_FAILURES, 'failures');
-          redisCircuitOpen = true;
-        }
-        
         // Don't throw the error, just log it
         // This allows the app to continue without Redis
       });
@@ -95,13 +69,6 @@ export function getRedisClient(): Redis {
       });
     } catch (error) {
       console.error('❌ Failed to create Redis client:', error);
-      redisFailureCount++;
-      
-      if (redisFailureCount >= MAX_REDIS_FAILURES) {
-        console.log('🚫 Redis circuit breaker opened after', MAX_REDIS_FAILURES, 'failures');
-        redisCircuitOpen = true;
-      }
-      
       // Return a mock Redis client that doesn't do anything
       // This prevents the app from crashing when Redis is unavailable
       redis = new Redis({
@@ -167,11 +134,11 @@ export class CacheManager {
   private disabled: boolean = false;
   
   constructor() {
-    if (!isRedisDisabled && !redisCircuitOpen) {
+    if (!isRedisDisabled) {
       this.redis = getRedisClient();
     } else {
       this.disabled = true;
-      console.log('🚫 Redis caching disabled via DISABLE_REDIS environment variable or circuit breaker');
+      console.log('🚫 Redis caching disabled via DISABLE_REDIS environment variable');
     }
   }
   
