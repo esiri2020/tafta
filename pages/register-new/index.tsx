@@ -76,7 +76,7 @@ function StepContent({
     case 1:
       return <RegisterStepNew handlers={handlers} />;
     case 2:
-      return <VerifyEmail email={applicant?.email || (session?.userData?.email ?? session?.user?.email)} onBack={() => {}} />;
+      return <VerifyEmail email={session?.user?.email || session?.userData?.email || applicant?.email || ''} onBack={() => {}} />;
     case 3:
       return (
         <PersonalInformation
@@ -113,9 +113,9 @@ function RegisterNew() {
       }
     }
 
-    // Store the cohortId in sessionStorage if available
+    // Store the cohortId in localStorage if available
     if (cohortId) {
-      sessionStorage.setItem('selectedCohortId', cohortId as string);
+      localStorage.setItem('selectedCohortId', cohortId as string);
     }
   }, [step, cohortId]);
 
@@ -135,8 +135,14 @@ function RegisterNew() {
   // Skip data fetching for steps that don't need it
   const skipApplicantQuery =
     activeStep < 3 || !(session as any)?.userData?.userId;
+  
+  // Get cohortId from URL, localStorage, or use a default
+  const effectiveCohortId = cohortId || 
+    (typeof window !== 'undefined' ? localStorage.getItem('selectedCohortId') : null) ||
+    'default';
+  
   const skipCohortCoursesQuery =
-    (activeStep !== 0 && activeStep !== 3) || !cohortId;
+    (activeStep !== 0 && activeStep !== 3) || !effectiveCohortId;
 
   // Fetch applicant data (for personal info step)
   const {data: applicantData, isLoading: applicantLoading} =
@@ -147,7 +153,7 @@ function RegisterNew() {
   // Fetch cohort courses (for course selection step)
   const {data: cohortData, isLoading: coursesLoading} =
     useGetCohortCoursesQuery(
-      {id: cohortId ? (cohortId as string) : 'default'},
+      {id: effectiveCohortId as string},
       {
         skip: skipCohortCoursesQuery,
         // Provide fallback empty data structure to prevent undefined errors
@@ -220,8 +226,8 @@ function RegisterNew() {
           toast.success('Registration completed! You are now enrolled in your course.');
           
           // Store enrollment success in session storage for dashboard refresh
-          sessionStorage.setItem('enrollmentActivated', 'true');
-          sessionStorage.setItem('enrollmentCourse', enrollment.course_name);
+          localStorage.setItem('enrollmentActivated', 'true');
+          localStorage.setItem('enrollmentCourse', enrollment.course_name);
           
           // Redirect to dashboard
           router.push('/dashboard');
@@ -269,7 +275,7 @@ function RegisterNew() {
     // Update URL to reflect step change
     router.push(
       `/register-new?step=${nextStep}${
-        cohortId ? `&cohortId=${cohortId}` : ''
+        effectiveCohortId && effectiveCohortId !== 'default' ? `&cohortId=${effectiveCohortId}` : ''
       }`,
       undefined,
       {shallow: true},
@@ -283,7 +289,7 @@ function RegisterNew() {
     // Update URL to reflect step change
     router.push(
       `/register-new?step=${prevStep}${
-        cohortId ? `&cohortId=${cohortId}` : ''
+        effectiveCohortId && effectiveCohortId !== 'default' ? `&cohortId=${effectiveCohortId}` : ''
       }`,
       undefined,
       {shallow: true},
@@ -307,7 +313,7 @@ function RegisterNew() {
     // Update URL to reflect step change
     router.push(
       `/register-new?step=${nextStep}${
-        cohortId ? `&cohortId=${cohortId}` : ''
+        effectiveCohortId && effectiveCohortId !== 'default' ? `&cohortId=${effectiveCohortId}` : ''
       }`,
       undefined,
       {shallow: true},

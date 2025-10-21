@@ -320,10 +320,10 @@ export const apiService = createApi({
       providesTags: result =>
         result
           ? [
-              ...result.cohortCourses?.map(({id}: ResultData) => ({
+              ...(result.cohortCourses?.map(({id}: ResultData) => ({
                 type: 'Cohorts',
                 id,
-              })),
+              })) || []),
               {type: 'CohortCourses', id: 'PARTIAL-LIST'},
             ]
           : [{type: 'CohortCourses', id: 'PARTIAL-LIST'}],

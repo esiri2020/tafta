@@ -1736,12 +1736,20 @@ export const VerifyEmail = ({ email, onBack }) => (
             marginBottom: '50px',
             padding: '50px',
           }}>
-          Dear Applicant, <br /> Thank you, your registration was successful,{' '}
+          Dear Applicant, <br /> Your registration was successful! <br />
+          <br /> A verification email was sent to <strong>{email || 'your email address'}</strong>.
           <br />
-          <br /> However, you're not there yet.
-          <br /> To complete your registration, Please check your email to
-          verify your account.
+          <br /> If this is not your correct email, please go back and update it.
         </Typography>
+        
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
+          <Button variant="contained" color="primary">
+            Resend Verification Email
+          </Button>
+          <Button variant="outlined" onClick={onBack}>
+            Back
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   </Box>

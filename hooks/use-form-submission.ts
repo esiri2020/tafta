@@ -61,22 +61,22 @@ export const useFormSubmission = ({
       // Check if this is an individual or enterprise applicant
       const isEnterpriseType = applicant?.profile?.type === 'ENTERPRISE';
 
-      // Get course information from sessionStorage or applicant data
+      // Get course information from localStorage or applicant data
       const selectedCourse =
         applicant?.profile?.selectedCourse ||
-        sessionStorage.getItem('selectedCourse') ||
+        localStorage.getItem('selectedCourse') ||
         '';
       const cohortId =
         applicant?.profile?.cohortId ||
-        sessionStorage.getItem('selectedCohortId') ||
+        localStorage.getItem('selectedCohortId') ||
         '';
       const selectedCourseName =
         applicant?.profile?.selectedCourseName ||
-        sessionStorage.getItem('selectedCourseName') ||
+        localStorage.getItem('selectedCourseName') ||
         '';
       const selectedCourseId =
         applicant?.profile?.selectedCourseId ||
-        sessionStorage.getItem('selectedCourseActualId') ||
+        localStorage.getItem('selectedCourseActualId') ||
         '';
 
       // Debug logging

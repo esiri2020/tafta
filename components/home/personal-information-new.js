@@ -654,22 +654,22 @@ export const PersonalInformation = ({
           companyEmail,
         } = values;
 
-        // Get course information from sessionStorage or applicant data
+        // Get course information from localStorage or applicant data
         const selectedCourse =
           applicant?.profile?.selectedCourse ||
-          sessionStorage.getItem('selectedCourse') ||
+          localStorage.getItem('selectedCourse') ||
           '';
         const cohortId =
           applicant?.profile?.cohortId ||
-          sessionStorage.getItem('selectedCohortId') ||
+          localStorage.getItem('selectedCohortId') ||
           '';
         const selectedCourseName =
           applicant?.profile?.selectedCourseName ||
-          sessionStorage.getItem('selectedCourseName') ||
+          localStorage.getItem('selectedCourseName') ||
           '';
         const selectedCourseId =
           applicant?.profile?.selectedCourseId ||
-          sessionStorage.getItem('selectedCourseActualId') ||
+          localStorage.getItem('selectedCourseActualId') ||
           '';
 
         console.log('Course information being saved to profile:', {
@@ -734,19 +734,19 @@ export const PersonalInformation = ({
           if (req.data?.message === 'Applicant Updated') {
             // After successfully updating applicant, create enrollment
             try {
-              // Get course info from applicant data or session storage
+              // Get course info from applicant data or localStorage
               const courseId =
                 applicant?.profile?.selectedCourse ||
-                sessionStorage.getItem('selectedCourse');
+                localStorage.getItem('selectedCourse');
               const cohortId =
                 applicant?.profile?.cohortId ||
-                sessionStorage.getItem('selectedCohortId');
+                localStorage.getItem('selectedCohortId');
               const courseName =
                 applicant?.profile?.selectedCourseName ||
-                sessionStorage.getItem('selectedCourseName');
+                localStorage.getItem('selectedCourseName');
               const actualCourseId =
                 applicant?.profile?.selectedCourseId ||
-                sessionStorage.getItem('selectedCourseActualId');
+                localStorage.getItem('selectedCourseActualId');
 
               if (courseId && cohortId) {
                 try {
@@ -1972,19 +1972,19 @@ export const MoreInformation = ({
         if (req.data?.message === 'Applicant Updated') {
           // After successfully updating applicant, create enrollment
           try {
-            // Get course info from applicant data or session storage
+            // Get course info from applicant data or localStorage
             const courseId =
               applicant?.profile?.selectedCourse ||
-              sessionStorage.getItem('selectedCourse');
+              localStorage.getItem('selectedCourse');
             const cohortId =
               applicant?.profile?.cohortId ||
-              sessionStorage.getItem('selectedCohortId');
+              localStorage.getItem('selectedCohortId');
             const courseName =
               applicant?.profile?.selectedCourseName ||
-              sessionStorage.getItem('selectedCourseName');
+              localStorage.getItem('selectedCourseName');
             const actualCourseId =
               applicant?.profile?.selectedCourseId ||
-              sessionStorage.getItem('selectedCourseActualId');
+              localStorage.getItem('selectedCourseActualId');
 
             if (courseId && cohortId && applicant?.email) {
               try {
@@ -2217,10 +2217,10 @@ export const VerifyEmail = ({ email: propEmail, onBack }) => {
   const { data: session } = useSession();
   const [resendStatus, setResendStatus] = useState('');
   const router = useRouter();
-  // Always get the email from props, session, or sessionStorage
+  // Always get the email from props, session, or localStorage
   let email = propEmail || (session?.userData?.email ?? session?.user?.email ?? '');
   if (!email && typeof window !== 'undefined') {
-    email = sessionStorage.getItem('email') || '';
+    email = localStorage.getItem('email') || '';
   }
   console.log('VerifyEmail session:', session);
   console.log('VerifyEmail resolved email:', email);

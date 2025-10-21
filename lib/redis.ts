@@ -2,35 +2,67 @@ import { Redis } from 'ioredis';
 
 // Redis connection configuration
 const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
+  // Use REDIS_URL if available (for Upstash), otherwise fall back to individual configs
+  ...(process.env.REDIS_URL ? {
+    url: process.env.REDIS_URL,
+  } : {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+  }),
   retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
   lazyConnect: true,
   keepAlive: 30000,
   connectTimeout: 10000,
   commandTimeout: 5000,
+  // Add TLS configuration for production Redis
+  ...(process.env.NODE_ENV === 'production' && process.env.REDIS_URL ? {
+    tls: {},
+  } : {}),
 };
+
+// Check if Redis is disabled
+const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 
 // Create Redis client instance
 let redis: Redis | null = null;
 
 export function getRedisClient(): Redis {
   if (!redis) {
-    redis = new Redis(redisConfig);
-    
-    redis.on('connect', () => {
-      console.log('✅ Redis connected successfully');
-    });
-    
-    redis.on('error', (error) => {
-      console.error('❌ Redis connection error:', error);
-    });
-    
-    redis.on('close', () => {
-      console.log('🔌 Redis connection closed');
-    });
+    try {
+      redis = new Redis(redisConfig);
+      
+      redis.on('connect', () => {
+        console.log('✅ Redis connected successfully');
+      });
+      
+      redis.on('error', (error) => {
+        console.error('❌ Redis connection error:', error);
+        // Don't throw the error, just log it
+        // This allows the app to continue without Redis
+      });
+      
+      redis.on('close', () => {
+        console.log('🔌 Redis connection closed');
+      });
+      
+      redis.on('reconnecting', () => {
+        console.log('🔄 Redis reconnecting...');
+      });
+    } catch (error) {
+      console.error('❌ Failed to create Redis client:', error);
+      // Return a mock Redis client that doesn't do anything
+      // This prevents the app from crashing when Redis is unavailable
+      redis = new Redis({
+        host: 'localhost',
+        port: 6379,
+        lazyConnect: true,
+        maxRetriesPerRequest: 0, // Don't retry
+        connectTimeout: 1000,
+        commandTimeout: 1000,
+      });
+    }
   }
   
   return redis;
@@ -81,16 +113,26 @@ export const CacheKeys = {
 
 // Cache helper functions
 export class CacheManager {
-  private redis: Redis;
+  private redis: Redis | null = null;
+  private disabled: boolean = false;
   
   constructor() {
-    this.redis = getRedisClient();
+    if (!isRedisDisabled) {
+      this.redis = getRedisClient();
+    } else {
+      this.disabled = true;
+      console.log('🚫 Redis caching disabled via DISABLE_REDIS environment variable');
+    }
   }
   
   /**
    * Get cached data with fallback
    */
   async get<T>(key: string): Promise<T | null> {
+    if (this.disabled || !this.redis) {
+      return null; // No caching when disabled
+    }
+    
     try {
       const cached = await this.redis.get(key);
       if (cached) {
@@ -107,12 +149,16 @@ export class CacheManager {
    * Set cached data with TTL
    */
   async set(key: string, data: any, ttlSeconds: number = 300): Promise<void> {
+    if (this.disabled || !this.redis) {
+      return; // No caching when disabled
+    }
+    
     try {
       // Convert BigInt to string for JSON serialization
       const serializedData = JSON.stringify(data, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value
       );
-      await this.redis.setex(key, ttlSeconds, serializedData);
+      await this.redis!.setex(key, ttlSeconds, serializedData);
     } catch (error) {
       console.error('❌ Cache set error:', error);
     }
@@ -122,6 +168,10 @@ export class CacheManager {
    * Delete cached data
    */
   async del(key: string): Promise<void> {
+    if (this.disabled || !this.redis) {
+      return; // No caching when disabled
+    }
+    
     try {
       await this.redis.del(key);
     } catch (error) {
@@ -133,6 +183,10 @@ export class CacheManager {
    * Delete multiple keys by pattern
    */
   async delPattern(pattern: string): Promise<void> {
+    if (this.disabled || !this.redis) {
+      return; // No caching when disabled
+    }
+    
     try {
       const keys = await this.redis.keys(pattern);
       if (keys.length > 0) {
@@ -147,6 +201,10 @@ export class CacheManager {
    * Invalidate cache by tag
    */
   async invalidateByTag(tag: string): Promise<void> {
+    if (this.disabled || !this.redis) {
+      return; // No caching when disabled
+    }
+    
     try {
       const pattern = `*${tag}*`;
       await this.delPattern(pattern);
@@ -194,6 +252,11 @@ export class CacheManager {
     ttlSeconds: number = 300,
     lockTtlSeconds: number = 30
   ): Promise<T> {
+    if (this.disabled || !this.redis) {
+      // If Redis is disabled, just execute fallback without caching
+      return await fallback();
+    }
+    
     const lockKey = `${key}:lock`;
     
     try {
@@ -226,6 +289,10 @@ export class CacheManager {
    * Check if Redis is connected
    */
   async isConnected(): Promise<boolean> {
+    if (this.disabled || !this.redis) {
+      return false;
+    }
+    
     try {
       await this.redis.ping();
       return true;
@@ -242,6 +309,14 @@ export class CacheManager {
     memory: any;
     keyspace: any;
   }> {
+    if (this.disabled || !this.redis) {
+      return {
+        connected: false,
+        memory: null,
+        keyspace: null,
+      };
+    }
+    
     try {
       const connected = await this.isConnected();
       const memoryInfo = await this.redis.info('memory');

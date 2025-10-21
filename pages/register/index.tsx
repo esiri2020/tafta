@@ -178,8 +178,8 @@ function completeRegistration() {
       const user = await userData.json();
       console.log('👤 User data:', user);
       
-      // Find existing enrollment
-      const enrollmentResponse = await fetch(`/api/enrollments/cached?user_email=${user.email}`, {
+      // Find existing enrollment (use non-cached API)
+      const enrollmentResponse = await fetch(`/api/enrollments?user_email=${user.email}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

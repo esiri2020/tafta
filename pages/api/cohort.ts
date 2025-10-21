@@ -151,8 +151,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS']);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
+  }
+
   if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH']);
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS']);
     return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 
