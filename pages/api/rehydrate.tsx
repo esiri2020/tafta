@@ -71,8 +71,16 @@ export default async function handler(
             userCohort: { select: { id: true } }
           }
         });
+        
+        // Filter out enrollments for users who don't exist in our database
+        const validUserEmails = new Set(users.map(user => user.email.toLowerCase()));
+        const filteredEnrollments = data.items.filter((item: Data) => 
+          validUserEmails.has(item.user_email.toLowerCase())
+        );
+        
+        console.log(`📊 Page ${currentPage}: Found ${data.items.length} enrollments, ${filteredEnrollments.length} for registered users, ${data.items.length - filteredEnrollments.length} ignored (LMS-only users)`);
         const user_list: Promise<User>[] = [];
-        const enrollments: Enrollment[] = await Promise.all(data.items.map(async (item: Data) => {
+        const enrollments: Enrollment[] = await Promise.all(filteredEnrollments.map(async (item: Data) => {
           let { user_email, user_name, ...enrollmentData } = item;
           user_email = user_email.toLowerCase();
           // Check if enrollment is from or before the stop date
@@ -83,7 +91,8 @@ export default async function handler(
           }
           const user = users.find((user) => user.email.toLowerCase() === user_email);
           if (!user) {
-            console.warn('No User: ' + user_email);
+            // This should not happen since we filtered out non-existent users
+            console.error('Unexpected: User not found after filtering:', user_email);
             return;
           }
           if (user.role !== "APPLICANT") return;
@@ -144,6 +153,9 @@ export default async function handler(
         await prisma.rehydrationProgress.deleteMany({});
         console.log('All pages processed. Progress reset.');
       }
+      
+      console.log(`✅ Rehydration Summary: Processed ${processedPages} pages, ${processedEnrollments} enrollments for registered users`);
+      
       return res.status(200).json({
         message: 'Batch synchronizing',
         processedPages,
