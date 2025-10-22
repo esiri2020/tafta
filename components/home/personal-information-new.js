@@ -2295,7 +2295,7 @@ export const EndOfApplication = ({ handlers }) => {
       router.push('/dashboard');
     } catch (error) {
       console.error('❌ Error completing registration:', error);
-      // Still redirect to dashboard
+      // Redirect to dashboard
       router.push('/dashboard');
     }
   };

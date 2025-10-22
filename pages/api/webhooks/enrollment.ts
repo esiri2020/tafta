@@ -5,13 +5,9 @@ import crypto from 'crypto';
 import { revalidateAfterChange } from '../../../lib/cache-revalidator';
 import { cacheManager } from '../../../lib/redis';
 
-// Redis connection
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null, // Required for BullMQ
-});
+// Redis connection - use the same config as main app
+import { getRedisClient } from '../../../lib/redis';
+const redis = getRedisClient();
 
 // BullMQ queue
 const enrollmentQueue = new Queue('enrollment-processing', {

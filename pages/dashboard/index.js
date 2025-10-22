@@ -301,12 +301,12 @@ const Account = () => {
 
   // Check for recent enrollment activation and refresh data
   useEffect(() => {
-    const enrollmentActivated = sessionStorage.getItem('enrollmentActivated');
+    const enrollmentActivated = localStorage.getItem('enrollmentActivated');
     if (enrollmentActivated === 'true') {
       console.log('🔄 Enrollment was recently activated, refreshing data...');
       refetch();
-      sessionStorage.removeItem('enrollmentActivated');
-      sessionStorage.removeItem('enrollmentCourse');
+      localStorage.removeItem('enrollmentActivated');
+      localStorage.removeItem('enrollmentCourse');
     }
   }, [refetch]);
 
@@ -353,8 +353,6 @@ const Account = () => {
   };
 
   console.log('notificationsData', notificationsData);
-
-  if (isLoading) return <SplashScreen />;
   if (error) {
     switch (error.status) {
       case 404:

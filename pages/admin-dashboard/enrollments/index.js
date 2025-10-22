@@ -160,19 +160,22 @@ export default function EnrollmentsPage() {
     setPage(0); // Reset to first page when changing rows per page
   };
 
-  const rehydrate = async () => {
+  const rehydrate = async (strategy = 'smart') => {
+    const endpoint = strategy === 'smart' ? '/api/rehydrate-smart' : '/api/rehydrate';
+    const message = strategy === 'smart' ? 'Quick syncing recent changes...' : 'Full rehydration in progress...';
+    
     toast.promise(
-      fetch('/api/rehydrate').then(res => {
+      fetch(endpoint).then(res => {
         if (!res.ok) {
           throw new Error('Failed to rehydrate');
         }
         return res.json();
       }),
       {
-        loading: 'Updating enrollments...',
-        success: data => `${data?.count || 0} enrollments updated successfully`,
-        error: 'Failed to update enrollments',
-      },
+        loading: message,
+        success: (data) => `${strategy === 'smart' ? 'Quick sync' : 'Full rehydration'} completed! ${data.processedCount || data?.count || 0} enrollments processed.`,
+        error: `Failed to ${strategy === 'smart' ? 'quick sync' : 'rehydrate'} enrollment data`,
+      }
     );
   };
 
@@ -251,10 +254,24 @@ export default function EnrollmentsPage() {
                 )}
               </Button>
             </CSVLink>
-            <Button onClick={rehydrate}>
-              <RefreshCcw className='mr-2 h-4 w-4' />
-              Rehydrate
-            </Button>
+            <div className='flex gap-2'>
+              <Button
+                onClick={() => rehydrate('smart')}
+                variant='outline'
+                size='sm'
+              >
+                <RefreshCcw className='mr-2 h-4 w-4' />
+                Quick Sync (5min)
+              </Button>
+              <Button
+                onClick={() => rehydrate('full')}
+                variant='outline'
+                size='sm'
+              >
+                <RefreshCcw className='mr-2 h-4 w-4' />
+                Full Sync
+              </Button>
+            </div>
           </div>
         }
       />

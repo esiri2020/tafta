@@ -35,33 +35,20 @@ export const getServerSideProps: GetServerSideProps = async context => {
           destination: '/mobilizer-dashboard',
         },
       };
-    case 'APPLICANT': {
-      // If the user does not have a verified profile, redirect to verify email
-      if (!session?.userData?.emailVerified) {
-        return {
-          redirect: {
-            permanent: false,
-            destination: `/register-new?step=2`,
-          },
-        };
-      }
-      // If the user has a verified profile but no profile data, redirect to personal information
-      if (!session?.userData?.profile) {
-        return {
-          redirect: {
-            permanent: false,
-            destination: `/register-new?step=3`,
-          },
-        };
-      }
-      // If the user has a verified profile and profile data, redirect to dashboard
-      return {
-        redirect: {
-          permanent: false,
-          destination: `/dashboard`,
-        },
-      };
-    }
+    case 'APPLICANT':
+      return session?.userData?.profile
+        ? {
+            redirect: {
+              permanent: false,
+              destination: `/dashboard`,
+            },
+          }
+        : {
+            redirect: {
+              permanent: false,
+              destination: `/register-new?userId=${session?.userData?.userId}&step=3`,
+            },
+          };
     default:
       return {
         redirect: {

@@ -173,11 +173,23 @@ export const authOptions: AuthOptions = {
           type: user.type,
           email: user.email,
           role: user.role,
-          profile: dbUser?.profile ? true : false, // Use dbUser profile instead of user profile
+          profile: user.profile ? true : false,
           emailVerified: user.emailVerified,
           enrollments: enrollmentIds,
           mobilizerId: dbUser?.mobilizer?.id || null, // Include mobilizer ID
         } as UserData;
+      } else if (token.userData?.userId) {
+        // Refresh profile data on token refresh
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.userData.userId },
+          include: {
+            profile: true,
+          },
+        });
+
+        if (dbUser) {
+          token.userData.profile = dbUser.profile ? true : false;
+        }
       }
       return token;
     },

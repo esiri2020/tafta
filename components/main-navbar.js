@@ -1,11 +1,10 @@
 import PropTypes from 'prop-types';
 import NextLink from 'next/link';
-import { AppBar, Box, Button, Container, Divider, IconButton, Link, Toolbar } from '@mui/material';
+import { AppBar, Box, Button, Container, Divider, IconButton, Link as MuiLink, Toolbar } from '@mui/material';
 import { Menu as MenuIcon } from '../icons/menu';
 import { Logo } from './logo';
 import { signOut, useSession } from "next-auth/react"
 import Router from 'next/router';
-import { Link as MuiLink } from '@mui/material';
 
 export const MainNavbar = (props) => {
   const { onOpenSidebar } = props;
@@ -71,9 +70,13 @@ export const MainNavbar = (props) => {
               session?.userData ?
                 (
                   <>
-                    <MuiLink component={NextLink} href="/role" color="textSecondary" sx={{ ml: 2 }} underline="none" variant="subtitle2">
-                      Dashboard
-                    </MuiLink>
+                <MuiLink
+                  component={NextLink}
+                  href="/role"
+                  color="textSecondary" sx={{ ml: 2 }} underline="none" variant="subtitle2"
+                >
+                  Dashboard
+                </MuiLink>
                     <Button
                       size="medium"
                       sx={{ ml: 2 }}

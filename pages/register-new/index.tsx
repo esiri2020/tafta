@@ -236,7 +236,7 @@ function RegisterNew() {
           console.error('❌ Failed to activate enrollment:', errorData);
           toast.error('Registration completed, but enrollment activation failed. Please contact support.');
           
-          // Still redirect to dashboard
+          // Redirect to dashboard
           router.push('/dashboard');
         }
       } else {
