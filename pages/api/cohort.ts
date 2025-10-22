@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '../../lib/prismadb';
+import api from '../../lib/axios.setup';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // CREATE cohort
@@ -42,6 +43,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           color: true,
         },
       });
+
+      // Create matching Thinkific Group for this cohort (idempotent best-effort)
+      try {
+        const groupRes = await api.post('/groups', {
+          name: cohort.name,
+        });
+        console.log('✅ Thinkific group created for cohort:', {
+          cohortName: cohort.name,
+          groupId: groupRes?.data?.id,
+        });
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const data = err?.response?.data;
+        // If group already exists or endpoint rejects duplicates, ignore
+        if (status === 409 || status === 422) {
+          console.warn('ℹ️ Thinkific group may already exist, continuing:', {
+            cohortName: cohort.name,
+            status,
+            data,
+          });
+        } else {
+          console.error('❌ Failed to create Thinkific group for cohort:', {
+            cohortName: cohort.name,
+            status,
+            data,
+            message: err?.message,
+          });
+        }
+      }
 
       // Handle cohort courses and centers if provided
       const { cohortCourses = [], centers = [] } = body;
