@@ -58,7 +58,7 @@ export const MobilizerCreateDialog: React.FC<MobilizerCreateDialogProps> = ({
     let retries = 3;
     while (retries > 0) {
       try {
-        const response = await fetch('/api/mobilizer-codes');
+        const response = await fetch('/api/mobilizers/all-codes');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

@@ -30,7 +30,7 @@ export const ReferralInformation = ({formik}: ReferralInformationProps) => {
     const fetchCodes = async () => {
       try {
         console.log('🔍 Fetching mobilizer codes...');
-        const response = await fetch(`/api/mobilizers/codes-simple?t=${Date.now()}`);
+        const response = await fetch(`/api/mobilizers/all-codes?t=${Date.now()}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

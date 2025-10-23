@@ -32,7 +32,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (existingMobilizer) {
-      return res.status(400).json({ message: 'Mobilizer code already registered' });
+      // If the existing mobilizer has a placeholder email, allow claiming
+      if (existingMobilizer.email.includes('@placeholder.com')) {
+        // This is an unregistered mobilizer - allow claiming
+        console.log(`Allowing claim of unregistered mobilizer code: ${code}`);
+      } else {
+        // This is a registered mobilizer - block registration
+        return res.status(400).json({ message: 'Mobilizer code already registered' });
+      }
     }
 
     // Check if email already exists
@@ -59,21 +66,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      const mobilizerRecord = await tx.mobilizer.create({
-        data: {
-          code,
-          fullName,
-          email,
-          phoneNumber,
-          organization,
-          userId: user.id,
-          totalReferrals: 0,
-          activeReferrals: 0,
-          completedReferrals: 0,
-        },
-      });
-
-      // Note: mobilizerId and mobilizerCode fields were removed from User and Profile models
+      let mobilizerRecord;
+      
+      if (existingMobilizer && existingMobilizer.email.includes('@placeholder.com')) {
+        // Update existing unregistered mobilizer
+        mobilizerRecord = await tx.mobilizer.update({
+          where: { id: existingMobilizer.id },
+          data: {
+            fullName,
+            email,
+            phoneNumber,
+            organization,
+            userId: user.id,
+            status: 'ACTIVE', // Activate the mobilizer
+          },
+        });
+      } else {
+        // Create new mobilizer
+        mobilizerRecord = await tx.mobilizer.create({
+          data: {
+            code,
+            fullName,
+            email,
+            phoneNumber,
+            organization,
+            userId: user.id,
+            totalReferrals: 0,
+            activeReferrals: 0,
+            completedReferrals: 0,
+          },
+        });
+      }
 
       // Create a profile for the mobilizer user
       await tx.profile.create({
@@ -81,8 +104,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           userId: user.id,
         },
       });
-
-      // Note: No need to manage MobilizerCode table - we use the existing Referrer table
 
       return { user, mobilizer: mobilizerRecord };
     });
