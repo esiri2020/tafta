@@ -240,11 +240,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         // Create Thinkific user first
         let thinkificUserId = null;
         try {
-          console.log('Creating Thinkific user with:', { firstName, lastName, email });
+          console.log('Creating Thinkific user with:', { firstName, lastName, email: email.toLowerCase() });
+          
+          // Validate email format before sending to Thinkific
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            throw new Error('Invalid email format');
+          }
+          
           const thinkificUser = await api.post("/users", {
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            email: email.toLowerCase().trim(), // Ensure lowercase and trimmed
             password: password, // Use plain text password for Thinkific
             skip_custom_fields_validation: true,
             send_welcome_email: true,
@@ -258,6 +265,30 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             data: thinkificError.response?.data,
             message: thinkificError.message
           });
+          
+          // Handle specific validation errors
+          if (thinkificError.response?.status === 422) {
+            const errors = thinkificError.response?.data?.errors;
+            
+            // Check if user already exists with this email
+            if (errors?.email && errors.email.includes('already exists')) {
+              console.log('⚠️ User already exists in Thinkific, attempting to find existing user...');
+              try {
+                // Search for existing user by email
+                const searchResponse = await api.get(`/users?query[email]=${email}`);
+                if (searchResponse.data.items && searchResponse.data.items.length > 0) {
+                  thinkificUserId = searchResponse.data.items[0].id.toString();
+                  console.log(`✅ Found existing Thinkific user with ID: ${thinkificUserId}`);
+                }
+              } catch (searchError) {
+                console.error('❌ Failed to find existing Thinkific user:', searchError);
+              }
+            } else {
+              // For other validation errors, log them but continue
+              console.error('❌ Thinkific validation errors:', errors);
+            }
+          }
+          
           // Continue with local user creation even if Thinkific fails
         }
 

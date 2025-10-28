@@ -411,7 +411,7 @@ function ApplicantList() {
   } = useGetApplicantsQuery(
     {
       page: 0,
-      limit: 100000, // Very large number to get all records
+      limit: 5000, // Reduced limit to prevent timeouts - implement chunked export for larger datasets
       ...(filterParams && { filter: filterParams }),
       query: searchQuery,
       cohortId,

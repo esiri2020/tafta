@@ -3,7 +3,24 @@ import { cacheManager, CacheKeys } from './redis';
 
 // Extend Prisma client with caching capabilities
 export class CachedPrismaClient extends PrismaClient {
-  private cachePrefix = 'prisma';
+  private cachePrefix = 'prisma'
+
+  /**
+   * Helper function to sanitize search queries for PostgreSQL tsquery
+   * Prevents tsquery syntax errors from malformed queries
+   */
+  private sanitizeSearchQuery(query: string): string {
+    if (!query || typeof query !== 'string') return '';
+    
+    // Remove extra whitespace and split into terms
+    const terms = query.trim().split(/\s+/).filter(term => term.length > 0);
+    
+    // If no valid terms, return empty string
+    if (terms.length === 0) return '';
+    
+    // Join terms with ' | ' for OR search, ensuring no trailing pipe
+    return terms.join(' | ');
+  };
   
   /**
    * Cache Prisma query results with automatic invalidation
@@ -41,6 +58,17 @@ export class CachedPrismaClient extends PrismaClient {
   }) {
     const cacheKey = CacheKeys.enrollments(params);
     
+    // Implement size-aware caching - split large datasets
+    const { limit = 10 } = params;
+    const maxCacheableLimit = 100; // Limit cache to 100 records max
+    const actualLimit = Math.min(limit, maxCacheableLimit);
+    
+    // For large queries, bypass cache and query directly
+    if (limit > maxCacheableLimit) {
+      console.log(`Query too large for cache (limit: ${limit}), querying directly`);
+      return this.getEnrollmentsDirectly({ ...params, limit: actualLimit });
+    }
+    
     return this.cachedQuery(
       'enrollments',
       cacheKey,
@@ -57,7 +85,7 @@ export class CachedPrismaClient extends PrismaClient {
           dateTo, 
           user_email 
         } = params;
-        const offset = page * limit;
+        const offset = page * actualLimit;
         
         // Handle user-specific requests
         if (user_email) {
@@ -206,7 +234,7 @@ export class CachedPrismaClient extends PrismaClient {
               }
             },
             skip: offset,
-            take: limit,
+            take: actualLimit,
             orderBy: {
               created_at: 'desc'
             }
@@ -220,15 +248,153 @@ export class CachedPrismaClient extends PrismaClient {
           enrollments,
           pagination: {
             page,
-            limit,
+            limit: actualLimit,
             total: totalCount,
-            totalPages: Math.ceil(totalCount / limit)
+            totalPages: Math.ceil(totalCount / actualLimit)
           }
         };
       },
       300, // 5 minutes TTL
       [CacheKeys.tags.enrollments]
     );
+  }
+
+  /**
+   * Direct enrollment queries for large datasets (bypasses cache)
+   */
+  private async getEnrollmentsDirectly(params: {
+    page?: number;
+    limit?: number;
+    cohort?: string;
+    course?: string[];
+    status?: string;
+    gender?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    user_email?: string;
+  }) {
+    const { 
+      page = 0, 
+      limit = 10, 
+      cohort, 
+      course, 
+      status, 
+      gender, 
+      search, 
+      dateFrom, 
+      dateTo, 
+      user_email 
+    } = params;
+    const offset = page * limit;
+    
+    // Use the same query logic but without caching for large datasets
+    let whereClause: any = {};
+    
+    if (cohort) {
+      whereClause.userCohort = { cohortId: cohort };
+    }
+    
+    if (course && course.length > 0) {
+      whereClause.course_id = { in: course };
+    }
+    
+    if (status) {
+      if (status === 'active') {
+        whereClause.enrolled = true;
+        whereClause.completed = false;
+        whereClause.expired = false;
+      } else if (status === 'completed') {
+        whereClause.completed = true;
+      } else if (status === 'expired') {
+        whereClause.expired = true;
+      }
+    }
+    
+    if (search) {
+      whereClause.OR = [
+        { course_name: { search: search } },
+        { userCohort: { user: { firstName: { search: search } } } },
+        { userCohort: { user: { lastName: { search: search } } } },
+        { userCohort: { user: { email: { search: search } } } }
+      ];
+    }
+    
+    if (dateFrom || dateTo) {
+      whereClause.created_at = {};
+      if (dateFrom) whereClause.created_at.gte = new Date(dateFrom);
+      if (dateTo) whereClause.created_at.lte = new Date(dateTo);
+    }
+    
+    if (gender) {
+      if (whereClause.userCohort) {
+        if (whereClause.userCohort.user) {
+          whereClause.userCohort.user.profile = {
+            gender: gender.toUpperCase(),
+          };
+        } else {
+          whereClause.userCohort.user = {
+            profile: {
+              gender: gender.toUpperCase(),
+            },
+          };
+        }
+      } else {
+        whereClause.userCohort = {
+          user: {
+            profile: {
+              gender: gender.toUpperCase(),
+            },
+          },
+        };
+      }
+    }
+    
+    const [enrollments, totalCount] = await Promise.all([
+      this.enrollment.findMany({
+        where: whereClause,
+        include: {
+          userCohort: {
+            include: {
+              cohort: { select: { id: true, name: true, color: true } }, // Reduce data size
+              user: {
+                select: { // Reduce user data size
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  profile: {
+                    select: {
+                      gender: true,
+                      ageRange: true,
+                      stateOfResidence: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        skip: offset,
+        take: limit,
+        orderBy: {
+          created_at: 'desc'
+        }
+      }),
+      this.enrollment.count({
+        where: whereClause
+      })
+    ]);
+    
+    return {
+      enrollments,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    };
   }
   
   /**
@@ -307,12 +473,15 @@ export class CachedPrismaClient extends PrismaClient {
           if (isEmail.test(query)) {
             whereConditions.email = { search: query };
           } else {
-            whereConditions.OR = [
-              {
-                firstName: { search: query.split(' ').join(' | ') },
-                lastName: { search: query.split(' ').join(' | ') },
-              },
-            ];
+            const sanitizedQuery = this.sanitizeSearchQuery(query);
+            if (sanitizedQuery) {
+              whereConditions.OR = [
+                {
+                  firstName: { search: sanitizedQuery },
+                  lastName: { search: sanitizedQuery },
+                },
+              ];
+            }
           }
         } else if (filter === 'MALE' || filter === 'FEMALE') {
           whereConditions.profile = { gender: filter };

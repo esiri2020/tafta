@@ -5,6 +5,20 @@ import prisma from '../../../lib/prismadb';
 import {Enrollment, User} from '@prisma/client';
 import {bigint_filter} from '../enrollments';
 
+// Helper function to sanitize search queries for PostgreSQL tsquery
+const sanitizeSearchQuery = (query: string): string => {
+  if (!query || typeof query !== 'string') return '';
+  
+  // Remove extra whitespace and split into terms
+  const terms = query.trim().split(/\s+/).filter(term => term.length > 0);
+  
+  // If no valid terms, return empty string
+  if (terms.length === 0) return '';
+  
+  // Join terms with ' | ' for OR search, ensuring no trailing pipe
+  return terms.join(' | ');
+};
+
 // Helper function to get cohort-specific course IDs
 async function getCohortCourseIds(cohortId: string | null): Promise<bigint[]> {
   if (!cohortId) return [];
@@ -275,8 +289,16 @@ export default async function handler(
   };
   const orderBy = orderByMap[(sort as string) || 'name_asc'] || [{ firstName: 'asc' }, { lastName: 'asc' }];
 
-  const take = parseInt(typeof limit == 'string' && limit ? limit : '30');
+  // Add safety limits to prevent timeout
+  const requestedLimit = parseInt(typeof limit == 'string' && limit ? limit : '30');
+  const maxLimit = 5000; // Maximum allowed limit to prevent timeouts
+  const take = Math.min(requestedLimit, maxLimit);
   const skip = take * parseInt(typeof page == 'string' ? page : '0');
+  
+  // Log warning for large requests
+  if (requestedLimit > maxLimit) {
+    console.warn(`Request limit ${requestedLimit} exceeds maximum ${maxLimit}, using ${take} instead`);
+  }
   
   // Get cohort-specific course IDs for filtering enrollments
   const cohortCourseIds = await getCohortCourseIds(cohortId || null);
@@ -454,10 +476,10 @@ export default async function handler(
             OR: [
               {
                 firstName: {
-                  search: query.split(' ').join(' | '),
+                  search: sanitizeSearchQuery(query),
                 },
                 lastName: {
-                  search: query.split(' ').join(' | '),
+                  search: sanitizeSearchQuery(query),
                 },
               },
             ],
@@ -471,10 +493,10 @@ export default async function handler(
             OR: [
               {
                 firstName: {
-                  search: query.split(' ').join(' | '),
+                  search: sanitizeSearchQuery(query),
                 },
                 lastName: {
-                  search: query.split(' ').join(' | '),
+                  search: sanitizeSearchQuery(query),
                 },
               },
             ],
@@ -485,13 +507,42 @@ export default async function handler(
         },
           include: {
             profile: {
-              include: {
-                referrer: true
+              select: {
+                // Select only essential profile fields to reduce payload size
+                id: true,
+                gender: true,
+                ageRange: true,
+                stateOfResidence: true,
+                phoneNumber: true,
+                educationLevel: true,
+                employmentStatus: true,
+                registrationMode: true,
+                type: true,
+                selectedCourseName: true,
+                referrer: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    phoneNumber: true
+                  }
+                }
               }
             },
             userCohort: {
-              include: {
+              select: {
+                id: true,
+                cohortId: true,
+                created_at: true,
                 enrollments: {
+                  select: {
+                    id: true,
+                    enrolled: true,
+                    completed: true,
+                    expired: true,
+                    course_name: true,
+                    percentage_completed: true,
+                    activated_at: true
+                  },
                   // Only include enrollments for courses that belong to this cohort
                   ...(cohortId ? {
                     where: {
@@ -501,11 +552,37 @@ export default async function handler(
                     },
                   } : {}),
                 },
-                cohort: true,
-                location: true
+                cohort: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                    start_date: true,
+                    end_date: true,
+                    active: true
+                  }
+                },
+                location: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                }
               },
             },
-            assessment: true,
+            // Only include assessment if specifically requested to reduce payload
+            ...(includeAssessment === 'true' ? {
+              assessment: {
+                select: {
+                  id: true,
+                  courseOfStudy: true,
+                  enrollmentStatus: true,
+                  employmentStatus: true,
+                  monthlyIncome: true,
+                  createdAt: true
+                }
+              }
+            } : {}),
           },
           take,
           skip,
