@@ -74,14 +74,14 @@ export const ReferralInformation = ({formik}: ReferralInformationProps) => {
                   formik.setFieldValue('source', value);
                 }}
                 className='flex space-x-4'>
-                <div className='flex items-center space-x-2'>
+                {/* <div className='flex items-center space-x-2'>
                   <RadioGroupItem value='social_media' id='source-social' />
                   <Label htmlFor='source-social'>Social Media</Label>
                 </div>
                 <div className='flex items-center space-x-2'>
                   <RadioGroupItem value='website' id='source-website' />
                   <Label htmlFor='source-website'>Website</Label>
-                </div>
+                </div> */}
                 <div className='flex items-center space-x-2'>
                   <RadioGroupItem value='by_referral' id='source-referral' />
                   <Label htmlFor='source-referral'>By Mobilizer</Label>

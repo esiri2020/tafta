@@ -1295,7 +1295,7 @@ export const PersonalInformation = ({
                       }
                       formik.handleChange(e);
                     }}>
-                    <FormControlLabel
+                    {/* <FormControlLabel
                       control={<Radio sx={{ml: 1}} />}
                       label={
                         <Typography variant='body1'>Social Media</Typography>
@@ -1306,7 +1306,7 @@ export const PersonalInformation = ({
                       control={<Radio sx={{ml: 1}} />}
                       label={<Typography variant='body1'>Website</Typography>}
                       value='website'
-                    />
+                    /> */}
                     <FormControlLabel
                       control={<Radio sx={{ml: 1}} />}
                       label={
@@ -1650,7 +1650,7 @@ export const MoreInformation = ({
                       }
                       formik.handleChange(e);
                     }}>
-                    <FormControlLabel
+                    {/* <FormControlLabel
                       control={<Radio sx={{ml: 1}} />}
                       label={
                         <Typography variant='body1'>Social Media</Typography>
@@ -1661,7 +1661,7 @@ export const MoreInformation = ({
                       control={<Radio sx={{ml: 1}} />}
                       label={<Typography variant='body1'>Website</Typography>}
                       value='website'
-                    />
+                    /> */}
                     <FormControlLabel
                       control={<Radio sx={{ml: 1}} />}
                       label={
