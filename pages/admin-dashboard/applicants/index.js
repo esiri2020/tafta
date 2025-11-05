@@ -403,7 +403,7 @@ function ApplicantList() {
     sort,
   });
 
-  // Get all filtered data for export (without pagination)
+  // Get all filtered data for export (without pagination limit)
   const {
     data: exportData,
     isLoading: isExportLoading,
@@ -411,12 +411,12 @@ function ApplicantList() {
   } = useGetApplicantsQuery(
     {
       page: 0,
-      limit: 5000, // Reduced limit to prevent timeouts - implement chunked export for larger datasets
+      limit: 100000, // Large limit to trigger export mode in API (no 5000 cap)
       ...(filterParams && { filter: filterParams }),
       query: searchQuery,
       cohortId,
       sort,
-      includeAssessment: true, // Add this to request assessment data
+      includeAssessment: true,
     },
     {
       skip: !data, // Only fetch after main data is loaded
@@ -425,6 +425,118 @@ function ApplicantList() {
 
   // Determine if export is loading
   const isExporting = isExportLoading || isExportFetching;
+
+  // Format data for CSV export using exportData instead of data
+  const csvData = React.useMemo(() => {
+    if (!exportData?.applicants) return [];
+
+    return exportData.applicants.map(applicant => {
+      const userCohort = applicant.userCohort?.[0];
+      const cohort = userCohort?.cohort;
+      const location = userCohort?.location;
+      const enrollments = userCohort?.enrollments || [];
+      const assessment = applicant.assessment;
+      
+      // Get primary enrollment (first one) or create a default structure
+      const primaryEnrollment = enrollments[0] || {};
+      
+      // Handle multiple enrollments by joining course names
+      const allCourseNames = enrollments.map(e => e.course_name).filter(Boolean).join('; ');
+      const allCourseIds = enrollments.map(e => e.course_id?.toString()).filter(Boolean).join('; ');
+      
+      return {
+        // Basic Applicant Information
+        'First Name': applicant.firstName || '',
+        'Last Name': applicant.lastName || '',
+        'Email': applicant.email || '',
+        'Phone Number': applicant.profile?.phoneNumber || '',
+        'Registration Type': applicant.type || '',
+        'Thinkific User ID': applicant.thinkific_user_id || '',
+        'Created At': applicant.createdAt ? new Date(applicant.createdAt).toISOString() : '',
+        
+        // Profile Information
+        'Business Name': applicant.profile?.businessName || '',
+        'Gender': applicant.profile?.gender || '',
+        'Age Range': applicant.profile?.ageRange || '',
+        'Education Level': applicant.profile?.educationLevel || '',
+        'Employment Status': applicant.profile?.employmentStatus || '',
+        'Residency Status': applicant.profile?.residencyStatus || '',
+        'Community Area': applicant.profile?.communityArea || '',
+        'TALP Participation': applicant.profile?.talpParticipation ? 'Yes' : 'No',
+        'State of Residence': applicant.profile?.stateOfResidence || '',
+        'LGA Details': applicant.profile?.LGADetails || '',
+        'Type of Applicant': applicant.profile?.type || '',
+        'Referrer ID': applicant.profile?.referrer?.id || '',
+        'Referrer Name': applicant.profile?.referrer?.fullName || '',
+        'Referrer Phone': applicant.profile?.referrer?.phoneNumber || '',
+        'Source of Information': applicant.profile?.source || '',
+        'Disability': applicant.profile?.disability || '',
+        
+        // Cohort Information
+        'Cohort Name': cohort?.name || '',
+        'Cohort Start Date': cohort?.start_date ? new Date(cohort.start_date).toISOString() : '',
+        'Cohort End Date': cohort?.end_date ? new Date(cohort.end_date).toISOString() : '',
+        'Cohort Active Status': cohort?.active ? 'Active' : 'Inactive',
+        'Cohort Color': cohort?.color || '',
+        'Location Name': location?.name || '',
+        'Location Seats': location?.seats?.toString() || '',
+        
+        // Enrollment Information
+        'Course Name': allCourseNames || primaryEnrollment?.course_name || '',
+        'Course ID': allCourseIds || primaryEnrollment?.course_id?.toString() || '',
+        'Course Description': '', // Course description would need to be fetched separately
+        'Course Active Status': '', // Course active status would need to be fetched separately
+        'Course Capacity': '', // Course capacity would need to be fetched separately
+        'Enrollment Status': primaryEnrollment?.enrolled ? 'Enrolled' : 'Not Enrolled',
+        'Enrollment Date': primaryEnrollment?.created_at ? new Date(primaryEnrollment.created_at).toISOString() : '',
+        'Activation Date': primaryEnrollment?.activated_at ? new Date(primaryEnrollment.activated_at).toISOString() : '',
+        'Completion Date': primaryEnrollment?.completed_at ? new Date(primaryEnrollment.completed_at).toISOString() : '',
+        'Expiry Date': primaryEnrollment?.expiry_date ? new Date(primaryEnrollment.expiry_date).toISOString() : '',
+        'Percentage Completed': primaryEnrollment?.percentage_completed?.toString() || '',
+        'Is Free Trial': primaryEnrollment?.is_free_trial ? 'Yes' : 'No',
+        'Is Completed': primaryEnrollment?.completed ? 'Yes' : 'No',
+        'Is Expired': primaryEnrollment?.expired ? 'Yes' : 'No',
+        'Started At': primaryEnrollment?.started_at ? new Date(primaryEnrollment.started_at).toISOString() : '',
+        'Updated At': primaryEnrollment?.updated_at ? new Date(primaryEnrollment.updated_at).toISOString() : '',
+        
+        // Assessment Information
+        'Course of Study': assessment?.courseOfStudy || '',
+        'Assessment Enrollment Status': assessment?.enrollmentStatus || '',
+        'Had Job Before Admission': assessment?.hadJobBeforeAdmission ? 'Yes' : 'No',
+        'Assessment Employment Status': assessment?.employmentStatus || '',
+        'Employment Type': assessment?.employmentType || '',
+        'Work Time Type': assessment?.workTimeType || '',
+        'Employed in Creative Sector': assessment?.employedInCreativeSector ? 'Yes' : 'No',
+        'Creative Job Nature': assessment?.creativeJobNature || '',
+        'Non-Creative Job Info': assessment?.nonCreativeJobInfo || '',
+        'Years of Experience Creative': assessment?.yearsOfExperienceCreative || '',
+        'Satisfaction Level': assessment?.satisfactionLevel || '',
+        'Skill Rating': assessment?.skillRating || '',
+        'Monthly Income': assessment?.monthlyIncome || '',
+        'Has Reliable Income': assessment?.hasReliableIncome ? 'Yes' : 'No',
+        'Earning Meets Needs': assessment?.earningMeetsNeeds ? 'Yes' : 'No',
+        'Work Is Decent and Good': assessment?.workIsDecentAndGood ? 'Yes' : 'No',
+        'Job Gives Purpose': assessment?.jobGivesPurpose ? 'Yes' : 'No',
+        'Feel Respected at Work': assessment?.feelRespectedAtWork ? 'Yes' : 'No',
+        'LMS Platform Rating': assessment?.lmsPlatformRating || '',
+        'Tafta Preparation Rating': assessment?.taftaPreparationRating || '',
+        'Preparation Feedback': assessment?.preparationFeedback || '',
+        'Quality of Interaction Rating': assessment?.qualityOfInteractionRating || '',
+        'Training Materials Rating': assessment?.trainingMaterialsRating || '',
+        'Topic Sequencing Rating': assessment?.topicSequencingRating || '',
+        'Facilitators Response Rating': assessment?.facilitatorsResponseRating || '',
+        'Would Recommend Tafta': assessment?.wouldRecommendTafta ? 'Yes' : 'No',
+        'Improvement Suggestions': assessment?.improvementSuggestions || '',
+        'Most Striking Feature': assessment?.mostStrikingFeature || '',
+        'Turn Offs': assessment?.turnOffs || '',
+        'Practical Class Challenges': assessment?.practicalClassChallenges || '',
+        'Online Class Challenges': assessment?.onlineClassChallenges || '',
+        'Completion Motivation': assessment?.completionMotivation || '',
+        'Assessment Created At': assessment?.createdAt ? new Date(assessment.createdAt).toISOString() : '',
+        'Assessment Updated At': assessment?.updatedAt ? new Date(assessment.updatedAt).toISOString() : '',
+      };
+    });
+  }, [exportData?.applicants]);
 
   const [deleteApplicants] = useDeleteApplicantsMutation();
   const [approveApplicants] = useApproveApplicantsMutation();
@@ -560,213 +672,6 @@ function ApplicantList() {
     }
   };
 
-  // Format data for CSV export using exportData instead of data
-  const csvData = React.useMemo(() => {
-    if (!exportData?.applicants) return [];
-
-    return [
-      // Headers - Comprehensive data columns
-      [
-        // Basic Applicant Information
-        'First Name',
-        'Last Name',
-        'Email',
-        'Phone Number',
-        'Registration Type',
-        'Thinkific User ID',
-        'Created At',
-        
-        // Profile Information
-        'Business Name',
-        'Gender',
-        'Age Range',
-        'Education Level',
-        'Employment Status',
-        'Residency Status',
-        'Community Area',
-        'TALP Participation',
-        'State of Residence',
-        'LGA Details',
-        'Type of Applicant',
-        'Referrer ID',
-        'Referrer Name',
-        'Referrer Phone',
-        'Source of Information',
-        'Disability',
-        
-        // Cohort Information
-        'Cohort Name',
-        'Cohort Start Date',
-        'Cohort End Date',
-        'Cohort Active Status',
-        'Cohort Color',
-        'Location Name',
-        'Location Seats',
-        
-        // Enrollment Information
-        'Course Name',
-        'Course ID',
-        'Course Description',
-        'Course Active Status',
-        'Course Capacity',
-        'Enrollment Status',
-        'Enrollment Date',
-        'Activation Date',
-        'Completion Date',
-        'Expiry Date',
-        'Percentage Completed',
-        'Is Free Trial',
-        'Is Completed',
-        'Is Expired',
-        'Started At',
-        'Updated At',
-        
-        // Assessment Information
-        'Course of Study',
-        'Assessment Enrollment Status',
-        'Had Job Before Admission',
-        'Assessment Employment Status',
-        'Employment Type',
-        'Work Time Type',
-        'Employed in Creative Sector',
-        'Creative Job Nature',
-        'Non-Creative Job Info',
-        'Years of Experience Creative',
-        'Satisfaction Level',
-        'Skill Rating',
-        'Monthly Income',
-        'Has Reliable Income',
-        'Earning Meets Needs',
-        'Work Is Decent and Good',
-        'Job Gives Purpose',
-        'Feel Respected at Work',
-        'LMS Platform Rating',
-        'Tafta Preparation Rating',
-        'Preparation Feedback',
-        'Quality of Interaction Rating',
-        'Training Materials Rating',
-        'Topic Sequencing Rating',
-        'Facilitators Response Rating',
-        'Would Recommend Tafta',
-        'Improvement Suggestions',
-        'Most Striking Feature',
-        'Turn Offs',
-        'Practical Class Challenges',
-        'Online Class Challenges',
-        'Completion Motivation',
-        'Assessment Created At',
-        'Assessment Updated At',
-      ],
-      // Data rows
-      ...exportData.applicants.map(applicant => {
-        const userCohort = applicant.userCohort?.[0];
-        const cohort = userCohort?.cohort;
-        const location = userCohort?.location;
-        const enrollments = userCohort?.enrollments || [];
-        const assessment = applicant.assessment;
-        
-        // Get primary enrollment (first one) or create a default structure
-        const primaryEnrollment = enrollments[0] || {};
-        
-        // Handle multiple enrollments by joining course names
-        const allCourseNames = enrollments.map(e => e.course_name).filter(Boolean).join('; ');
-        const allCourseIds = enrollments.map(e => e.course_id?.toString()).filter(Boolean).join('; ');
-        
-        return [
-          // Basic Applicant Information
-          applicant.firstName || '',
-          applicant.lastName || '',
-          applicant.email || '',
-          applicant.profile?.phoneNumber || '',
-          applicant.type || '',
-          applicant.thinkific_user_id || '',
-          applicant.createdAt ? new Date(applicant.createdAt).toISOString() : '',
-          
-          // Profile Information
-          applicant.profile?.businessName || '',
-          applicant.profile?.gender || '',
-          applicant.profile?.ageRange || '',
-          applicant.profile?.educationLevel || '',
-          applicant.profile?.employmentStatus || '',
-          applicant.profile?.residencyStatus || '',
-          applicant.profile?.communityArea || '',
-          applicant.profile?.talpParticipation ? 'Yes' : 'No',
-          applicant.profile?.stateOfResidence || '',
-          applicant.profile?.LGADetails || '',
-          applicant.profile?.type || '',
-          applicant.profile?.referrer?.id || '',
-          applicant.profile?.referrer?.fullName || '',
-          applicant.profile?.referrer?.phoneNumber || '',
-          applicant.profile?.source || '',
-          applicant.profile?.disability || '',
-          
-          // Cohort Information
-          cohort?.name || '',
-          cohort?.start_date ? new Date(cohort.start_date).toISOString() : '',
-          cohort?.end_date ? new Date(cohort.end_date).toISOString() : '',
-          cohort?.active ? 'Active' : 'Inactive',
-          cohort?.color || '',
-          location?.name || '',
-          location?.seats?.toString() || '',
-          
-          // Enrollment Information
-          allCourseNames || primaryEnrollment?.course_name || '',
-          allCourseIds || primaryEnrollment?.course_id?.toString() || '',
-          '', // Course description would need to be fetched separately
-          '', // Course active status would need to be fetched separately
-          '', // Course capacity would need to be fetched separately
-          primaryEnrollment?.enrolled ? 'Enrolled' : 'Not Enrolled',
-          primaryEnrollment?.created_at ? new Date(primaryEnrollment.created_at).toISOString() : '',
-          primaryEnrollment?.activated_at ? new Date(primaryEnrollment.activated_at).toISOString() : '',
-          primaryEnrollment?.completed_at ? new Date(primaryEnrollment.completed_at).toISOString() : '',
-          primaryEnrollment?.expiry_date ? new Date(primaryEnrollment.expiry_date).toISOString() : '',
-          primaryEnrollment?.percentage_completed?.toString() || '',
-          primaryEnrollment?.is_free_trial ? 'Yes' : 'No',
-          primaryEnrollment?.completed ? 'Yes' : 'No',
-          primaryEnrollment?.expired ? 'Yes' : 'No',
-          primaryEnrollment?.started_at ? new Date(primaryEnrollment.started_at).toISOString() : '',
-          primaryEnrollment?.updated_at ? new Date(primaryEnrollment.updated_at).toISOString() : '',
-          
-          // Assessment Information
-          assessment?.courseOfStudy || '',
-          assessment?.enrollmentStatus || '',
-          assessment?.hadJobBeforeAdmission ? 'Yes' : 'No',
-          assessment?.employmentStatus || '',
-          assessment?.employmentType || '',
-          assessment?.workTimeType || '',
-          assessment?.employedInCreativeSector ? 'Yes' : 'No',
-          assessment?.creativeJobNature || '',
-          assessment?.nonCreativeJobInfo || '',
-          assessment?.yearsOfExperienceCreative || '',
-          assessment?.satisfactionLevel || '',
-          assessment?.skillRating || '',
-          assessment?.monthlyIncome || '',
-          assessment?.hasReliableIncome ? 'Yes' : 'No',
-          assessment?.earningMeetsNeeds ? 'Yes' : 'No',
-          assessment?.workIsDecentAndGood ? 'Yes' : 'No',
-          assessment?.jobGivesPurpose ? 'Yes' : 'No',
-          assessment?.feelRespectedAtWork ? 'Yes' : 'No',
-          assessment?.lmsPlatformRating || '',
-          assessment?.taftaPreparationRating || '',
-          assessment?.preparationFeedback || '',
-          assessment?.qualityOfInteractionRating || '',
-          assessment?.trainingMaterialsRating || '',
-          assessment?.topicSequencingRating || '',
-          assessment?.facilitatorsResponseRating || '',
-          assessment?.wouldRecommendTafta ? 'Yes' : 'No',
-          assessment?.improvementSuggestions || '',
-          assessment?.mostStrikingFeature || '',
-          assessment?.turnOffs || '',
-          assessment?.practicalClassChallenges || '',
-          assessment?.onlineClassChallenges || '',
-          assessment?.completionMotivation || '',
-          assessment?.createdAt ? new Date(assessment.createdAt).toISOString() : '',
-          assessment?.updatedAt ? new Date(assessment.updatedAt).toISOString() : '',
-        ];
-      }),
-    ];
-  }, [exportData?.applicants]);
-
   // Check if all applicants are selected
   const allApplicantsSelected =
     data?.applicants?.length > 0 &&
@@ -877,12 +782,8 @@ function ApplicantList() {
             </Button>
             <CSVLink
               data={csvData}
-              filename={`applicants-export-${
-                new Date().toISOString().split('T')[0]
-              }.csv`}
-              className={`inline-flex items-center ${
-                isExporting ? 'pointer-events-none' : ''
-              }`}
+              filename={`applicants-export-${new Date().toISOString().split('T')[0]}.csv`}
+              className={`inline-flex items-center ${isExporting ? 'pointer-events-none opacity-50' : ''}`}
               title="Export includes: Applicant details, Profile information, Cohort data, Enrollment details, Assessment responses, and Course information">
               <Button variant='outline' disabled={isExporting}>
                 {isExporting ? (
@@ -893,7 +794,7 @@ function ApplicantList() {
                 ) : (
                   <>
                     <Download className='mr-2 h-4 w-4' />
-                    Export Comprehensive Data ({exportData?.count || 0} records)
+                    Export Comprehensive Data ({exportData?.count || data?.count || 0} records)
                   </>
                 )}
               </Button>

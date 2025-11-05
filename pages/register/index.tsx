@@ -130,6 +130,7 @@ function completeRegistration() {
   const [skipped, setSkipped] = useState(new Set<number>());
   const [skip, setSkip] = useState(true);
   const [skipCC, setSkipCC] = useState(true);
+  const [isProcessingEnrollment, setIsProcessingEnrollment] = useState(false);
   const router = useRouter();
   const {userId, cohortId} = router.query;
   const [cID, setCID] = useState(undefined);
@@ -160,11 +161,20 @@ function completeRegistration() {
 
   // Function to handle enrollment activation after finishing registration
   const handleFinishAndEnroll = async () => {
+    // Prevent multiple simultaneous calls
+    if (isProcessingEnrollment) {
+      console.log('⏸️ Enrollment processing already in progress, ignoring duplicate click');
+      return;
+    }
+
+    setIsProcessingEnrollment(true);
+    const loadingToast = toast.loading('Processing enrollment... Please wait.');
+
     try {
       console.log('🎯 Starting enrollment activation after registration completion...');
       
       // Get user data
-        const userData = await fetch('/api/users/me', {
+      const userData = await fetch('/api/users/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -177,6 +187,8 @@ function completeRegistration() {
       
       const user = await userData.json();
       console.log('👤 User data:', user);
+      
+      toast.loading('Fetching enrollment information...', { id: loadingToast });
       
       // Find existing enrollment (use non-cached API)
       const enrollmentResponse = await fetch(`/api/enrollments?user_email=${user.email}`, {
@@ -196,6 +208,8 @@ function completeRegistration() {
       if (enrollmentData.enrollments && enrollmentData.enrollments.length > 0) {
         const enrollment = enrollmentData.enrollments[0];
         
+        toast.loading('Activating your enrollment... This may take a moment.', { id: loadingToast });
+        
         // Activate enrollment using retry API
         const retryResponse = await fetch('/api/enrollments/retry', {
           method: 'POST',
@@ -213,28 +227,30 @@ function completeRegistration() {
         
         if (retryResponse.ok) {
           console.log('✅ Enrollment activated successfully!');
-          toast.success('Registration completed! You are now enrolled in your course.');
+          toast.success('Registration completed! You are now enrolled in your course.', { id: loadingToast });
           
           // Redirect to dashboard
           router.push('/dashboard');
         } else {
           const errorData = await retryResponse.text();
           console.error('❌ Failed to activate enrollment:', errorData);
-          toast.error('Registration completed, but enrollment activation failed. Please contact support.');
+          toast.error('Registration completed, but enrollment activation failed. Please contact support.', { id: loadingToast });
           
           // Still redirect to dashboard
           router.push('/dashboard');
         }
       } else {
         console.log('⚠️ No enrollment found for user');
-        toast.error('No enrollment found. Please contact support.');
+        toast.error('No enrollment found. Please contact support.', { id: loadingToast });
       }
     } catch (error: any) {
       console.error('❌ Error during enrollment activation:', error);
-      toast.error('Registration completed, but there was an issue with enrollment. Please contact support.');
+      toast.error('Registration completed, but there was an issue with enrollment. Please contact support.', { id: loadingToast });
       
       // Still redirect to dashboard
       router.push('/dashboard');
+    } finally {
+      setIsProcessingEnrollment(false);
     }
   };
 
@@ -362,9 +378,10 @@ function completeRegistration() {
                     <Button 
                       variant='contained' 
                       onClick={handleFinishAndEnroll}
+                      disabled={isProcessingEnrollment}
                       sx={{ minWidth: '120px' }}
                     >
-                      Finish
+                      {isProcessingEnrollment ? 'Processing...' : 'Finish'}
                     </Button>
                   </Grid>
                 </React.Fragment>

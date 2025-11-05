@@ -290,13 +290,15 @@ export default async function handler(
   const orderBy = orderByMap[(sort as string) || 'name_asc'] || [{ firstName: 'asc' }, { lastName: 'asc' }];
 
   // Add safety limits to prevent timeout
+  // For export queries (very large limits), allow unlimited to export all records
   const requestedLimit = parseInt(typeof limit == 'string' && limit ? limit : '30');
-  const maxLimit = 5000; // Maximum allowed limit to prevent timeouts
-  const take = Math.min(requestedLimit, maxLimit);
+  const isExportQuery = requestedLimit > 10000; // Treat requests > 10000 as export queries
+  const maxLimit = isExportQuery ? Number.MAX_SAFE_INTEGER : 5000; // No limit for exports
+  const take = isExportQuery ? requestedLimit : Math.min(requestedLimit, maxLimit);
   const skip = take * parseInt(typeof page == 'string' ? page : '0');
   
-  // Log warning for large requests
-  if (requestedLimit > maxLimit) {
+  // Log warning for large requests (only for non-export queries)
+  if (!isExportQuery && requestedLimit > maxLimit) {
     console.warn(`Request limit ${requestedLimit} exceeds maximum ${maxLimit}, using ${take} instead`);
   }
   

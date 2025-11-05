@@ -169,6 +169,7 @@ export const UserCreateForm = ({  ...other }) => {
                 onChange={formik.handleChange}
                 required
                 value={formik.values.password}
+                autoComplete="new-password"
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">

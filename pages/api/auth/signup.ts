@@ -181,15 +181,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         // ❌ FAIL FAST - Server-side validation for course selection
-        // This prevents users from registering without selecting a course
-        if (!selectedCourse || !selectedCourseName || !selectedCourseId) {
-          console.error('❌ CRITICAL SERVER ERROR: Course selection is missing!', {
+        // Only require course selection for APPLICANT users (not admin/staff roles)
+        const isApplicantRole = role === 'APPLICANT' || !role || role === 'USER';
+        const requiresCourseSelection = isApplicantRole && (!selectedCourse || !selectedCourseName || !selectedCourseId);
+        
+        if (requiresCourseSelection) {
+          console.error('❌ CRITICAL SERVER ERROR: Course selection is missing for applicant!', {
             selectedCourse,
             selectedCourseName,
             selectedCourseId,
             email,
             firstName,
             lastName,
+            role,
             fullProfile: profile,
           });
           
@@ -204,6 +208,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               }
             }
           });
+        }
+        
+        // Log skipped validation for admin/staff roles
+        if (!isApplicantRole) {
+          console.log('ℹ️ Skipping course selection validation for admin/staff role:', role);
         }
 
         // ✅ Log successful course validation
