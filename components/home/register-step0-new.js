@@ -72,7 +72,14 @@ export const RegisterStepNew = ({handlers, ...other}) => {
         .email('Must be a valid email')
         .max(100)
         .required('Email is required'),
-      password: Yup.string().min(6).max(50).required('Password is required'),
+      password: Yup.string()
+        .min(8, 'Password must be at least 8 characters')
+        .max(50, 'Password must be no more than 50 characters')
+        .required('Password is required')
+        .matches(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d])/,
+          'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+        ),
       confirmPassword: Yup.string()
         .test('passwords-match', 'Passwords must match', function (value) {
           return this.parent.password === value;
@@ -89,12 +96,9 @@ export const RegisterStepNew = ({handlers, ...other}) => {
         }),
     }),
     onSubmit: async (values, helpers) => {
-      // Prevent multiple submissions
-      if (helpers.isSubmitting || formik.isSubmitting) {
-        console.log('⏸️ Form submission already in progress, ignoring duplicate click');
-        return;
-      }
-
+      // Formik already handles duplicate submission prevention via isSubmitting
+      // No need for additional guard - Formik will block if already submitting
+      
       const {
         email,
         firstName,
@@ -403,6 +407,8 @@ export const RegisterStepNew = ({handlers, ...other}) => {
                     fullWidth
                     helperText={
                       formik.touched.password && formik.errors.password
+                        ? formik.errors.password
+                        : 'Must be at least 8 characters with uppercase, lowercase, number, and special character'
                     }
                     label='Password'
                     name='password'
