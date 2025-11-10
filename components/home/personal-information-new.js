@@ -2403,46 +2403,66 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
     validationSchema: Yup.object({
       enrollmentId: Yup.string().required('Course selection is required'),
     }),
-    onSubmit: values => {
-      // Find the selected course from cohortCourses
-      const selectedCourse = cohortCourses.find(
-        course => course.id === values.enrollmentId,
-      );
+    onSubmit: async (values, helpers) => {
+      // Prevent multiple submissions
+      if (helpers.isSubmitting) {
+        console.log('⏸️ Course selection already in progress, ignoring duplicate click');
+        return;
+      }
 
-      // ❌ FAIL FAST - Break if course selection is invalid
-      if (!selectedCourse) {
-        const error = new Error('❌ CRITICAL: Course selection failed. Please refresh and try again.');
-        console.error('❌ Course selection error:', {
-          enrollmentId: values.enrollmentId,
-          availableCourses: cohortCourses,
+      const loadingToast = toast.loading('Saving course selection... Please wait.');
+
+      try {
+        // Find the selected course from cohortCourses
+        const selectedCourse = cohortCourses.find(
+          course => course.id === values.enrollmentId,
+        );
+
+        // ❌ FAIL FAST - Break if course selection is invalid
+        if (!selectedCourse) {
+          const error = new Error('❌ CRITICAL: Course selection failed. Please refresh and try again.');
+          console.error('❌ Course selection error:', {
+            enrollmentId: values.enrollmentId,
+            availableCourses: cohortCourses,
+          });
+          toast.error('Course selection failed. Please try again.', { id: loadingToast });
+          throw error;
+        }
+
+        // ❌ FAIL FAST - Validate all required fields exist
+        if (!selectedCourse.id || !selectedCourse.cohortId || !selectedCourse.course?.name || !selectedCourse.course?.id) {
+          const error = new Error('❌ CRITICAL: Incomplete course data. Contact support.');
+          console.error('❌ Incomplete course data:', selectedCourse);
+          toast.error('Course data is incomplete. Please contact support.', { id: loadingToast });
+          throw error;
+        }
+
+        toast.loading('Saving your selection...', { id: loadingToast });
+
+        // ✅ USE LOCALSTORAGE instead of sessionStorage - More persistent!
+        localStorage.setItem('selectedCourse', selectedCourse.id);
+        localStorage.setItem('selectedCohortId', selectedCourse.cohortId);
+        localStorage.setItem('selectedCourseName', selectedCourse.course.name);
+        localStorage.setItem('selectedCourseActualId', selectedCourse.course.id.toString());
+
+        // ✅ Log success for debugging
+        console.log('✅ Course selection saved to localStorage:', {
+          selectedCourse: selectedCourse.id,
+          selectedCohortId: selectedCourse.cohortId,
+          selectedCourseName: selectedCourse.course.name,
+          selectedCourseActualId: selectedCourse.course.id,
         });
-        toast.error('Course selection failed. Please try again.');
-        throw error;
+
+        toast.success('Course selection saved successfully!', { id: loadingToast });
+        
+        // Small delay to show success message before navigation
+        setTimeout(() => {
+          handleNext();
+        }, 300);
+      } catch (error) {
+        console.error('❌ Course selection error:', error);
+        helpers.setSubmitting(false);
       }
-
-      // ❌ FAIL FAST - Validate all required fields exist
-      if (!selectedCourse.id || !selectedCourse.cohortId || !selectedCourse.course?.name || !selectedCourse.course?.id) {
-        const error = new Error('❌ CRITICAL: Incomplete course data. Contact support.');
-        console.error('❌ Incomplete course data:', selectedCourse);
-        toast.error('Course data is incomplete. Please contact support.');
-        throw error;
-      }
-
-      // ✅ USE LOCALSTORAGE instead of sessionStorage - More persistent!
-      localStorage.setItem('selectedCourse', selectedCourse.id);
-      localStorage.setItem('selectedCohortId', selectedCourse.cohortId);
-      localStorage.setItem('selectedCourseName', selectedCourse.course.name);
-      localStorage.setItem('selectedCourseActualId', selectedCourse.course.id.toString());
-
-      // ✅ Log success for debugging
-      console.log('✅ Course selection saved to localStorage:', {
-        selectedCourse: selectedCourse.id,
-        selectedCohortId: selectedCourse.cohortId,
-        selectedCourseName: selectedCourse.course.name,
-        selectedCourseActualId: selectedCourse.course.id,
-      });
-
-      handleNext();
     },
   });
 
@@ -2544,8 +2564,13 @@ export const InitialCourseSelection = ({handlers, cohortCourses, ...other}) => {
                   Skip
                 </Button>
               )}
-              <Button variant='contained' type='submit' disabled={!hasCourses}>
-                Continue
+              <Button 
+                variant='contained' 
+                type='submit' 
+                disabled={!hasCourses || formik.isSubmitting}
+                sx={{ minWidth: '120px' }}
+              >
+                {formik.isSubmitting ? 'Processing...' : 'Continue'}
               </Button>
             </Grid>
           </form>

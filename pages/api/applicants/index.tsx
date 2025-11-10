@@ -452,14 +452,8 @@ export default async function handler(
             userCohort: {
               include: {
                 enrollments: {
-                  // Only include enrollments for courses that belong to this cohort
-                  ...(cohortId ? {
-                    where: {
-                      course_id: {
-                        in: cohortCourseIds,
-                      },
-                    },
-                  } : {}),
+                  // Include all enrollments for this userCohort
+                  // No need to filter by cohortCourseIds since enrollments are already linked to userCohort
                 },
                 cohort: true,
                 location: true
@@ -538,21 +532,23 @@ export default async function handler(
                 enrollments: {
                   select: {
                     id: true,
+                    uid: true,
                     enrolled: true,
                     completed: true,
                     expired: true,
                     course_name: true,
+                    course_id: true,
                     percentage_completed: true,
-                    activated_at: true
+                    activated_at: true,
+                    created_at: true,
+                    completed_at: true,
+                    expiry_date: true,
+                    started_at: true,
+                    updated_at: true,
+                    is_free_trial: true
                   },
-                  // Only include enrollments for courses that belong to this cohort
-                  ...(cohortId ? {
-                    where: {
-                      course_id: {
-                        in: cohortCourseIds,
-                      },
-                    },
-                  } : {}),
+                  // Include all enrollments for this userCohort
+                  // No need to filter by cohortCourseIds since enrollments are already linked to userCohort
                 },
                 cohort: {
                   select: {
@@ -1004,14 +1000,8 @@ export default async function handler(
             userCohort: {
               include: {
                 enrollments: {
-                  // Only include enrollments for courses that belong to this cohort
-                  ...(cohortId ? {
-                    where: {
-                      course_id: {
-                        in: cohortCourseIds,
-                      },
-                    },
-                  } : {}),
+                  // Include all enrollments for this userCohort
+                  // No need to filter by cohortCourseIds since enrollments are already linked to userCohort
                 },
                 cohort: true,
                 location: true

@@ -431,18 +431,34 @@ function ApplicantList() {
     if (!exportData?.applicants) return [];
 
     return exportData.applicants.map(applicant => {
-      const userCohort = applicant.userCohort?.[0];
-      const cohort = userCohort?.cohort;
-      const location = userCohort?.location;
-      const enrollments = userCohort?.enrollments || [];
+      // Aggregate enrollments from all userCohorts to ensure we capture all enrollment data
+      const allEnrollments = applicant.userCohort?.flatMap(
+        uc => uc.enrollments || []
+      ) || [];
+      
+      // Find the userCohort with enrollments, or use the first one for cohort/location info
+      const userCohortWithEnrollments = applicant.userCohort?.find(
+        uc => uc.enrollments && uc.enrollments.length > 0
+      ) || applicant.userCohort?.[0];
+      
+      const cohort = userCohortWithEnrollments?.cohort;
+      const location = userCohortWithEnrollments?.location;
       const assessment = applicant.assessment;
       
-      // Get primary enrollment (first one) or create a default structure
-      const primaryEnrollment = enrollments[0] || {};
+      // Get primary enrollment (first one with data) or create a default structure
+      const primaryEnrollment = allEnrollments[0] || {};
       
-      // Handle multiple enrollments by joining course names
-      const allCourseNames = enrollments.map(e => e.course_name).filter(Boolean).join('; ');
-      const allCourseIds = enrollments.map(e => e.course_id?.toString()).filter(Boolean).join('; ');
+      // Handle multiple enrollments by joining course names (remove duplicates)
+      const allCourseNames = allEnrollments
+        .map(e => e.course_name)
+        .filter(Boolean)
+        .filter((name, index, self) => self.indexOf(name) === index) // Remove duplicates
+        .join('; ');
+      const allCourseIds = allEnrollments
+        .map(e => e.course_id?.toString())
+        .filter(Boolean)
+        .filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
+        .join('; ');
       
       return {
         // Basic Applicant Information
@@ -487,7 +503,7 @@ function ApplicantList() {
         'Course Description': '', // Course description would need to be fetched separately
         'Course Active Status': '', // Course active status would need to be fetched separately
         'Course Capacity': '', // Course capacity would need to be fetched separately
-        'Enrollment Status': primaryEnrollment?.enrolled ? 'Enrolled' : 'Not Enrolled',
+        'Enrollment Status': allEnrollments.some(e => e.enrolled) ? 'Enrolled' : (allEnrollments.length > 0 ? 'Not Enrolled' : 'None'),
         'Enrollment Date': primaryEnrollment?.created_at ? new Date(primaryEnrollment.created_at).toISOString() : '',
         'Activation Date': primaryEnrollment?.activated_at ? new Date(primaryEnrollment.activated_at).toISOString() : '',
         'Completion Date': primaryEnrollment?.completed_at ? new Date(primaryEnrollment.completed_at).toISOString() : '',

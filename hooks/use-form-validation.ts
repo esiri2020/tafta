@@ -16,12 +16,24 @@ export const useFormValidation = ({isEnterpriseType}: ValidationOptions) => {
     firstName: Yup.string().max(255).required('First Name is required'),
     lastName: Yup.string().max(255).required('Last Name is required'),
     middleName: Yup.string().max(255).required('Middle Name is required'),
-    dob: Yup.date()
-      .max(
-        new Date(new Date().setFullYear(new Date().getFullYear() - 15)),
-        'You must be at least 15 years old',
-      )
-      .nullable()
+    dob: Yup.string()
+      .test('is-valid-date', 'Date of Birth is required', function(value) {
+        if (!value || value === '') return false;
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return false;
+        // Check if at least 15 years old
+        const today = new Date();
+        const minDate = new Date(today.getFullYear() - 15, today.getMonth(), today.getDate());
+        return date <= minDate;
+      })
+      .test('is-old-enough', 'You must be at least 15 years old', function(value) {
+        if (!value || value === '') return true; // Let the required test handle empty values
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return true;
+        const today = new Date();
+        const minDate = new Date(today.getFullYear() - 15, today.getMonth(), today.getDate());
+        return date <= minDate;
+      })
       .required('Date of Birth is required'),
 
     // Location fields

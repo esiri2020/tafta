@@ -245,6 +245,17 @@ export const ApplicantsListTable = props => {
                 applicant.id,
               );
 
+              // Find the userCohort with enrollments, or use the first one
+              // If cohortId is provided, prefer that cohort, otherwise use the one with enrollments
+              const userCohortWithEnrollments = applicant.userCohort?.find(
+                uc => uc.enrollments && uc.enrollments.length > 0
+              ) || applicant.userCohort?.[0];
+              
+              // Aggregate all enrollments from all userCohorts for this applicant
+              const allEnrollments = applicant.userCohort?.flatMap(
+                uc => uc.enrollments || []
+              ) || [];
+
               return (
                 <TableRow
                   hover
@@ -290,15 +301,16 @@ export const ApplicantsListTable = props => {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {applicant.userCohort[0]?.enrollments?.length > 0
-                      ? applicant.userCohort[0]?.enrollments
-                          ?.map(e => e.course_name)
+                    {allEnrollments.length > 0
+                      ? allEnrollments
+                          .map(e => e.course_name)
+                          .filter((name, index, self) => self.indexOf(name) === index) // Remove duplicates
                           .join(', ')
                       : 'No Enrollments'}
                   </TableCell>
                   <TableCell>
                     {applicant.profile ? (
-                      applicant.userCohort[0]?.enrollments[0]?.enrolled ? (
+                      allEnrollments.length > 0 && allEnrollments.some(e => e.enrolled) ? (
                         <Box
                           as='span'
                           bgcolor={'secondary.main'}
@@ -332,8 +344,8 @@ export const ApplicantsListTable = props => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {applicant.userCohort[0]?.enrollments.length > 0 ? (
-                      applicant.userCohort[0]?.enrollments[0].enrolled ? (
+                    {allEnrollments.length > 0 ? (
+                      allEnrollments.some(e => e.enrolled) ? (
                         <Box
                           as='span'
                           bgcolor={'secondary.main'}

@@ -23,6 +23,7 @@ import {RegistrationTalp} from '@/components/home/form-sections/registration-tal
 import {JobReadiness} from '@/components/home/form-sections/job-readiness';
 import {BusinessInformation} from '@/components/home/form-sections/business-information';
 import {useCreateEnrollmentMutation} from '@/services/api';
+import toast from 'react-hot-toast';
 
 // Update the PersonalInformationProps interface to make props optional
 interface PersonalInformationProps {
@@ -228,40 +229,135 @@ const PersonalInformation = ({
     validateOnBlur: true,
     validate: values => {
       const errors = validateForm(values);
+      // Debug: Log validation errors
+      if (Object.keys(errors).length > 0) {
+        console.log('🔍 Form validation errors:', errors);
+        console.log('🔍 Form values being validated:', values);
+      }
       return errors;
     },
     onSubmit: async (values, helpers: FormikHelpers<FormValues>) => {
+      // Prevent multiple submissions - but only if actually submitting
+      // If formik.isSubmitting is false, it means validation failed or submission completed
+      // In that case, we should allow resubmission even if our custom state is stuck
+      if (formik.isSubmitting) {
+        // Formik is actively submitting - block duplicate clicks
+        if (isSubmitting) {
+          console.log('⏸️ Form submission already in progress, ignoring duplicate click');
+          return;
+        }
+      } else {
+        // Formik is not submitting - reset our state if it's stuck
+        if (isSubmitting) {
+          console.log('🔄 Recovering from stuck submitting state - Formik is not submitting');
+          setIsSubmitting(false);
+        }
+      }
+
+      // Debug: Log form values before submission
+      console.log('📤 Form submission started with values:', {
+        phoneNumber: values.phoneNumber,
+        gender: values.gender,
+        ageRange: values.ageRange,
+        stateOfResidence: values.stateOfResidence,
+        educationLevel: values.educationLevel,
+        dob: values.dob,
+        hasAllRequired: Boolean(
+          values.phoneNumber &&
+          values.gender &&
+          values.ageRange &&
+          values.stateOfResidence &&
+          values.educationLevel &&
+          values.dob
+        )
+      });
+
       setIsSubmitting(true);
+      helpers.setSubmitting(true);
+      
+      // Show initial loading toast immediately
+      const loadingToast = toast.loading('Saving your information... Please wait.');
 
       try {
+        // Update toast with progress
+        toast.loading('Validating your information...', { id: loadingToast });
+        
+        // Small delay to ensure toast is visible
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        toast.loading('Processing your details...', { id: loadingToast });
+        
         // Submit the form
         const success = await handleSubmit(values);
+        
         if (success) {
+          toast.loading('Finalizing your registration...', { id: loadingToast });
           helpers.setStatus({success: true});
+          
+          // Show success message and wait before navigating
+          toast.success('Information saved successfully! Redirecting...', { id: loadingToast });
+          
+          // Delay navigation to allow toast to be visible
+          setTimeout(() => {
+            handleNext();
+          }, 500);
         } else {
           helpers.setStatus({success: false});
           helpers.setErrors({submit: 'Failed to update profile'});
+          toast.error('Failed to save information. Please try again.', { id: loadingToast });
           // Scroll to first error if submission fails
           scrollToFirstError(formik.errors);
+          helpers.setSubmitting(false);
+          setIsSubmitting(false);
         }
       } catch (error) {
+        console.error('❌ Form submission error:', error);
         helpers.setStatus({success: false});
         helpers.setErrors({submit: 'An unexpected error occurred'});
+        toast.error('An error occurred. Please try again.', { id: loadingToast });
         // Scroll to first error if submission fails
         scrollToFirstError(formik.errors);
-      } finally {
         helpers.setSubmitting(false);
         setIsSubmitting(false);
       }
     },
   });
 
-  // Add effect to handle validation errors
+  // Add effect to handle validation errors and reset submitting state
   useEffect(() => {
-    if (Object.keys(formik.errors).length > 0 && formik.submitCount > 0) {
-      scrollToFirstError(formik.errors);
+    // When validation fails, Formik sets isSubmitting to false but doesn't call onSubmit
+    // We need to detect this and reset our state, and show errors
+    if (formik.submitCount > 0 && Object.keys(formik.errors).length > 0) {
+      // Validation failed - reset submitting state immediately
+      if (formik.isSubmitting === false && isSubmitting) {
+        setIsSubmitting(false);
+      }
+      
+      // Show toast for validation errors (only once per submit attempt)
+      if (!formik.isSubmitting) {
+        const firstError = Object.values(formik.errors)[0];
+        if (firstError && typeof firstError === 'string') {
+          toast.error(`Please fix the form errors: ${firstError}`, {
+            duration: 4000,
+          });
+        } else {
+          toast.error('Please fix the form errors before continuing.', {
+            duration: 4000,
+          });
+        }
+        scrollToFirstError(formik.errors);
+      }
     }
-  }, [formik.submitCount, formik.errors]);
+  }, [formik.submitCount, formik.errors, formik.isSubmitting, isSubmitting]);
+
+  // Reset submitting state when Formik resets it (allowing resubmission after validation errors)
+  useEffect(() => {
+    // When Formik's isSubmitting becomes false (after validation failure or completion), reset our state too
+    if (!formik.isSubmitting && isSubmitting) {
+      console.log('🔄 Resetting isSubmitting state - form can be resubmitted');
+      setIsSubmitting(false);
+    }
+  }, [formik.isSubmitting, isSubmitting]);
 
   // Initialize date from form value when component mounts
   useEffect(() => {

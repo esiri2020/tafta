@@ -89,6 +89,12 @@ export const RegisterStepNew = ({handlers, ...other}) => {
         }),
     }),
     onSubmit: async (values, helpers) => {
+      // Prevent multiple submissions
+      if (helpers.isSubmitting || formik.isSubmitting) {
+        console.log('⏸️ Form submission already in progress, ignoring duplicate click');
+        return;
+      }
+
       const {
         email,
         firstName,
@@ -214,19 +220,18 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           reject(req);
         }
       });
-      toast
-        .promise(promise, {
-          loading: 'Loading...',
-          success: <b>Success!</b>,
-          error: err => {
-            console.error(err);
-            if (err.error.status === 422) return <b>User already exists.</b>;
-            return <b>An error occurred.</b>;
-          },
-        })
+      
+      // Show initial loading toast
+      const loadingToast = toast.loading('Creating your account... Please wait.');
+      
+      // Ensure formik knows we're submitting (this should already be set by formik, but we're being explicit)
+      helpers.setSubmitting(true);
+
+      promise
         .then(async res => {
+          toast.loading('Setting up your account...', { id: loadingToast });
+          
           helpers.setStatus({success: true});
-          helpers.setSubmitting(false);
 
           // ✅ Store the user ID in localStorage (more persistent than sessionStorage)
           if (res.data && res.data.user && res.data.user.id) {
@@ -237,13 +242,22 @@ export const RegisterStepNew = ({handlers, ...other}) => {
             localStorage.setItem('email', email);
           }
 
+          toast.loading('Signing you in...', { id: loadingToast });
+
           let req = await signIn('email', {
             redirect: false,
             callbackUrl: '/verify-email',
             email,
           });
+          
           if (req.error === null) {
-            handleNext();
+            toast.success('Registration successful! Redirecting...', { id: loadingToast });
+            setTimeout(() => {
+              handleNext();
+            }, 500);
+          } else {
+            toast.error('Registration completed, but sign-in failed. Please try logging in.', { id: loadingToast });
+            helpers.setSubmitting(false);
           }
         })
         .catch(err => {
@@ -258,6 +272,9 @@ export const RegisterStepNew = ({handlers, ...other}) => {
           helpers.setErrors({submit: err.error?.data?.message});
           if (err.error?.status === 422) {
             helpers.setErrors({email: 'User already exists'});
+            toast.error('This email is already registered. Please use a different email or try logging in.', { id: loadingToast });
+          } else {
+            toast.error('Registration failed. Please try again.', { id: loadingToast });
           }
           helpers.setSubmitting(false);
         });
@@ -457,8 +474,13 @@ export const RegisterStepNew = ({handlers, ...other}) => {
                     Skip
                   </Button>
                 )}
-                <Button variant='contained' type='submit'>
-                  Continue
+                <Button 
+                  variant='contained' 
+                  type='submit'
+                  disabled={formik.isSubmitting}
+                  sx={{ minWidth: '120px' }}
+                >
+                  {formik.isSubmitting ? 'Creating account...' : 'Continue'}
                 </Button>
               </Grid>
             </form>
