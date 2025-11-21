@@ -1,5 +1,7 @@
 import {SessionProvider} from 'next-auth/react';
 import './styles.css';
+import 'prismjs/themes/prism.css';
+import 'react-quill/dist/quill.snow.css';
 
 import type {AppProps} from 'next/app';
 import type {Session} from 'next-auth';

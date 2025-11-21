@@ -23,6 +23,7 @@ import {
   useSendCohortNotificationMutation,
   useGetCohortsQuery,
 } from '../../../services/api';
+import RichTextEditor from './rich-text-editor';
 
 export const NotificationSendForm = ({
   recipientIds,
@@ -343,19 +344,14 @@ export const NotificationSendForm = ({
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label='Message'
-                name='message'
-                onChange={e => setMessage(e.target.value)}
-                required
+              <RichTextEditor
+                label='Message *'
                 value={message}
-                variant='outlined'
-                multiline
-                rows={4}
-                error={!!formErrors.message}
-                helperText={formErrors.message}
+                onChange={setMessage}
+                error={formErrors.message}
+                helperText={formErrors.message || 'Compose your message with rich text formatting. Switch to Code view to edit HTML directly.'}
                 disabled={isLoading}
+                minHeight={350}
               />
             </Grid>
           </Grid>

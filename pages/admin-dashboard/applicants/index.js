@@ -358,8 +358,8 @@ function ApplicantList() {
         ? filters.talpParticipation
         : undefined,
     type: filters.type.length > 0 ? filters.type : undefined,
-    location: filters.location.length > 0 ? filters.location : undefined,
-    lga: filters.lga.length > 0 ? filters.lga : undefined,
+    location: filters.location && filters.location.length > 0 ? filters.location : undefined,
+    lga: filters.lga && filters.lga.length > 0 ? filters.lga : undefined,
     mobilizer: filters.mobilizer.length > 0 ? filters.mobilizer : undefined,
     dateFrom: enrollmentDate.from ? enrollmentDate.from.toISOString() : undefined,
     dateTo: enrollmentDate.to ? enrollmentDate.to.toISOString() : undefined,
@@ -699,20 +699,25 @@ function ApplicantList() {
     selectedApplicants.length < (data?.applicants?.length || 0);
 
   // Get filtered applicants IDs for notifications
+  // Use exportData to get ALL filtered applicants, not just paginated ones
   const getFilteredApplicantIds = () => {
-    // Make sure data.applicants exists and is an array
-    if (!data || !data.applicants || !Array.isArray(data.applicants)) {
+    // Prefer exportData as it contains all filtered applicants
+    const applicantsSource = exportData?.applicants || data?.applicants;
+    
+    // Make sure applicants exist and is an array
+    if (!applicantsSource || !Array.isArray(applicantsSource)) {
       console.warn('No applicants data available for notifications');
       return [];
     }
 
     // Extract IDs and ensure they're all valid
-    const filteredIds = data.applicants
+    const filteredIds = applicantsSource
       .map(applicant => applicant.id)
       .filter(id => !!id); // Filter out any null/undefined IDs
 
     console.log('Current filtered applicants:', filteredIds);
     console.log('Number of filtered applicants:', filteredIds.length);
+    console.log('Using exportData:', !!exportData?.applicants, 'Total count:', data?.count);
     return filteredIds;
   };
 
@@ -786,8 +791,8 @@ function ApplicantList() {
                     : unreadNotificationsCount}
                 </span>
               )}
-              {data?.applicants?.length > 0
-                ? `Send Notifications (${data.applicants.length})`
+              {data?.count > 0
+                ? `Send Notifications (${data.count})`
                 : 'Send Notifications'}
             </Button>
             <Button asChild>
