@@ -183,9 +183,13 @@ const NotificationDetailsPage = () => {
                   <Typography variant="h6" gutterBottom>
                     Message
                   </Typography>
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {broadcast.message}
-                  </Typography>
+                  <Box
+                    sx={{
+                      '& img': { maxWidth: '100%', height: 'auto' },
+                      '& a': { color: 'primary.main', textDecoration: 'underline' },
+                    }}
+                    dangerouslySetInnerHTML={{ __html: broadcast.message }}
+                  />
                 </Grid>
 
                 {broadcast.filterParams && (
@@ -213,7 +217,7 @@ const NotificationDetailsPage = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Recipients ({broadcast.recipientCount})
+                Recipients ({broadcast.recipients?.length || broadcast.recipientCount || 0})
               </Typography>
               <TableContainer>
                 <Table>
@@ -225,28 +229,38 @@ const NotificationDetailsPage = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {paginatedRecipients.map((recipient: Recipient, index: number) => (
-                      <TableRow key={recipient.id}>
-                        <TableCell>{startIndex + index + 1}</TableCell>
-                        <TableCell>
-                          {recipient.firstName} {recipient.lastName}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={recipient.status}
-                            color={recipient.status === 'READ' ? 'success' : 'default'}
-                            size="small"
-                            icon={recipient.status === 'READ' ? <CheckCircleIcon /> : <ScheduleIcon />}
-                          />
+                    {paginatedRecipients.length > 0 ? (
+                      paginatedRecipients.map((recipient: Recipient, index: number) => (
+                        <TableRow key={recipient.id}>
+                          <TableCell>{startIndex + index + 1}</TableCell>
+                          <TableCell>
+                            {recipient.firstName} {recipient.lastName}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={recipient.status}
+                              color={recipient.status === 'READ' ? 'success' : recipient.status === 'DELIVERED' ? 'info' : 'default'}
+                              size="small"
+                              icon={recipient.status === 'READ' ? <CheckCircleIcon /> : <ScheduleIcon />}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            No recipients found
+                          </Typography>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
               <TablePagination
                 component="div"
-                count={broadcast.recipientCount}
+                count={broadcast.recipients?.length || broadcast.recipientCount || 0}
                 page={page}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}

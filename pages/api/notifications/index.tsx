@@ -43,7 +43,7 @@ async function sendNotificationEmail(
   switch (notificationType) {
     case 'APPLICANT':
       template = readEmailTemplate('applicant-notification.html');
-      subject = 'Application Status Update';
+      subject = 'TAFTA Notification';
       break;
     case 'STAFF':
       template = readEmailTemplate('staff-alert.html');
@@ -102,7 +102,97 @@ export default async function handler(
 
   if (req.method === 'GET') {
     try {
-      const {page = '1', limit = '10', isRead, search, status, type, tag} = req.query;
+      const {page = '1', limit = '10', isRead, search, status, type, tag, id} = req.query;
+      
+      // If ID is provided, fetch a specific notification and all its recipients (same broadcast)
+      if (id && typeof id === 'string') {
+        // Find the notification with this ID
+        const notification = await prisma.notification.findUnique({
+          where: { id },
+          include: {
+            recipient: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true
+              }
+            },
+            sender: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true
+              }
+            }
+          }
+        });
+
+        if (!notification) {
+          return res.status(404).json({ error: 'Notification not found' });
+        }
+
+        // Find all notifications with the same title, message, sender, and created within 5 minutes
+        // This groups all recipients of the same broadcast
+        const broadcastStartTime = new Date(notification.createdAt);
+        const broadcastEndTime = new Date(notification.createdAt);
+        broadcastEndTime.setMinutes(broadcastEndTime.getMinutes() + 5);
+
+        const allBroadcastNotifications = await prisma.notification.findMany({
+          where: {
+            title: notification.title,
+            message: notification.message,
+            senderId: notification.senderId,
+            createdAt: {
+              gte: broadcastStartTime,
+              lte: broadcastEndTime
+            }
+          },
+          include: {
+            recipient: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
+        });
+
+        // Group recipients with their read status
+        const recipients = allBroadcastNotifications.map(n => ({
+          id: n.recipient.id,
+          firstName: n.recipient.firstName || '',
+          lastName: n.recipient.lastName || '',
+          status: n.isRead ? 'READ' : (n.status === 'DELIVERED' ? 'DELIVERED' : 'SENT')
+        }));
+
+        // Return as a single broadcast object
+        return res.status(200).json({
+          notifications: [{
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            status: notification.status,
+            sender: notification.sender,
+            createdAt: notification.createdAt,
+            recipientCount: recipients.length,
+            recipients: recipients
+          }],
+          total: 1,
+          page: 1,
+          totalPages: 1
+        });
+      }
+
       const pageNumber = Math.max(1, parseInt(page as string, 10));
       const limitNumber = Math.max(1, parseInt(limit as string, 10));
       const skip = (pageNumber - 1) * limitNumber;
