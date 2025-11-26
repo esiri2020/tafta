@@ -2,7 +2,9 @@ import {getToken} from 'next-auth/jwt';
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../../lib/prismadb';
 import {NotificationStatus, NotificationType} from '@prisma/client';
-import { notificationEmailQueue } from '../../../lib/notification-queue';
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 // Debug the prisma client to see what's happening
 console.log('Prisma client in notifications API:', {
@@ -10,6 +12,74 @@ console.log('Prisma client in notifications API:', {
   hasNotificationModel: !!prisma?.notification,
   availableModels: Object.keys(prisma || {}),
 });
+
+// Create a Nodemailer transporter (ZeptoMail SMTP)
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_SERVER_HOST,
+  port: Number(process.env.EMAIL_SERVER_PORT),
+  auth: {
+    user: process.env.EMAIL_SERVER_USER,
+    pass: process.env.EMAIL_SERVER_PASSWORD,
+  },
+});
+
+// Function to read email template
+function readEmailTemplate(templateName: string): string {
+  const templatePath = path.join(process.cwd(), 'utils', templateName);
+  return fs.readFileSync(templatePath, 'utf8');
+}
+
+// Function to build and send a single notification email
+async function sendNotificationEmail(
+  recipientEmail: string,
+  recipientName: string,
+  notificationType: string,
+  notificationData: any,
+) {
+  let template: string;
+  let subject: string;
+
+  // Select template based on notification type
+  switch (notificationType) {
+    case 'APPLICANT':
+      template = readEmailTemplate('applicant-notification.html');
+      subject = 'TAFTA Notification';
+      break;
+    case 'STAFF':
+      template = readEmailTemplate('staff-alert.html');
+      subject = 'Staff Alert Notification';
+      break;
+    default:
+      template = readEmailTemplate('applicant-notification.html');
+      subject = 'Notification Update';
+  }
+
+  // Replace placeholders in template
+  const emailContent = template
+    .replace('[Company Logo]', process.env.COMPANY_LOGO_URL || '')
+    .replace('[Company Name]', process.env.COMPANY_NAME || 'TAFTA')
+    .replace('[Applicant Name]', recipientName)
+    .replace('[Staff Name]', recipientName)
+    .replace('[Application ID]', notificationData.relatedEntityId || '')
+    .replace('[Status]', notificationData.title || '')
+    .replace('[Date]', new Date().toLocaleDateString())
+    .replace('[Notification Details]', notificationData.message || '')
+    .replace('[Alert Type]', notificationData.title || '')
+    .replace('[Priority Level]', notificationData.priority || 'Normal')
+    .replace('[Date and Time]', new Date().toLocaleString())
+    .replace('[Alert Description]', notificationData.message || '')
+    .replace('[Required Action]', notificationData.action || 'Please review')
+    .replace('[View Application Button]', notificationData.actionUrl || '#')
+    .replace('[View Details Button]', notificationData.actionUrl || '#');
+
+  // Send email via ZeptoMail
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: recipientEmail,
+    subject: subject,
+    html: emailContent,
+  });
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -367,49 +437,56 @@ export default async function handler(
         createdNotifications.map(n => [n.recipientId, n.id])
       );
 
-      // Queue email jobs for all recipients (non-blocking)
-      const emailJobs = recipients.map((recipient) => {
-        const notificationId = notificationMap.get(recipient.id);
-        const recipientName = `${recipient.firstName || ''} ${recipient.lastName || ''}`.trim() || 'User';
-        
-        return notificationEmailQueue.add(
-          `email-${recipient.id}-${Date.now()}`,
-          {
-            notificationId: notificationId || recipient.id,
-            recipientId: recipient.id,
-            emailData: {
-              recipientEmail: recipient.email,
-              recipientName,
-              notificationType: type || 'GENERAL',
-              notificationData: {
-                title,
-                message,
-                relatedEntityId,
-                actionUrl: notificationId 
-                  ? `${process.env.NEXT_PUBLIC_APP_URL}/notifications/${notificationId}`
-                  : '#',
-              },
-            },
-          },
-          {
-            priority: 1, // Normal priority
-            removeOnComplete: true,
-            removeOnFail: false,
-          }
+      console.log(
+        `✅ Prepared ${notificationsToCreate.length} notifications, sending emails directly...`,
+      );
+
+      // Send emails directly in small batches to avoid overloading SMTP
+      const batchSize = 10;
+      for (let i = 0; i < recipients.length; i += batchSize) {
+        const batch = recipients.slice(i, i + batchSize);
+
+        await Promise.all(
+          batch.map(async recipient => {
+            const notificationId = notificationMap.get(recipient.id);
+            const recipientName =
+              `${recipient.firstName || ''} ${recipient.lastName || ''}`.trim() ||
+              'User';
+
+            try {
+              await sendNotificationEmail(
+                recipient.email,
+                recipientName,
+                type || 'GENERAL',
+                {
+                  title,
+                  message,
+                  relatedEntityId,
+                  actionUrl: notificationId
+                    ? `${process.env.NEXT_PUBLIC_APP_URL}/notifications/${notificationId}`
+                    : '#',
+                },
+              );
+              console.log(
+                `✅ Email sent to ${recipient.email} for notification ${notificationId}`,
+              );
+            } catch (emailError) {
+              console.error(
+                `❌ Failed to send email to ${recipient.email}:`,
+                emailError,
+              );
+            }
+          }),
         );
-      });
+      }
 
-      // Wait for all jobs to be queued (not sent, just queued)
-      await Promise.all(emailJobs);
-      
-      console.log(`✅ Queued ${emailJobs.length} email jobs for background processing`);
+      console.log(`✅ Finished sending emails to ${recipients.length} recipients`);
 
-      // Return immediately - emails will be sent by the worker
       return res.status(201).json({
-        success: true, 
+        success: true,
         count: createdCount,
-        queued: emailJobs.length,
-        message: `Notifications created and ${emailJobs.length} emails queued for sending`
+        queued: 0,
+        message: `Notifications created and emails sent to ${recipients.length} recipients`,
       });
     } catch (err: any) {
       console.error('Error creating notifications:', err.message);

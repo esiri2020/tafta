@@ -495,8 +495,13 @@ export const apiService = createApi({
     }),
     // Notification endpoints
     getNotifications: builder.query({
-      query: ({page, limit, search, status, type, tag}) => {
+      // Supports both list view (page/limit/etc) and details view (id)
+      query: ({page, limit, search, status, type, tag, id}) => {
         let queryString = `notifications?page=${page}&limit=${limit}`;
+
+        if (id) {
+          queryString += `&id=${id}`;
+        }
 
         if (search) {
           queryString += `&search=${search}`;
