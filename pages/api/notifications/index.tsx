@@ -2,9 +2,7 @@ import {getToken} from 'next-auth/jwt';
 import type {NextApiRequest, NextApiResponse} from 'next';
 import prisma from '../../../lib/prismadb';
 import {NotificationStatus, NotificationType} from '@prisma/client';
-import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
+import { notificationEmailQueue } from '../../../lib/notification-queue';
 
 // Debug the prisma client to see what's happening
 console.log('Prisma client in notifications API:', {
@@ -12,74 +10,6 @@ console.log('Prisma client in notifications API:', {
   hasNotificationModel: !!prisma?.notification,
   availableModels: Object.keys(prisma || {}),
 });
-
-// Create a Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_SERVER_HOST,
-  port: Number(process.env.EMAIL_SERVER_PORT),
-  auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
-  },
-});
-
-// Function to read email template
-function readEmailTemplate(templateName: string): string {
-  const templatePath = path.join(process.cwd(), 'utils', templateName);
-  return fs.readFileSync(templatePath, 'utf8');
-}
-
-// Function to send notification email
-async function sendNotificationEmail(
-  recipientEmail: string,
-  recipientName: string,
-  notificationType: string,
-  notificationData: any
-) {
-  let template: string;
-  let subject: string;
-
-  // Select template based on notification type
-  switch (notificationType) {
-    case 'APPLICANT':
-      template = readEmailTemplate('applicant-notification.html');
-      subject = 'TAFTA Notification';
-      break;
-    case 'STAFF':
-      template = readEmailTemplate('staff-alert.html');
-      subject = 'Staff Alert Notification';
-      break;
-    default:
-      template = readEmailTemplate('applicant-notification.html');
-      subject = 'Notification Update';
-  }
-
-  // Replace placeholders in template
-  const emailContent = template
-    .replace('[Company Logo]', process.env.COMPANY_LOGO_URL || '')
-    .replace('[Company Name]', process.env.COMPANY_NAME || 'TAFTA')
-    .replace('[Applicant Name]', recipientName)
-    .replace('[Staff Name]', recipientName)
-    .replace('[Application ID]', notificationData.relatedEntityId || '')
-    .replace('[Status]', notificationData.title || '')
-    .replace('[Date]', new Date().toLocaleDateString())
-    .replace('[Notification Details]', notificationData.message || '')
-    .replace('[Alert Type]', notificationData.title || '')
-    .replace('[Priority Level]', notificationData.priority || 'Normal')
-    .replace('[Date and Time]', new Date().toLocaleString())
-    .replace('[Alert Description]', notificationData.message || '')
-    .replace('[Required Action]', notificationData.action || 'Please review')
-    .replace('[View Application Button]', notificationData.actionUrl || '#')
-    .replace('[View Details Button]', notificationData.actionUrl || '#');
-
-  // Send email
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to: recipientEmail,
-    subject: subject,
-    html: emailContent,
-  });
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -134,11 +64,13 @@ export default async function handler(
           return res.status(404).json({ error: 'Notification not found' });
         }
 
-        // Find all notifications with the same title, message, sender, and created within 5 minutes
-        // This groups all recipients of the same broadcast
+        // Find all notifications with the same title, message, and sender
+        // Group by title + message + sender to find all recipients of the same broadcast
+        // Use a 24-hour window to handle notifications sent in batches or over time
         const broadcastStartTime = new Date(notification.createdAt);
+        broadcastStartTime.setHours(broadcastStartTime.getHours() - 12);
         const broadcastEndTime = new Date(notification.createdAt);
-        broadcastEndTime.setMinutes(broadcastEndTime.getMinutes() + 5);
+        broadcastEndTime.setHours(broadcastEndTime.getHours() + 12);
 
         const allBroadcastNotifications = await prisma.notification.findMany({
           where: {
@@ -173,6 +105,9 @@ export default async function handler(
           lastName: n.recipient.lastName || '',
           status: n.isRead ? 'READ' : (n.status === 'DELIVERED' ? 'DELIVERED' : 'SENT')
         }));
+
+        console.log(`📧 Found ${allBroadcastNotifications.length} notifications for broadcast "${notification.title}"`);
+        console.log(`👥 Grouped into ${recipients.length} recipients`);
 
         // Return as a single broadcast object
         return res.status(200).json({
@@ -266,8 +201,14 @@ export default async function handler(
         })
       ]);
 
+      // Map notifications to include recipientCount (each notification = 1 recipient)
+      const notificationsWithCount = notifications.map(n => ({
+        ...n,
+        recipientCount: 1, // Each notification record represents 1 recipient
+      }));
+
       return res.status(200).json({
-        notifications,
+        notifications: notificationsWithCount,
         total,
         page: pageNumber,
         totalPages: Math.ceil(total / limitNumber)
@@ -357,61 +298,119 @@ export default async function handler(
       // Log the data we're trying to create
       console.log('Notification data:', JSON.stringify(notificationData));
 
-      // Use individual create operations instead of createMany if needed
-      let createdCount = 0;
-      for (const data of notificationData) {
-        try {
-          await prisma.notification.create({data});
-          createdCount++;
-        } catch (createError) {
-          console.error('Error creating individual notification:', createError);
-        }
-      }
-
-      console.log(`Successfully created ${createdCount} notifications`);
-
-      // Get recipient information
-      const recipient = await prisma.user.findUnique({
-        where: { id: recipientIds[0] },
+      // Get all recipients information in batch
+      const recipients = await prisma.user.findMany({
+        where: { 
+          id: { in: recipientIds },
+          role: 'APPLICANT'
+        },
         select: { 
+          id: true,
           email: true,
           firstName: true,
           lastName: true
         },
       });
 
-      if (!recipient) {
-        throw new Error('Recipient not found');
+      if (recipients.length === 0) {
+        return res.status(400).send({
+          error: 'No valid recipients found',
+        });
       }
 
-      // Create notification in database
-      const notification = await prisma.notification.create({
-        data: {
-          title,
-          message,
-          type,
-          senderId: token?.userData?.userId,
-          recipientId: recipientIds[0],
-          cohortId,
-          relatedEntityId,
-          status: 'SENT',
-        },
+      console.log(`Found ${recipients.length} valid recipients out of ${recipientIds.length} requested`);
+
+      // Create notifications for all recipients
+      const notificationsToCreate = recipients.map(recipient => ({
+        title,
+        message,
+        senderId: token.sub as string,
+        recipientId: recipient.id,
+        type: type || 'GENERAL',
+        cohortId: cohortId || null,
+        relatedEntityId: relatedEntityId || null,
+        status: NotificationStatus.DELIVERED,
+      }));
+
+      // Use createMany for better performance
+      const createResult = await prisma.notification.createMany({
+        data: notificationsToCreate,
+        skipDuplicates: true,
       });
 
-      // Send email notification
-      await sendNotificationEmail(
-        recipient.email,
-        `${recipient.firstName || ''} ${recipient.lastName || ''}`.trim() || 'User',
-        type,
-        {
+      const createdCount = createResult.count;
+      console.log(`Successfully created ${createdCount} notifications in database`);
+
+      // Get the created notifications to get their IDs for email links
+      const createdNotifications = await prisma.notification.findMany({
+        where: {
           title,
           message,
-          relatedEntityId,
-          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/notifications/${notification.id}`,
-        }
+          senderId: token.sub as string,
+          recipientId: { in: recipients.map(r => r.id) },
+          createdAt: {
+            gte: new Date(Date.now() - 60000), // Created in the last minute
+          }
+        },
+        select: {
+          id: true,
+          recipientId: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: recipients.length,
+      });
+
+      // Create a map of recipientId to notificationId
+      const notificationMap = new Map(
+        createdNotifications.map(n => [n.recipientId, n.id])
       );
 
-      return res.status(201).json({success: true, count: createdCount});
+      // Queue email jobs for all recipients (non-blocking)
+      const emailJobs = recipients.map((recipient) => {
+        const notificationId = notificationMap.get(recipient.id);
+        const recipientName = `${recipient.firstName || ''} ${recipient.lastName || ''}`.trim() || 'User';
+        
+        return notificationEmailQueue.add(
+          `email-${recipient.id}-${Date.now()}`,
+          {
+            notificationId: notificationId || recipient.id,
+            recipientId: recipient.id,
+            emailData: {
+              recipientEmail: recipient.email,
+              recipientName,
+              notificationType: type || 'GENERAL',
+              notificationData: {
+                title,
+                message,
+                relatedEntityId,
+                actionUrl: notificationId 
+                  ? `${process.env.NEXT_PUBLIC_APP_URL}/notifications/${notificationId}`
+                  : '#',
+              },
+            },
+          },
+          {
+            priority: 1, // Normal priority
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
+      });
+
+      // Wait for all jobs to be queued (not sent, just queued)
+      await Promise.all(emailJobs);
+      
+      console.log(`✅ Queued ${emailJobs.length} email jobs for background processing`);
+
+      // Return immediately - emails will be sent by the worker
+      return res.status(201).json({
+        success: true, 
+        count: createdCount,
+        queued: emailJobs.length,
+        message: `Notifications created and ${emailJobs.length} emails queued for sending`
+      });
     } catch (err: any) {
       console.error('Error creating notifications:', err.message);
       console.error('Full error:', err);

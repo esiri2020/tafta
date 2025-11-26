@@ -75,7 +75,11 @@ const Row = ({ group, index, onViewDetails }: RowProps) => {
         </TableCell>
         <TableCell>{index + 1}</TableCell>
         <TableCell>{group.title}</TableCell>
-        <TableCell align="center">{group.totalRecipients}</TableCell>
+        <TableCell align="center">
+          {typeof group.totalRecipients === 'number' 
+            ? group.totalRecipients 
+            : group.broadcasts.length || 0}
+        </TableCell>
         <TableCell>
           {format(parseISO(group.latestTimestamp), 'MMM d, yyyy h:mm a')}
         </TableCell>
@@ -145,8 +149,11 @@ const NotificationsPage = () => {
     const groups = data.notifications.reduce((acc: GroupedNotification[], broadcast: NotificationBroadcast) => {
       const existingGroup = acc.find(group => group.title === broadcast.title);
       
+      // Count each notification as 1 recipient (since each notification = 1 recipient)
+      const recipientCount = broadcast.recipientCount || 1;
+      
       if (existingGroup) {
-        existingGroup.totalRecipients += broadcast.recipientCount;
+        existingGroup.totalRecipients = (existingGroup.totalRecipients || 0) + recipientCount;
         existingGroup.broadcasts.push(broadcast);
         if (new Date(broadcast.createdAt) > new Date(existingGroup.latestTimestamp)) {
           existingGroup.latestTimestamp = broadcast.createdAt;
@@ -154,7 +161,7 @@ const NotificationsPage = () => {
       } else {
         acc.push({
           title: broadcast.title,
-          totalRecipients: broadcast.recipientCount,
+          totalRecipients: recipientCount,
           broadcasts: [broadcast],
           latestTimestamp: broadcast.createdAt,
         });
