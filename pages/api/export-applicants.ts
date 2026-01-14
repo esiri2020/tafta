@@ -172,4 +172,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.write(`data: ${JSON.stringify({ log: message, error: true })}\n\n`);
     res.end();
   }
-} 
+}
+
+// Configure Vercel serverless function timeout (max 300 seconds on Pro plan)
+export const config = {
+  maxDuration: 300, // 5 minutes - allows time for large data exports
+}; 
