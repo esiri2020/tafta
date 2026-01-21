@@ -39,3 +39,4 @@ console.log('📊 Worker configuration:', {
 setInterval(() => {
   // Heartbeat to keep process alive
 }, 60000);
+
