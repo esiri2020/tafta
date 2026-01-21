@@ -46,45 +46,69 @@ const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 let redis: Redis | null = null;
 
 export function getRedisClient(): Redis {
-  console.log('🔍 getRedisClient called');
   if (!redis) {
-    console.log('🔍 Creating new Redis client with config:', {
-      configType: typeof redisConfig,
-      isString: typeof redisConfig === 'string',
-      configPreview: typeof redisConfig === 'string' ? redisConfig.substring(0, 30) + '...' : 'Object',
-    });
+    // Only log once on initial creation to reduce noise
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Creating Redis client...');
+    }
     
     try {
-      redis = new Redis(redisConfig);
+      redis = new Redis({
+        ...(typeof redisConfig === 'string' ? { url: redisConfig } : redisConfig),
+        lazyConnect: true, // Don't connect immediately
+        maxRetriesPerRequest: null, // Required for BullMQ
+        retryStrategy: (times) => {
+          // Exponential backoff, but stop retrying after 5 attempts
+          if (times > 5) {
+            return null; // Stop retrying
+          }
+          return Math.min(times * 100, 3000);
+        },
+        enableOfflineQueue: false, // Don't queue commands when offline
+        connectTimeout: 5000,
+      });
+      
+      let hasConnected = false;
       
       redis.on('connect', () => {
+        hasConnected = true;
         console.log('✅ Redis connected successfully');
       });
       
-      redis.on('error', (error) => {
-        console.error('❌ Redis connection error:', error);
-        // Don't throw the error, just log it
-        // This allows the app to continue without Redis
+      redis.on('error', (error: any) => {
+        // Only log connection errors if we haven't connected yet, or if it's a new error
+        if (!hasConnected || error.message?.includes('ECONNREFUSED')) {
+          // Silently handle connection refused errors when Redis isn't available
+          // These are expected when Redis isn't running locally
+          if (process.env.NODE_ENV === 'production' || error.code !== 'ECONNREFUSED') {
+            console.error('❌ Redis connection error:', error.message || error);
+          }
+        }
       });
       
       redis.on('close', () => {
-        console.log('🔌 Redis connection closed');
+        hasConnected = false;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔌 Redis connection closed');
+        }
       });
       
       redis.on('reconnecting', () => {
-        console.log('🔄 Redis reconnecting...');
+        // Only log reconnection attempts in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Redis reconnecting...');
+        }
       });
-    } catch (error) {
-      console.error('❌ Failed to create Redis client:', error);
-      // Return a mock Redis client that doesn't do anything
-      // This prevents the app from crashing when Redis is unavailable
+    } catch (error: any) {
+      console.error('❌ Failed to create Redis client:', error.message || error);
+      // Return a client that won't crash the app
       redis = new Redis({
         host: 'localhost',
         port: 6379,
         lazyConnect: true,
-        maxRetriesPerRequest: 0, // Don't retry
+        maxRetriesPerRequest: 0,
+        enableOfflineQueue: false,
         connectTimeout: 1000,
-        commandTimeout: 1000,
       });
     }
   }
@@ -183,8 +207,11 @@ export class CacheManager {
         typeof value === 'bigint' ? value.toString() : value
       );
       await this.redis!.setex(key, ttlSeconds, serializedData);
-    } catch (error) {
-      console.error('❌ Cache set error:', error);
+    } catch (error: any) {
+      // Only log non-connection errors to reduce noise
+      if (error.code !== 'ECONNREFUSED' && process.env.NODE_ENV === 'production') {
+        console.error('❌ Cache set error:', error.message || error);
+      }
     }
   }
   
